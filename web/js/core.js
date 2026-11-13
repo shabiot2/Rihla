@@ -66,7 +66,7 @@ var App = window.App = {};
     offsets: [0, 0, 0, 0, 0, 0], radioApp: '', btApp: '', fanApp: '', favs: [],
     theme: 'silver', customAccent: '#56c8f5', autoOccasion: true, themeLocked: false, car: null, onboarded: 0,
     prePrayer: 10, adhkarRemind: true, adhkarScale: 1, briefing: true, fanAlert: true, fanLimit: 75, maint: {}, odo: null,
-    home: null, work: null, recents: [], full: false, stations: [], lastStation: null
+    home: null, work: null, recents: [], full: false, stations: [], lastStation: null, mapBig: false
   };
   App.settings = Object.assign({}, DEFAULTS, App.store.get('settings', {}));
   App.saveSettings = function () { App.store.set('settings', App.settings); App.emit('settings'); };
@@ -135,6 +135,8 @@ var App = window.App = {};
 
   // ---------- network ----------
   App.fetchJSON = function (url, timeout) {
+    if (App.offline && App.net) App.net.check();          // re-check right away; fail fast when there is no internet
+    if (App.offline) return Promise.reject(new Error('offline'));
     return new Promise(function (resolve, reject) {
       var done = false;
       var timer = setTimeout(function () { if (!done) { done = true; reject(new Error('timeout')); } }, timeout || 12000);

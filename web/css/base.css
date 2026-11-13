@@ -131,13 +131,26 @@ h1, h2, h3, .disp { font-family: var(--f-disp); }
 .st.blink { animation: blink 1.4s infinite; }
 @keyframes blink { 50% { opacity: .25; } }
 
-/* ---------- main ---------- */
-#main { flex: 1; display: flex; min-height: 0; }
-#side {
-  width: 31vw; min-width: 270px; max-width: 480px; flex: none;
-  display: flex; flex-direction: column;
-  padding: 1.1vmin .9vw 1.1vmin .5vw;
+/* ---------- main: dashboard grid (RTL — the first column is on the right) ----------
+   speed | prayer · audio · location | map card.  body.map-big = the map takes the wide area (button / navigation) */
+#main {
+  flex: 1; min-height: 0; display: grid;
+  grid-template-columns: minmax(250px, 30vw) minmax(220px, 26.5vw) minmax(0, 1fr);
+  grid-template-rows: auto auto minmax(0, 1fr);
+  grid-template-areas: "gauge prayer map" "gauge media map" "gauge info map";
+  gap: 1.1vmin .9vw; padding: 1.1vmin .9vw;
 }
+.gauge-card { grid-area: gauge; }
+.prayer-card { grid-area: prayer; }
+.media-card { grid-area: media; }
+.info-card { grid-area: info; }
+#mapWrap { grid-area: map; }
+body.map-big #main {
+  grid-template-columns: minmax(250px, 30vw) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) auto;
+  grid-template-areas: "gauge map" "prayer map";
+}
+body.map-big .media-card, body.map-big .info-card { display: none; }
 .card {
   background: linear-gradient(160deg, var(--card-a) 0%, var(--card-b) 60%, var(--card-c) 100%);
   border: 1px solid var(--line); border-radius: var(--r);
@@ -158,7 +171,7 @@ h1, h2, h3, .disp { font-family: var(--f-disp); }
 .trip b { font-size: 2.7vmin; font-weight: 700; }
 .trip i { font-style: normal; font-size: 1.4vmin; color: var(--dim); margin-right: .2em; }
 
-.prayer-card { flex: none; margin-top: 1.1vmin; padding: 1vmin .9vw 1.1vmin; cursor: pointer; }
+.prayer-card { padding: 1vmin .9vw 1.1vmin; cursor: pointer; }
 .prayer-card:active { filter: brightness(1.15); }
 .pc-head { display: flex; align-items: center; justify-content: space-between; font-size: 1.9vmin; color: var(--muted); margin-bottom: .8vmin; }
 .pc-city { display: flex; align-items: center; color: var(--text); font-weight: 600; }
@@ -181,14 +194,75 @@ h1, h2, h3, .disp { font-family: var(--f-disp); }
 .prayer-list li.sun span::after { content: " ☼"; }
 
 #mapWrap {
-  flex: 1; position: relative; overflow: hidden; min-width: 0;
-  margin: 1.1vmin .5vw 1.1vmin 1vw; border-radius: var(--r);
+  position: relative; overflow: hidden; min-width: 0; min-height: 0;
+  border-radius: var(--r);
   border: 1px solid var(--line2); background: #0d1115;
   box-shadow: 0 0 0 1px rgba(0,0,0,.6), 0 10px 26px rgba(0,0,0,.45), inset 0 0 60px rgba(0,0,0,.35);
 }
 #mapWrap::after { content: ""; position: absolute; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none; z-index: 3; border-radius: var(--r);
   box-shadow: inset 0 0 0 1px rgba(255,255,255,.06), inset 0 -40px 60px -30px rgba(0,0,0,.6); }
 #map { position: absolute; top: 0; left: 0; width: 100%; height: 100%; touch-action: none; display: block; }
+
+/* ---------- dashboard widgets ---------- */
+.w-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: .7vmin; font-size: 1.9vmin; }
+.w-title { display: flex; align-items: center; font-weight: 700; color: var(--text); white-space: nowrap; }
+.w-title .ic { width: 2.4vmin; height: 2.4vmin; margin-left: .5vw; color: var(--accent); }
+.w-tag {
+  font-size: 1.55vmin; font-weight: 700; padding: .25vmin .8vw; border-radius: 99px; white-space: nowrap;
+  border: 1px solid var(--line2); color: var(--muted); background: rgba(255,255,255,.03);
+}
+.w-tag.ok { color: var(--ok); border-color: rgba(var(--ok-rgb), .5); background: rgba(var(--ok-rgb), .1); }
+.w-tag.warn { color: #ffb020; border-color: rgba(255,176,32,.55); background: rgba(255,176,32,.1); }
+.g-head { padding: .4vmin .5vw 0; margin-bottom: 0; }
+button.w-tag:active { filter: brightness(1.3); }
+
+.media-card { padding: 1vmin .9vw 1.1vmin; }
+.mc-main { display: flex; align-items: center; margin-bottom: .9vmin; min-width: 0; }
+.mc-info { flex: 1; min-width: 0; text-align: right; line-height: 1.55; }
+.mc-info b { display: block; font-size: 2.25vmin; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mc-info small { display: flex; align-items: center; font-size: 1.6vmin; color: var(--muted); white-space: nowrap; overflow: hidden; }
+.mc-info small .eq { height: 1.8vmin; margin: 0 0 0 .5vw; }
+.mc-go { flex: none; min-height: 5.4vmin; padding: 0 1.2vw; margin-right: .6vw; font-size: 1.95vmin; border-radius: 99px; }
+.mc-go .ic { width: 2.5vmin; height: 2.5vmin; margin-left: .4vw; }
+.mc-ctl { display: flex; align-items: center; justify-content: space-between; padding: 0 .2vw; direction: ltr; }   /* media keys keep the universal order */
+.mc-ctl .round { width: 6.2vmin; height: 6.2vmin; min-width: 38px; min-height: 38px; box-shadow: 0 3px 8px rgba(0,0,0,.35); }
+.mc-ctl .round .ic { width: 2.8vmin; height: 2.8vmin; }
+.mc-ctl .round.big { width: 7.6vmin; height: 7.6vmin; min-width: 46px; min-height: 46px; color: var(--on-accent);
+  background: linear-gradient(180deg, var(--pri-a), var(--pri-b)); border-color: rgba(255,255,255,.25); }
+.mc-ctl .round.big .ic { width: 3.4vmin; height: 3.4vmin; }
+.media-card.live .mc-info b { color: var(--ok); }
+
+.info-card { padding: 1vmin .9vw 1vmin; display: flex; flex-direction: column; min-height: 0; cursor: pointer; }
+.info-card:active { filter: brightness(1.15); }
+.ic-top { flex: 1; min-height: 0; display: flex; align-items: center; }
+.ic-place { flex: 1; min-width: 0; line-height: 1.5; }
+/* Arabic dots sit above/below the letters: generous line-height so overflow:hidden never clips them */
+.ic-place b { display: block; font-family: var(--f-disp); font-size: 2.9vmin; font-weight: 800; line-height: 1.6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ic-place small { display: block; font-size: 1.7vmin; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ic-place .ic-ll { direction: ltr; text-align: right; font-size: 1.55vmin; color: var(--dim); }
+.ic-compass { width: 11vmin; height: 11vmin; flex: none; margin-right: .8vw; overflow: visible; }
+.cp-ring { fill: rgba(255,255,255,.03); stroke: var(--line2); stroke-width: 1.5; }
+.cp-in { fill: none; stroke: rgba(var(--accent-rgb), .25); stroke-width: 1; stroke-dasharray: 2 3; }
+.cp-tick { stroke: var(--muted); stroke-width: 2; stroke-linecap: round; }
+.cp-n { fill: var(--danger); }
+.cp-s { fill: var(--muted); opacity: .75; }
+.cp-c { fill: var(--text); }
+#icNeedle { transform-origin: 32px 32px; transition: transform .8s ease; }
+.ic-grid { display: grid; grid-template-columns: 1.3fr 1fr 1fr 1fr; margin-top: auto; padding-top: .7vmin; border-top: 1px solid var(--line); }
+.ic-grid > div { text-align: center; line-height: 1.2; min-width: 0; position: relative; }
+.ic-grid > div + div::before { content: ""; position: absolute; right: 0; top: 15%; bottom: 15%; width: 1px; background: var(--line); }
+.ic-grid small { display: block; font-size: 1.45vmin; color: var(--muted); }
+.ic-grid b { display: block; font-size: 2.05vmin; font-weight: 700; line-height: 1.6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ic-grid b.good { color: var(--ok); }
+.ic-grid b.weak { color: var(--warn); }
+
+/* the map as a card on the dashboard: compact overlays; «you are in» lives on the location card */
+body:not(.map-big) .where-chip, body:not(.map-big) .mini-player { display: none !important; }
+body:not(.map-big) .search-bar { height: 5.6vmin; padding: 0 1.1vw 0 1.6vw; font-size: 2vmin; }
+body:not(.map-big) .map-ctl .round { width: 5.6vmin; height: 5.6vmin; min-width: 36px; min-height: 36px; }
+body:not(.map-big) .map-ctl .round .ic { width: 2.7vmin; height: 2.7vmin; }
+body:not(.map-big) .speed-warn { top: 8.5vmin; }
+#btnBig { color: var(--accent); }
 
 /* ---------- dock ---------- */
 #dock {
@@ -234,12 +308,15 @@ h1, h2, h3, .disp { font-family: var(--f-disp); }
 /* sizes use vmin (1% of the short side), so the same design scales on wide and tall screens */
 @media (max-aspect-ratio: 1/1) {
   :root { --top-h: 11vmin; --dock-h: 13vmin; }
-  #main { flex-direction: column; }
-  #side { width: auto; max-width: none; min-width: 0; height: 50vmin; flex-direction: row; padding: 1.2vmin 1.5vw 0; }
-  .gauge-card { flex: 1.15 1 0; min-width: 0; }
-  .prayer-card { flex: 1 1 0; min-width: 0; margin: 0 1.5vw 0 0; display: flex; flex-direction: column; }
+  #main, body.map-big #main {
+    grid-template-columns: minmax(0, 1.12fr) minmax(0, 1fr);
+    grid-template-rows: 48vmin auto minmax(0, 1fr);
+    grid-template-areas: "gauge prayer" "media info" "map map";
+    gap: 1.2vmin 1.5vw; padding: 1.2vmin 1.5vw;
+  }
+  body.map-big #main { grid-template-rows: 48vmin minmax(0, 1fr); grid-template-areas: "gauge prayer" "map map"; }
+  .prayer-card { display: flex; flex-direction: column; }
   .prayer-list { grid-template-columns: repeat(2, 1fr); flex: 1; align-content: space-evenly; }
-  #mapWrap { margin: 1.2vmin 1.5vw; }
   .weather { font-size: 0; }
   .weather b { font-size: 2.8vmin; }
   .car-chip, .occ-chip { display: none; }
@@ -254,6 +331,11 @@ h1, h2, h3, .disp { font-family: var(--f-disp); }
   .trip small, .trip i { font-size: 2vmin; }
   .prayer-list li span { font-size: 2.1vmin; }
   .car-chip .cc-txt { display: none; }
+  .w-head { margin-bottom: .4vmin; font-size: 2.1vmin; }
+  .ic-grid small { font-size: 1.8vmin; }
+  .mc-info small { font-size: 1.9vmin; }
+  .ic-ll { display: none !important; }
+  .ic-compass { width: 9vmin; height: 9vmin; }
 }
 /* narrow landscape (1024 and below): keep the top bar from crowding */
 @media (min-aspect-ratio: 1/1) and (max-width: 1100px) {
@@ -264,7 +346,6 @@ h1, h2, h3, .disp { font-family: var(--f-disp); }
 
 /* ---------- 1280x720 head units (16:9) ---------- */
 @media (min-aspect-ratio: 16/10) and (min-width: 1100px) {
-  #side { width: 30vw; }
   .clock { font-size: 6.6vmin; }
   .next-pill { font-size: 2.2vmin; padding: .7vmin 1.6vw; }
   .dk .ic { width: 4vmin; height: 4vmin; }

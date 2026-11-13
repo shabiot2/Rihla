@@ -40,6 +40,9 @@
     App.emit('loc', fix);
   }
 
+  // satellites from the head unit's GPS receiver (Android 7+)
+  window.onGnss = function (used, total) { L.sats = { used: used, total: total, t: Date.now() }; };
+
   // called by the Android shell (see app_code.py)
   window.onNativeLoc = function (lat, lon, spd, hasSpd, brg, hasBrg, acc, time, alt) {
     L.lastNative = Date.now();
@@ -84,8 +87,11 @@
     var age = f ? (now - f.t) / 1000 : 1e9;
     var stale = age > 6;
     var kmh = f && !stale ? f.speed : 0;
-    var text = !f ? 'جارٍ البحث عن إشارة GPS…' : stale ? 'إشارة GPS ضعيفة' :
-      'دقة ±' + App.d(Math.round(f.acc || 0)) + ' م' + (f.alt ? '  •  ارتفاع ' + App.d(Math.round(f.alt)) + ' م' : '');
+    var sat = L.sats && now - L.sats.t < 15000 ? L.sats : null;
+    var satTxt = sat ? App.d(sat.used) + '/' + App.d(sat.total) + ' قمر' : '';
+    var text = !f ? 'جارٍ البحث عن إشارة GPS…' + (sat ? ' (' + App.d(sat.total) + ' قمر مرئي)' : '') :
+      stale ? 'إشارة GPS ضعيفة' + (sat ? ' • ' + satTxt : '') :
+      (f.src === 'gps' ? 'GPS السيارة' : 'موقع تقريبي') + (satTxt ? ' • ' + satTxt : '') + ' • ±' + App.d(Math.round(f.acc || 0)) + ' م';
     App.gauge.set(kmh, { heading: f && !stale && kmh > 3 ? f.heading : null, text: text });
     var ic = App.$('stGps');
     ic.setAttribute('class', 'ic st ' + (!f || stale ? 'acc blink' : (f.acc < 30 ? 'ok' : 'on')));

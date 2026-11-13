@@ -233,7 +233,7 @@
 
   // ---------- status icons ----------
   S.status = function () {
-    App.$('stNet').setAttribute('class', 'ic st' + (navigator.onLine ? ' ok' : ''));
+    App.$('stNet').setAttribute('class', 'ic st' + (App.offline ? ' acc' : navigator.onLine !== false ? ' ok' : ''));
     if (!N.has) return;
     var w = S.wifi(), b = S.bt();
     App.$('stWifi').setAttribute('class', 'ic st' + (w && w.on ? (w.ssid && w.ssid !== '<unknown ssid>' && w.rssi > -127 ? ' ok' : ' on') : ''));
@@ -266,7 +266,8 @@
         '</button><b class="num" id="sLim">' + App.d(s.speedLimit) + '</b><button class="round small" data-lim="10">' + App.icon('plus') + '</button></div>') +
       row('عداد الرحلة', 'أو اضغط مطولاً على العدّاد', '<button class="btn" id="sTrip">تصفير</button>') + '</div>' +
       '<div class="sec"><div class="sec-title">الخريطة والملاحة</div>' +
-      row('نمط الخريطة', '', seg('sStyle', [['auto', 'تلقائي'], ['light', 'نهاري'], ['dark', 'ليلي'], ['sat', 'قمر صناعي']], s.mapStyle)) +
+      row('نمط الخريطة', '', seg('sStyle', [['auto', 'تلقائي'], ['light', 'نهاري'], ['dark', 'ليلي'], ['sat', 'قمر صناعي'], ['ksa', 'بدون نت']], s.mapStyle)) +
+      row('الخرائط بدون نت', 'خريطة المملكة المدمجة والشوارع المحفوظة', '<button class="btn" id="sOffline">' + App.icon('map') + 'فتح</button>') +
       row('الخريطة باتجاه السير', 'عند الإيقاف يكون الشمال للأعلى', sw('sHead', s.headingUp)) +
       row('التوجيه الصوتي', 'يتطلب محرك نطق عربي في الشاشة', sw('sVoice', s.voice)) + '</div>' +
       '<div class="sec"><div class="sec-title">مواقيت الصلاة — تقويم أم القرى</div>' +
@@ -298,8 +299,8 @@
       '<span class="chip ' + (App.android.supported ? 'on' : 'danger') + '">' + App.icon(App.android.supported ? 'check' : 'close') +
       (App.android.supported ? 'متوافق' : 'نسخة قديمة') + '</span></div></div>' +
       '<div class="sec"><div class="sec-title">حول التطبيق</div><div class="about">' + App.brand('lg') +
-      '<div class="ab-txt"><b>رحلة — الإصدار ' + App.d('2.2') + '</b><span>جميع الحقوق محفوظة © ' + App.d('2026') + ' أبو دانة للبرمجة</span>' +
-      '<small>تصميم وتطوير أبو دانة للبرمجة • بيانات الخرائط © OpenStreetMap • الملاحة OSRM • الإذاعات mp3quran.net و radio-browser.info • الطقس Open-Meteo</small></div></div></div>';
+      '<div class="ab-txt"><b>رحلة — الإصدار ' + App.d('2.3') + '</b><span>جميع الحقوق محفوظة © ' + App.d('2026') + ' أبو دانة للبرمجة</span>' +
+      '<small>تصميم وتطوير أبو دانة للبرمجة • بيانات الخرائط © OpenStreetMap • خريطة المملكة المدمجة: Natural Earth وبيانات الأحياء من homaily/Saudi-Arabia-Regions-Cities-and-Districts (GPL-2.0) • الملاحة OSRM • الإذاعات mp3quran.net و radio-browser.info • الطقس Open-Meteo</small></div></div></div>';
 
     function bindSw(id, key, after) {
       App.$(id).onclick = function () {
@@ -343,6 +344,7 @@
       });
     }
     bindSeg('sStyle', function (v) { s.mapStyle = v; });
+    App.$('sOffline').onclick = App.net.open;
     bindSeg('sDig', function (v) { s.digits = v; });
     bindSeg('sClk', function (v) { s.clock24 = v === '24'; });
     bindSeg('sPre', function (v) { s.prePrayer = +v; });

@@ -32,6 +32,27 @@ SUPER = {
     'Landroid/os/Bundle;': 'Landroid/os/BaseBundle;',
     'Lcom/carnav/camry/Sys;': 'Ljava/lang/Object;',
     'Landroid/os/Build;': 'Ljava/lang/Object;',
+    'Lcom/carnav/camry/Web;': 'Landroid/webkit/WebViewClient;',
+    'Lcom/carnav/camry/Gnss;': 'Landroid/location/GnssStatus$Callback;',
+    'Landroid/location/GnssStatus$Callback;': 'Ljava/lang/Object;',
+    'Landroid/location/GnssStatus;': 'Ljava/lang/Object;',
+    'Ljava/net/HttpURLConnection;': 'Ljava/net/URLConnection;',
+    'Ljava/net/URLConnection;': 'Ljava/lang/Object;',
+    'Ljava/net/URL;': 'Ljava/lang/Object;',
+    'Ljava/io/File;': 'Ljava/lang/Object;',
+    'Ljava/io/FileOutputStream;': 'Ljava/io/OutputStream;',
+    'Ljava/io/FileInputStream;': 'Ljava/io/InputStream;',
+    'Ljava/io/ByteArrayInputStream;': 'Ljava/io/InputStream;',
+    'Ljava/io/InputStream;': 'Ljava/lang/Object;',
+    'Ljava/util/HashMap;': 'Ljava/util/AbstractMap;',
+    'Ljava/util/AbstractMap;': 'Ljava/lang/Object;',
+    'Ljava/util/concurrent/atomic/AtomicLong;': 'Ljava/lang/Number;',
+    'Ljava/util/concurrent/atomic/AtomicInteger;': 'Ljava/lang/Number;',
+    'Ljava/lang/Number;': 'Ljava/lang/Object;',
+    'Landroid/webkit/WebResourceResponse;': 'Ljava/lang/Object;',
+    'Landroid/net/ConnectivityManager;': 'Ljava/lang/Object;',
+    'Landroid/net/NetworkInfo;': 'Ljava/lang/Object;',
+    'Ljava/lang/Thread;': 'Ljava/lang/Object;',
     'Ljava/io/FileReader;': 'Ljava/io/InputStreamReader;',
     'Ljava/io/InputStreamReader;': 'Ljava/io/Reader;',
     'Ljava/io/BufferedReader;': 'Ljava/io/Reader;',
@@ -56,10 +77,11 @@ for _c in ['Landroid/content/Context;', 'Landroid/view/View;', 'Landroid/webkit/
 IFACE = {'Landroid/location/LocationListener;', 'Landroid/speech/tts/TextToSpeech$OnInitListener;',
          'Ljava/lang/CharSequence;', 'Ljava/util/List;', 'Ljava/util/Set;', 'Ljava/util/Iterator;',
          'Landroid/webkit/ValueCallback;', 'Landroid/webkit/GeolocationPermissions$Callback;',
-         'Ljava/util/HashMap;'}
+         'Ljava/util/Map;', 'Landroid/webkit/WebResourceRequest;'}
 IMPLS = {'Lcom/carnav/camry/Main;': {'Landroid/location/LocationListener;',
                                      'Landroid/speech/tts/TextToSpeech$OnInitListener;'},
-         'Ljava/lang/String;': {'Ljava/lang/CharSequence;'}}
+         'Ljava/lang/String;': {'Ljava/lang/CharSequence;'},
+         'Ljava/util/HashMap;': {'Ljava/util/Map;'}}
 
 U, X, K0, K, I, F = ('U',), ('X',), ('K0',), ('K',), ('I',), ('F',)
 INTS = set('ZBSCI')
@@ -288,6 +310,27 @@ def verify(m, warnings):
                 bad('return type mismatch')
         elif n == 'return-object':
             need_ref(R0, m.ret)
+        elif n == 'return-wide':
+            if m.ret not in ('J', 'D'):
+                bad('return-wide in non-wide method')
+            need_arg(R0, m.ret)
+        elif n == 'move-wide':
+            lo, hi = get(ins.regs[1]), get(ins.regs[1] + 1)
+            if lo[0] not in ('JL', 'DL', 'WL') or hi[0] not in ('JH', 'DH', 'WH'):
+                bad('move-wide of non-pair %s %s' % (lo, hi))
+            put(R0, lo)
+            put(R0 + 1, hi)
+        elif n == 'array-length':
+            arr = need_ref(ins.regs[1])
+            if arr[0] == 'R' and not arr[1].startswith('['):
+                bad('array-length of non-array')
+            put(R0, I)
+        elif n == 'aget-object':
+            arr = need_ref(ins.regs[1])
+            need_int(ins.regs[2])
+            if arr[0] == 'R' and not arr[1].startswith('[L'):
+                bad('aget-object from non-object array')
+            put(R0, ('R', arr[1][1:] if arr[0] == 'R' else OBJ, True, None))
         elif n.startswith('const-wide'):
             put(R0, ('WL',))
             put(R0 + 1, ('WH',))
@@ -326,8 +369,16 @@ def verify(m, warnings):
                     bad('unsupported ' + n)
             else:
                 need_arg(R0, ft)
+        elif n == 'sget-wide':
+            fc, fname, ft = ins.ref
+            if ft not in ('J', 'D'):
+                bad('sget-wide of %s' % ft)
+            put(R0, (ft + 'L',))
+            put(R0 + 1, (ft + 'H',))
         elif n.startswith('sget'):
             fc, fname, ft = ins.ref
+            if ft in ('J', 'D'):
+                bad('%s of wide field' % n)
             put(R0, ('R', ft, True, None) if n == 'sget-object' else (F if ft == 'F' else I))
         elif n.startswith('if-'):
             if n.endswith('z'):

@@ -119,6 +119,15 @@
     if (!P.loc.city) cityLookup(lat, lon);
   };
   function cityLookup(lat, lon) {
+    // the built-in Kingdom map answers instantly and without internet; online lookup only outside it
+    var w = App.base && App.base.where(lat, lon);
+    if (w && (w.cityName || w.region)) {
+      P.loc.city = w.cityName || w.region;
+      App.store.set('prayLoc', P.loc);
+      App.$('pcCity').textContent = P.loc.city;
+      return;
+    }
+    if (App.offline || (App.base && App.base.loading && !App.base.ready)) return;   // retried on baseReady / when back online
     var url = 'https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=10&accept-language=ar&lat=' +
       lat.toFixed(4) + '&lon=' + lon.toFixed(4);
     App.fetchJSON(url, 10000).then(function (j) {
@@ -204,7 +213,7 @@
       App.nav.say(spoken + '. أقرب مسجد على بعد ' + App.nav.spoken(list[0].d));
     }).catch(function () {
       var el = App.$('paMosque');
-      if (el) el.innerHTML = 'تعذّر البحث عن المساجد — تحقق من الإنترنت';
+      if (el) el.innerHTML = App.offline ? 'بدون نت — ما عندي مساجد محفوظة لهذا المكان' : 'تعذّر البحث عن المساجد — تحقق من الإنترنت';
       App.nav.say(spoken);
     });
   }
@@ -225,7 +234,7 @@
           ctx.m = list;
           if (list.length) { setSub('أقرب مسجد: ' + list[0].name + ' — ' + App.fmtDist(list[0].d)); enable('go'); }
           else setSub('لم أجد مساجد مسجّلة قريبة');
-        }).catch(function () { setSub('تعذّر البحث — تحقق من الإنترنت'); });
+        }).catch(function () { setSub(App.offline ? 'بدون نت — ما عندي مساجد محفوظة لهذا المكان' : 'تعذّر البحث — تحقق من الإنترنت'); });
       }
     });
     App.nav.say('باقي ' + mins + ' دقائق على صلاة ' + NAMES[i]);
@@ -289,7 +298,7 @@
           '</b><small>' + App.esc(m.sub || '') + '</small></span><span class="side num">' + App.fmtDist(m.d) + '</span></button>';
       }).join('');
       el.querySelectorAll('[data-k]').forEach(function (b) { b.onclick = function () { App.nav.showPlace(r[+b.dataset.k]); }; });
-    }).catch(function () { var el = App.$('ppList'); if (el) el.innerHTML = '<div class="empty">تعذّر البحث — تحقق من الاتصال بالإنترنت</div>'; });
+    }).catch(function () { var el = App.$('ppList'); if (el) el.innerHTML = '<div class="empty">' + App.nav.offMsg() + '</div>'; });
   }
   App.panelDefs = App.panelDefs || {};
   App.panelDefs.prayer = { title: 'الصلاة والقبلة والمساجد', render: renderPanel };
@@ -323,6 +332,9 @@
   App.on('settings', function () { P.recalc(); });
   P.alertNow = alertPrayer;            // used by the UI test harness
   P.init = function () {
+    function retryCity() { if (!P.loc.city && P.loc.lat != null) cityLookup(P.loc.lat, P.loc.lon); }
+    App.on('baseReady', retryCity);
+    App.on('net', function (on) { if (on) retryCity(); });
     App.$('prayerCard').onclick = function () { App.panels.open('prayer'); };
     App.$('nextPill').onclick = function () { App.panels.open('prayer'); };
     App.map.onPoiTap = function (p) { App.nav.showPlace({ lat: p.lat, lon: p.lon, name: p.name, sub: p.sub }); };

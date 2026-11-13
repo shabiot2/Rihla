@@ -102,10 +102,50 @@
       i: 0, spoken: {}, off: 0, lastReroute: Date.now() };
   }
 
+  function showNavUi() {
+    document.body.classList.add('navigating');
+    if (App.dash) App.dash.navBig(true);
+    App.$('navCard').classList.remove('hidden');
+    App.$('navBottom').classList.remove('hidden');
+    App.$('searchBar').classList.add('hidden');
+    voiceBtn();
+  }
+  // no internet (or no route): guide by straight-line direction + distance, upgrade to a full route when online
+  function startDirect(dest, from, why) {
+    var d = App.geo.dist(from.lat, from.lon, dest.lat, dest.lon);
+    var a = { direct: true, dest: dest, coords: [[from.lon, from.lat], [dest.lon, dest.lat]], total: d,
+      spoken: {}, lastReroute: Date.now(), lastLine: 0 };
+    N.active = a;
+    App.map.setRoute(a.coords, true);
+    App.map.setDest(dest.lat, dest.lon);
+    App.map.fit(a.coords);
+    setTimeout(function () { if (N.active === a) App.map.recenter(); }, 3000);
+    addRecent(dest);
+    showNavUi();
+    update(App.loc.fix);
+    App.toast(why === 'offline' ? 'بدون نت: إرشاد بالاتجاه المباشر — يتحول لمسار كامل إذا رجع النت' :
+      'تعذّر حساب المسار — إرشاد بالاتجاه المباشر', 5000);
+    say((why === 'offline' ? 'لا يوجد اتصال بالإنترنت. ' : '') + 'سأرشدك بالاتجاه المباشر. الوجهة على بعد ' + spoken(d));
+  }
+  function upgradeDirect() {
+    var a = N.active, f = App.loc.fix;
+    if (!a || !a.direct || !f || App.offline || Date.now() - a.lastReroute < 30000) return;
+    a.lastReroute = Date.now();
+    fetchRoute({ lat: f.lat, lon: f.lon, bearing: f.speed > 10 ? f.heading : null }, a.dest).then(function (route) {
+      if (N.active !== a) return;
+      var b = prepare(route, a.dest);
+      N.active = b;
+      App.map.setRoute(b.coords);
+      say('رجع الاتصال. تم حساب المسار الكامل');
+      update(App.loc.fix);
+    }).catch(function () { });
+  }
+
   N.start = function (dest) {
     var f = App.loc.fix, from = f ? { lat: f.lat, lon: f.lon, bearing: f.speed > 10 ? f.heading : null } : null;
     if (!from) { App.toast('لا توجد إشارة GPS بعد — لا يمكن حساب المسار'); return; }
     App.panels.close();
+    if (App.offline) { startDirect(dest, from, 'offline'); return; }
     App.toast('جارٍ حساب المسار…', 4000);
     fetchRoute(from, dest).then(function (route) {
       var a = prepare(route, dest);
@@ -115,13 +155,10 @@
       App.map.fit(a.coords);
       setTimeout(function () { if (N.active === a) App.map.recenter(); }, 3500);
       addRecent(dest);
-      App.$('navCard').classList.remove('hidden');
-      App.$('navBottom').classList.remove('hidden');
-      App.$('searchBar').classList.add('hidden');
-      voiceBtn();
+      showNavUi();
       update(App.loc.fix);
       say('بدأت الملاحة إلى ' + (dest.name || 'الوجهة') + '. المسافة ' + spoken(a.total));
-    }).catch(function () { App.toast('تعذّر حساب المسار — تحقق من الاتصال بالإنترنت'); });
+    }).catch(function () { startDirect(dest, from, App.offline ? 'offline' : 'fail'); });
   };
   N.stop = function (arrived) {
     var dest = N.active && N.active.dest;
@@ -130,6 +167,8 @@
     App.map.setRoute(null);
     App.map.setDest(null);
     App.map.navZoom = null;
+    document.body.classList.remove('navigating');
+    if (App.dash) App.dash.navBig(false);
     App.$('navCard').classList.add('hidden');
     App.$('navBottom').classList.add('hidden');
     App.$('searchBar').classList.remove('hidden');
@@ -138,7 +177,7 @@
   };
   function reroute() {
     var a = N.active, f = App.loc.fix;
-    if (!a || !f) return;
+    if (!a || !f || App.offline) return;
     a.lastReroute = Date.now();
     App.toast('إعادة حساب المسار…');
     fetchRoute({ lat: f.lat, lon: f.lon, bearing: f.speed > 10 ? f.heading : null }, a.dest).then(function (route) {
@@ -165,9 +204,46 @@
     b.className = 'chip' + (App.settings.voice ? ' on' : '');
   }
 
+  function relText(rel) {
+    var r = (rel % 360 + 360) % 360;
+    if (r < 20 || r > 340) return 'أمامك';
+    if (r < 70) return 'أمامك يميناً';
+    if (r < 110) return 'على يمينك';
+    if (r < 160) return 'خلفك يميناً';
+    if (r < 200) return 'خلفك';
+    if (r < 250) return 'خلفك يساراً';
+    if (r < 290) return 'على يسارك';
+    return 'أمامك يساراً';
+  }
+  function updateDirect(a, f) {
+    var d = App.geo.dist(f.lat, f.lon, a.dest.lat, a.dest.lon), brg = App.geo.bearing(f.lat, f.lon, a.dest.lat, a.dest.lon);
+    if (d < 60) { N.stop(true); return; }
+    var moving = f.speed > 5 && f.heading != null, rel = moving ? brg - f.heading : brg;
+    App.$('ncIcon').innerHTML = '<svg viewBox="0 0 64 64" style="stroke-width:5.5;transform:rotate(' + Math.round(rel) + 'deg)"><path d="M32 56V10M18 24 32 10l14 14"/></svg>';
+    App.$('ncDist').textContent = App.fmtDist(d);
+    App.$('ncInstr').textContent = (moving ? 'الوجهة ' + relText(rel) : 'الوجهة باتجاه ' + App.geo.dir8(brg)) + ' • خط مستقيم' +
+      (App.offline ? ' • بدون نت' : '');
+    App.$('nbEta').textContent = '—';
+    App.$('nbLeft').textContent = App.fmtDist(d);
+    App.$('nbTime').textContent = f.speed > 10 ? App.fmtDur(d / (f.speed / 3.6) * 1.3) : '—';
+    if (Date.now() - a.lastLine > 3000) {          // keep the dashed line from the car to the destination
+      a.lastLine = Date.now();
+      a.coords = [[f.lon, f.lat], [a.dest.lon, a.dest.lat]];
+      App.map.setRoute(a.coords, true);
+    }
+    [20000, 10000, 5000, 2000, 1000, 500, 200].forEach(function (m) {
+      if (d <= m && d > m * 0.6 && !a.spoken[m]) {
+        a.spoken[m] = 1;
+        say('باقي ' + spoken(d) + '. الوجهة ' + (moving ? relText(rel) : 'باتجاه ' + App.geo.dir8(brg)));
+      }
+    });
+    upgradeDirect();
+  }
+
   function update(f) {
     var a = N.active;
     if (!a || !f) return;
+    if (a.direct) { updateDirect(a, f); return; }
     var co = a.coords, best = -1, bd = 1e12, bt = 0;
     var ref = f.lat, P = App.geo.xy(f.lat, f.lon, ref);
     var startI = Math.max(0, (a.seg || 0) - 5), endI = Math.min(co.length - 1, (a.seg || 0) + 120);
@@ -220,6 +296,10 @@
   N.openExternal = function (app, d) {
     var ll = d.lat.toFixed(6) + ',' + d.lon.toFixed(6);
     if (!App.Native.has) { window.open('https://www.google.com/maps/dir/?api=1&destination=' + ll); return; }
+    if (app === 'geo') {
+      if (App.Native.call('view', 'geo:' + ll + '?q=' + ll + '(' + encodeURIComponent(d.name || 'الوجهة') + ')') !== '1') App.toast('لا يوجد تطبيق خرائط آخر مثبت');
+      return;
+    }
     var uri = app === 'waze' ? 'waze://?ll=' + ll + '&navigate=yes' : 'google.navigation:q=' + ll;
     var r = App.Native.call('view', uri);
     if (r !== '1') {
@@ -299,7 +379,8 @@
       r.forEach(function (p) { p.d = distFromHere(p.lat, p.lon); });
       return r.sort(function (a, b) { return a.d - b.d; });
     };
-    if (c && Date.now() - c.t < 6 * 3600000 && c.r.length) return Promise.resolve(sorted(c.r));
+    if (c && c.r.length && (App.offline || Date.now() - c.t < 6 * 3600000)) return Promise.resolve(sorted(c.r));
+    if (App.offline) return Promise.reject(new Error('offline'));
     return overpass(cat, radius).then(function (r) { return r.length >= 2 ? r : overpass(cat, radius * 4); })
       .then(function (r) {
         r = sorted(r).slice(0, 25);
@@ -314,9 +395,14 @@
       N.nearby(k).then(function (r) {
         if (!document.body.contains(body)) return;
         showResults(body, r, cat ? cat.ic : 'gps');
-      }).catch(function () { body.innerHTML = '<div class="empty">تعذّر البحث — تحقق من الاتصال بالإنترنت</div>'; });
+      }).catch(function () { body.innerHTML = '<div class="empty">' + offMsg() + '</div>'; });
     });
   };
+  function offMsg() {
+    return App.offline ? 'بدون نت — ما عندي نتائج محفوظة لهذا المكان. ابحث باسم المدينة أو الحي بدلها' :
+      'تعذّر البحث — تحقق من الاتصال بالإنترنت';
+  }
+  N.offMsg = offMsg;
   N.say = function (t) { say(t); };
   N.spoken = function (m) { return spoken(m); };
 
@@ -350,7 +436,9 @@
         '<div class="btn-row">' +
         '<button class="btn primary" id="pStart">' + App.icon('route') + 'ابدأ الملاحة</button>' +
         '<button class="btn" id="pGoogle">' + App.icon('map') + 'خرائط قوقل</button>' +
-        '<button class="btn" id="pWaze">' + App.icon('car') + 'ويز</button></div>' +
+        '<button class="btn" id="pWaze">' + App.icon('car') + 'ويز</button>' +
+        '<button class="btn" id="pGeo">' + App.icon('map') + 'تطبيق ملاحة آخر</button></div>' +
+        (App.offline ? '<div class="drive-note">' + App.icon('nonet') + 'بدون نت: «ابدأ الملاحة» يرشدك بالاتجاه المباشر والمسافة. للتوجيه شارع بشارع استخدم تطبيق ملاحة بخرائط محمّلة.</div>' : '') +
         '<div class="btn-row">' +
         '<button class="btn" id="pShow">' + App.icon('locate') + 'عرض على الخريطة</button>' +
         '<button class="btn" id="pHome">' + App.icon('home') + 'حفظ كمنزل</button>' +
@@ -359,6 +447,7 @@
       App.$('pStart').onclick = function () { N.start(p); };
       App.$('pGoogle').onclick = function () { N.openExternal('google', p); };
       App.$('pWaze').onclick = function () { N.openExternal('waze', p); };
+      App.$('pGeo').onclick = function () { N.openExternal('geo', p); };
       App.$('pShow').onclick = function () { App.panels.close(); App.map.setDest(p.lat, p.lon); App.map.lookAt(p.lat, p.lon, 16); };
       App.$('pHome').onclick = function () { savePlace('home', p); };
       App.$('pWork').onclick = function () { savePlace('work', p); };
@@ -387,7 +476,8 @@
       '<div id="sHome"><div class="sec"><div class="grid2">' + saved + '</div></div>' +
       '<div class="sec"><div class="sec-title">تطبيقات الخرائط</div><div class="btn-row">' +
       '<button class="btn" id="aGoogle">' + App.icon('map') + 'خرائط قوقل</button>' +
-      '<button class="btn" id="aWaze">' + App.icon('car') + 'ويز</button></div></div>' +
+      '<button class="btn" id="aWaze">' + App.icon('car') + 'ويز</button>' +
+      '<button class="btn" id="aOff">' + App.icon('globe') + 'الخرائط بدون نت</button></div></div>' +
       (s.recents && s.recents.length ? '<div class="sec"><div class="sec-title">الوجهات الأخيرة</div><div id="sRecent">' +
         s.recents.map(function (p) { return placeRow(p, 'flag'); }).join('') + '</div></div>' : '') + '</div>';
     var res = App.$('sResults'), home = App.$('sHome');
@@ -399,19 +489,40 @@
       App.$('sInput').blur();
       var m = q.match(/^\s*(-?\d+(?:\.\d+)?)\s*[,،\s]\s*(-?\d+(?:\.\d+)?)\s*$/);
       if (m) { showPlace({ lat: +m[1], lon: +m[2], name: 'إحداثيات', sub: q }); return; }
+      var local = App.base.search(q, here());
+      if (App.offline) {
+        home.classList.add('hidden');
+        if (local.length) showLocal(res, local, true); else res.innerHTML = '<div class="empty">بدون نت — ما لقيت مدينة أو حي بهذا الاسم</div>';
+        return;
+      }
       busy();
+      if (local.length) showLocal(res, local, false);
       nominatim(q).then(function (r) { return r.length ? r : photon(q); })
         .catch(function () { return photon(q); })
-        .then(function (r) { showResults(res, r, 'gps'); })
-        .catch(function () { res.innerHTML = '<div class="empty">تعذّر البحث — تحقق من الاتصال بالإنترنت</div>'; });
+        .then(function (r) {
+          var merged = r.concat(local.filter(function (l) {
+            return !r.some(function (o) { return App.geo.dist(o.lat, o.lon, l.lat, l.lon) < 800 && B_norm(o.name) === B_norm(l.name); });
+          }));
+          showResults(res, merged, 'gps');
+        })
+        .catch(function () {
+          if (local.length) showLocal(res, local, true);
+          else res.innerHTML = '<div class="empty">' + offMsg() + '</div>';
+        });
     };
+    function B_norm(x) { return App.base.norm(x || ''); }
+    function showLocal(el, list, final) {
+      el.innerHTML = '<div class="sec-title"><span>من خريطة المملكة المدمجة' + (final ? '' : ' — جارٍ البحث أونلاين…') + '</span></div>' +
+        list.map(function (p) { return placeRow(p, p.kind === 'dis' ? 'home' : 'flag'); }).join('');
+      bindRows(el, 'flag');
+    }
     body.querySelectorAll('[data-cat]').forEach(function (b) {
       b.onclick = function () {
         var cat = CATS.filter(function (c) { return c.k === b.dataset.cat; })[0];
         busy();
-        overpass(cat, 5000).then(function (r) { return r.length >= 3 ? r : overpass(cat, 20000); })
+        N.nearby(cat.k, 5000)
           .then(function (r) { showResults(res, r, cat.ic); })
-          .catch(function () { res.innerHTML = '<div class="empty">تعذّر البحث — تحقق من الاتصال بالإنترنت</div>'; });
+          .catch(function () { res.innerHTML = '<div class="empty">' + offMsg() + '</div>'; });
       };
     });
     body.querySelectorAll('[data-saved]').forEach(function (b) {
@@ -423,6 +534,7 @@
     });
     App.$('aGoogle').onclick = function () { App.system.launch('com.google.android.apps.maps', 'خرائط قوقل'); };
     App.$('aWaze').onclick = function () { App.system.launch('com.waze', 'ويز'); };
+    App.$('aOff').onclick = App.net.open;
     if (App.$('sRecent')) bindRows(App.$('sRecent'), 'flag');
   }
 
@@ -430,6 +542,7 @@
   App.panelDefs.nav = { title: 'الخرائط والملاحة', render: renderMain };
 
   N.init = function () {
+    App.on('net', function (on) { if (on) upgradeDirect(); });
     App.$('searchBar').onclick = function () { App.panels.open('nav'); setTimeout(function () { var i = App.$('sInput'); if (i) i.focus(); }, 250); };
     App.$('nbStop').onclick = function () { N.stop(false); App.toast('تم إنهاء الملاحة'); };
     App.$('nbVoice').onclick = function () {

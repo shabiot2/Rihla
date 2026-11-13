@@ -1,8 +1,10 @@
-/* radio.js — car FM app launcher, internet radio (Quran + Saudi stations), media keys, volume */
+/* radio.js — the car's own FM/AM radio (works without internet: launch + station keys + volume),
+   internet radio (Quran + Saudi stations), media keys, volume */
 (function () {
   'use strict';
-  var R = App.radio = { cur: null, playing: false };
-  var audio, retry = 0, tab = App.store.get('radioTab', 'quran');
+  var R = App.radio = { cur: null, playing: false, car: false };
+  var SELF = 'com.carnav.camry';
+  var audio, retry = 0, tab = App.store.get('radioTab', 'quran'), lastList = null;
   var RADIO_PKGS = ['com.syu.radio', 'com.android.fmradio', 'com.microntek.radio', 'com.ts.radio', 'com.fyt.radio',
     'com.hzbhd.radio', 'com.yf.radio', 'com.autochips.radio', 'com.mediatek.fmradio', 'com.caf.fmradio',
     'com.android.car.radio', 'com.tw.radio', 'com.nwd.radio', 'com.zjinnova.radio', 'com.sprd.fmradio',
@@ -74,7 +76,9 @@
   // ---------- playback ----------
   R.play = function (st) {
     if (!st || !st.u) return;
+    if (App.offline) { App.toast('بدون نت — الإذاعات الأونلاين ما تشتغل. استخدم راديو السيارة FM'); return; }
     R.cur = st;
+    R.car = false;
     retry = 0;
     audio.src = st.u;
     var p = audio.play();
@@ -93,11 +97,16 @@
   function ui() {
     var mp = App.$('miniPlayer');
     var sheetOpen = App.panels && App.panels.current === 'radio';
-    mp.classList.toggle('hidden', !R.cur || sheetOpen);
-    App.$('mpName').textContent = R.cur ? R.cur.n : '';
-    App.$('mpToggle').innerHTML = App.icon(R.playing ? 'pause' : 'play');
+    var car = R.car && !R.cur;
+    mp.classList.toggle('hidden', !(R.cur || car) || sheetOpen);
+    document.body.classList.toggle('has-mini', !mp.classList.contains('hidden'));
+    mp.classList.toggle('car', car);
+    App.$('mpName').textContent = R.cur ? R.cur.n : car ? 'راديو السيارة' : '';
+    App.$('mpToggle').innerHTML = App.icon(car ? 'playpause' : R.playing ? 'pause' : 'play');
+    ['mpPrev', 'mpNext', 'mpClose'].forEach(function (id) { App.$(id).classList.toggle('hidden', !car); });
     var dk = document.querySelector('.dk[data-panel="radio"]');
-    if (dk) dk.classList.toggle('live', R.playing);
+    if (dk) dk.classList.toggle('live', R.playing || car);
+    dashCard();
     var np = App.$('rNow');
     if (np) {
       np.classList.toggle('hidden', !R.cur);
@@ -113,6 +122,46 @@
   }
   R.ui = ui;
 
+  // ---------- the audio card on the dashboard ----------
+  function setHtml(id, html) { var el = App.$(id); if (el && el._h !== html) { el._h = html; el.innerHTML = html; } }
+  function dashCard() {
+    var mc = App.$('mediaCard');
+    if (!mc) return;
+    var name, sub, tag, ok = true, go, goIc;
+    if (R.cur) {
+      name = R.cur.n;
+      sub = R.playing ? '<span class="eq"><i></i><i></i><i></i></span>إذاعة أونلاين — يعمل الآن' :
+        audio.paused ? 'إذاعة أونلاين — متوقف مؤقتاً' : 'جارٍ الاتصال بالإذاعة…';
+      tag = 'إنترنت'; ok = false; go = 'إيقاف'; goIc = 'stop';
+    } else if (R.car) {
+      name = 'راديو السيارة';
+      sub = 'شغّال' + (R.carName ? ' من «' + App.esc(R.carName) + '»' : '') + ' — بدون نت';
+      tag = 'FM بدون نت'; go = 'افتح'; goIc = 'expand';
+    } else {
+      name = 'راديو السيارة FM / AM';
+      sub = 'يشتغل من موجات الراديو — بدون إنترنت';
+      tag = 'FM بدون نت'; go = 'شغّل'; goIc = 'radio';
+    }
+    setHtml('mcName', App.esc(name));
+    setHtml('mcSub', sub);
+    var t = App.$('mcTag');
+    t.textContent = tag;
+    t.className = 'w-tag' + (ok ? ' ok' : '');
+    setHtml('mcGo', App.icon(goIc) + '<span>' + go + '</span>');
+    setHtml('mcPlay', App.icon(R.cur ? (R.playing ? 'pause' : 'play') : 'playpause'));
+    mc.classList.toggle('live', R.cur ? R.playing : R.car);
+  }
+  function vol(dir) {
+    if (App.Native.has) App.Native.call('vol', dir);
+    else audio.volume = Math.max(0, Math.min(1, audio.volume + (dir === 'up' ? 0.1 : -0.1)));
+  }
+  // next / previous internet station from the list it was picked from
+  R.step = function (d) {
+    var L = lastList && lastList.length ? lastList : QURAN_DEFAULT, i = -1;
+    for (var k = 0; k < L.length; k++) if (R.cur && L[k].u === R.cur.u) { i = k; break; }
+    R.play(L[((i + d) % L.length + L.length) % L.length]);
+  };
+
   // ---------- car apps ----------
   function candidates() {
     var apps = App.system.apps();
@@ -120,12 +169,24 @@
       return RADIO_PKGS.indexOf(a.p) >= 0 || /radio|راديو|مذياع|إذاعة|اذاعة|\bfm\b/i.test(a.l) || /radio|fmradio/i.test(a.p);
     });
   }
-  R.openCarRadio = function (choose) {
+  // back: true = start the radio and return to Rihla after a moment (the tuner keeps playing in the background)
+  R.openCarRadio = function (choose, back) {
     if (!App.Native.has) { App.toast('هذه الميزة تعمل داخل شاشة السيارة'); return; }
     var saved = App.settings.radioApp;
-    if (saved && !choose && App.Native.call('launch', saved) === '1') { if (R.playing) audio.pause(); return; }
+    if (saved && !choose && App.Native.call('launch', saved) === '1') {
+      if (R.playing) audio.pause();
+      R.cur = null;
+      R.car = true;
+      if (!R.carName || R.carApp !== saved) { R.carApp = saved; R.carName = appName(saved); }
+      ui();
+      if (back) {
+        setTimeout(function () { App.Native.call('launch', SELF); }, 3500);
+        App.toast('جارٍ تشغيل راديو السيارة… ونرجع لرحلة', 3000);
+      }
+      return;
+    }
     var c = candidates();
-    if (c.length === 1 && !choose) { App.settings.radioApp = c[0].p; App.saveSettings(); R.openCarRadio(); return; }
+    if (c.length === 1 && !choose) { App.settings.radioApp = c[0].p; App.saveSettings(); R.openCarRadio(false, back); return; }
     App.panels.push('اختر تطبيق الراديو', function (body) {
       var list = c.length ? c : App.system.apps();
       body.innerHTML = '<div class="note" style="margin-bottom:1.2vmin">' + (c.length ? 'اختر تطبيق راديو السيارة (FM) — سيُحفظ اختيارك.' :
@@ -135,47 +196,57 @@
             App.esc(a.l) + '</b><small>' + App.esc(a.p) + '</small></span></button>';
         }).join('');
       body.querySelectorAll('[data-p]').forEach(function (b) {
-        b.onclick = function () { App.settings.radioApp = b.dataset.p; App.saveSettings(); App.panels.close(); R.openCarRadio(); };
+        b.onclick = function () { App.settings.radioApp = b.dataset.p; App.saveSettings(); App.panels.close(); R.openCarRadio(false, back); };
       });
     });
   };
   function mediaKey(code) {
-    if (!App.Native.has) return;
+    if (!App.Native.has) { App.toast('هذه الميزة تعمل داخل شاشة السيارة'); return; }
     App.Native.call('key', code);
+  }
+  R.key = mediaKey;
+  function appName(p) {
+    var a = (App.Native.has ? App.system.apps() : []).filter(function (x) { return x.p === p; })[0];
+    return a ? a.l : p;
   }
 
   // ---------- panel ----------
   function render(body) {
+    var ra = App.settings.radioApp;
     body.innerHTML =
+      '<div class="car-radio">' +
+      '<div class="cr-head">' + App.icon('radio') + '<div class="txt"><b>راديو السيارة FM / AM</b>' +
+      '<small>' + (ra ? App.esc(appName(ra)) + ' • ' : '') + 'من موجات الراديو مباشرة — ما يحتاج إنترنت</small></div>' +
+      '<span class="cr-badge">' + App.icon('check') + 'يشتغل بدون نت</span></div>' +
+      '<div class="cr-ctl">' +
+      '<button class="btn" data-key="88">' + App.icon('prev') + 'المحطة السابقة</button>' +
+      '<button class="btn primary" id="rCarGo">' + App.icon('radio') + 'شغّل الراديو</button>' +
+      '<button class="btn" data-key="87">' + App.icon('next') + 'المحطة التالية</button></div>' +
+      '<div class="btn-row">' +
+      '<button class="btn" data-key="85">' + App.icon('playpause') + 'تشغيل/إيقاف</button>' +
+      '<button class="btn" data-vol="down">' + App.icon('vol-down') + 'خفض</button>' +
+      '<button class="btn" data-vol="up">' + App.icon('vol-up') + 'رفع</button>' +
+      '<button class="btn" id="rCar">' + App.icon('expand') + 'شاشة الراديو</button>' +
+      '<button class="btn" id="rPick">' + App.icon('edit') + (ra ? 'تغيير التطبيق' : 'اختيار التطبيق') + '</button></div>' +
+      '<div class="note" style="margin-top:.8vmin">«شغّل الراديو» يفتح راديو الشاشة ويرجعك لرحلة والراديو شغّال. ' +
+      'أزرار المحطات ترسل نفس أوامر أزرار الطارة — لو ما استجاب تطبيق الراديو، اختر المحطة من «شاشة الراديو».</div></div>' +
       '<div id="rNow" class="now-playing hidden">' +
       '<button id="rNowBtn" class="round"></button>' +
       '<div class="meta"><b id="rNowName"></b><small id="rNowSub"></small></div>' +
       '<button id="rStop" class="round small">' + App.icon('stop') + '</button></div>' +
-      '<div class="sec"><div class="grid2">' +
-      '<button class="row" id="rCar">' + App.icon('radio', 'lead') + '<span class="txt"><b>راديو السيارة FM</b><small>' +
-      (App.settings.radioApp ? 'فتح تطبيق الراديو' : 'يتعرف على تطبيق الراديو تلقائياً') + '</small></span></button>' +
-      '<button class="row" id="rBt">' + App.icon('music', 'lead') + '<span class="txt"><b>موسيقى البلوتوث</b><small>تطبيق البلوتوث / المشغل</small></span></button>' +
-      '</div></div>' +
-      '<div class="sec"><div class="sec-title">التحكم بالصوت والموسيقى</div><div class="btn-row">' +
-      '<button class="btn" data-key="88">' + App.icon('prev') + 'السابق</button>' +
-      '<button class="btn" data-key="85">' + App.icon('play') + 'تشغيل/إيقاف</button>' +
-      '<button class="btn" data-key="87">' + App.icon('next') + 'التالي</button>' +
-      '<button class="btn" data-vol="down">' + App.icon('vol-down') + '</button>' +
-      '<button class="btn" data-vol="up">' + App.icon('vol-up') + '</button></div></div>' +
+      '<div class="sec"><button class="row" id="rBt">' + App.icon('music', 'lead') + '<span class="txt"><b>موسيقى البلوتوث</b><small>من جوالك عبر بلوتوث السيارة — بدون نت</small></span></button></div>' +
+      '<div class="sec-title"><span>إذاعات أونلاين</span><small>' + App.icon('globe') + 'تحتاج إنترنت</small></div>' +
+      (App.offline ? '<div class="drive-note">' + App.icon('nonet') + 'بدون نت الحين — الإذاعات الأونلاين بترجع إذا رجع الاتصال. راديو السيارة فوق شغّال.</div>' : '') +
       '<div class="tabs" id="rTabs"><button data-t="quran">القرآن الكريم</button><button data-t="sa">إذاعات سعودية</button><button data-t="mine">إذاعاتي</button></div>' +
       '<div id="rList"></div>';
     App.$('rNowBtn').onclick = R.toggle;
     App.$('rStop').onclick = R.stop;
-    App.$('rCar').onclick = function () { R.openCarRadio(false); };
-    App.$('rCar').oncontextmenu = function (e) { e.preventDefault(); R.openCarRadio(true); };
+    App.$('rCarGo').onclick = function () { R.openCarRadio(false, true); };
+    App.$('rCar').onclick = function () { R.openCarRadio(false, false); };
+    App.$('rPick').onclick = function () { R.openCarRadio(true, true); };
     App.$('rBt').onclick = function () { App.system.openBtApp(); };
     body.querySelectorAll('[data-key]').forEach(function (b) { b.onclick = function () { mediaKey(b.dataset.key); }; });
-    body.querySelectorAll('[data-vol]').forEach(function (b) {
-      b.onclick = function () {
-        if (App.Native.has) App.Native.call('vol', b.dataset.vol);
-        else audio.volume = Math.max(0, Math.min(1, audio.volume + (b.dataset.vol === 'up' ? 0.1 : -0.1)));
-      };
-    });
+    body.querySelectorAll('[data-vol]').forEach(function (b) { b.onclick = function () { vol(b.dataset.vol); }; });
     body.querySelectorAll('#rTabs button').forEach(function (b) {
       b.onclick = function () { tab = b.dataset.t; App.store.set('radioTab', tab); showTab(); };
     });
@@ -211,6 +282,7 @@
       ui();
     }
     if (tab === 'mine') {
+      lastList = App.settings.stations || [];
       el.innerHTML = '<form class="search-input" id="rAdd"><input id="rAddN" placeholder="اسم الإذاعة"><input id="rAddU" placeholder="رابط البث http…" style="direction:ltr">' +
         '<button class="chip on" type="submit">إضافة</button></form>' + rows(App.settings.stations || [], true);
       App.$('rAdd').onsubmit = function (e) {
@@ -227,6 +299,7 @@
     el.innerHTML = '<div class="spinner"></div>';
     (tab === 'quran' ? quranList() : saudiList()).then(function (list) {
       if (App.$('rList') !== el) return;
+      if (list.length) lastList = list;
       el.innerHTML = list.length ? rows(list) : '<div class="empty">تعذّر تحميل القائمة — تحقق من الاتصال بالإنترنت</div>';
       bind();
     });
@@ -248,8 +321,19 @@
       } else if (R.cur) { App.toast('تعذّر تشغيل الإذاعة'); }
       ui();
     });
-    App.$('mpToggle').onclick = R.toggle;
+    App.$('mpToggle').onclick = function () { if (R.car && !R.cur) mediaKey('85'); else R.toggle(); };
+    App.$('mpPrev').onclick = function () { mediaKey('88'); };
+    App.$('mpNext').onclick = function () { mediaKey('87'); };
+    App.$('mpClose').onclick = function () { R.car = false; ui(); };
+    App.$('mcGo').onclick = function () { if (R.cur) R.stop(); else R.openCarRadio(false, !R.car); };
+    App.$('mcPlay').onclick = function () { if (R.cur) R.toggle(); else mediaKey('85'); };
+    App.$('mcPrev').onclick = function () { if (R.cur) R.step(-1); else mediaKey('88'); };
+    App.$('mcNext').onclick = function () { if (R.cur) R.step(1); else mediaKey('87'); };
+    App.$('mcVolDn').onclick = function () { vol('down'); };
+    App.$('mcVolUp').onclick = function () { vol('up'); };
+    App.$('mcInfo').onclick = function () { App.panels.open('radio'); };
     App.$('mpName').onclick = function () { App.panels.open('radio'); };
+    App.on('net', function () { if (App.panels.current === 'radio') App.panels.refresh(); });
     ui();
   };
 })();

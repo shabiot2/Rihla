@@ -5,9 +5,12 @@
   var STYLES = {
     light: { name: 'نهاري', url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', subs: 'abcd', retina: true, max: 18, bg: '#e9e4dc', attr: '© OpenStreetMap contributors © CARTO' },
     dark: { name: 'ليلي', url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', subs: 'abcd', retina: true, max: 18, bg: '#1b1d22', attr: '© OpenStreetMap contributors © CARTO' },
-    sat: { name: 'قمر صناعي', url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', subs: '', max: 18, bg: '#10141a', attr: 'Imagery © Esri, Maxar, Earthstar Geographics' }
+    sat: { name: 'قمر صناعي', url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', subs: '', max: 18, bg: '#10141a', attr: 'Imagery © Esri, Maxar, Earthstar Geographics' },
+    // built-in map of the Kingdom, no internet needed (data/ksa.js)
+    ksa: { name: 'المملكة بدون نت', url: null, max: 17, bg: '#b4d4e4', attr: 'Natural Earth • بيانات العنوان الوطني' }
   };
-  var ORDER = ['auto', 'light', 'dark', 'sat'];
+  var ORDER = ['auto', 'light', 'dark', 'sat', 'ksa'];
+  var BASE_ATTR = 'Natural Earth • بيانات العنوان الوطني';
   var NAMES = { auto: 'تلقائي (نهار/ليل)' };
 
   function lon2x(lon) { return (lon + 180) / 360 * TS; }
@@ -47,7 +50,7 @@
     if (t) {
       tiles.delete(key);
       tiles.set(key, t);
-      if (t.failed && load && Date.now() - t.failed > 15000) { t.failed = 0; t.img.src = url + (url.indexOf('?') < 0 ? '?' : '&') + 'r=' + Date.now(); }
+      if (t.failed && load && Date.now() - t.failed > (App.offline ? 60000 : 15000)) { t.failed = 0; t.img.src = url + (url.indexOf('?') < 0 ? '?' : '&') + 'r=' + Date.now(); }
       return t.img;
     }
     if (!load) return null;
@@ -65,15 +68,19 @@
   }
   function ready(img) { return img && img.complete && img.naturalWidth > 0; }
 
+  var missing = 0, lastMissing = 1, baseOn = false, offSince = 0;
+  M.baseMode = false;     // offline with no saved streets here: zoom out to districts & roads of the built-in map
   function drawTile(sk, st, z, x, y, px, py, size) {
     var img = getTile(sk + z + '/' + x + '/' + y, tileUrl(st, z, x, y), true);
     if (ready(img)) { ctx.drawImage(img, px, py, size + 0.7, size + 0.7); return; }
+    missing++;
     for (var dz = 1; dz <= 5 && z - dz >= 0; dz++) {
       var f = 1 << dz, qx = Math.floor(x / f), qy = Math.floor(y / f);
       var p = getTile(sk + (z - dz) + '/' + qx + '/' + qy, '', false);
       if (ready(p)) {
         var sw = p.naturalWidth / f;
         ctx.drawImage(p, (x - qx * f) * sw, (y - qy * f) * sw, sw, sw, px, py, size + 0.7, size + 0.7);
+        missing--;
         return;
       }
     }
@@ -92,11 +99,26 @@
   M.screenToLatLon = function (sx, sy) { var w = toWorld(sx, sy); return { lat: y2lat(w[1]), lon: x2lon(w[0]) }; };
   M.latLonToScreen = function (lat, lon) { return toScreen(lon2x(lon), lat2y(lat)); };
 
+  function viewBox() {
+    var a = toWorld(0, 0), b = toWorld(W, 0), c = toWorld(0, H), d = toWorld(W, H);
+    return [Math.min(a[0], b[0], c[0], d[0]), Math.min(a[1], b[1], c[1], d[1]),
+      Math.max(a[0], b[0], c[0], d[0]), Math.max(a[1], b[1], c[1], d[1])];
+  }
+  function baseDark(sk) {
+    if (sk === 'dark' || sk === 'sat') return true;
+    if (sk !== 'ksa') return false;
+    var P = App.prayer && App.prayer.today, now = new Date();
+    return !!P && (now >= P[4] || now < P[1]);
+  }
   function draw() {
     var sk = styleKey(), st = STYLES[sk];
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.fillStyle = st.bg;
+    ctx.fillStyle = baseDark(sk) ? '#0c1822' : st.bg;
     ctx.fillRect(0, 0, W, H);
+    var useBase = App.base && App.base.ready && (sk === 'ksa' || lastMissing > 0 || App.offline);
+    var vb = useBase ? viewBox() : null;
+    missing = 0;
+    var seen = 0;
     var ax = W / 2, ay = H * anchorY;
     var tz = Math.max(2, Math.min(st.max, Math.round(M.z)));
     var tsz = TS * Math.pow(2, M.z - tz), n = 1 << tz;
@@ -106,12 +128,15 @@
     ctx.save();
     ctx.translate(ax, ay);
     ctx.rotate(M.rot);
+    if (useBase) App.base.draw(ctx, M.cx, M.cy, M.z, vb, baseDark(sk));
     var x0 = Math.floor(ccx - r), x1 = Math.floor(ccx + r);
     var y0 = Math.max(0, Math.floor(ccy - r)), y1 = Math.min(n - 1, Math.floor(ccy + r));
     for (var ty = y0; ty <= y1; ty++) {
       for (var tx = x0; tx <= x1; tx++) {
         var ddx = tx + 0.5 - ccx, ddy = ty + 0.5 - ccy;
         if (ddx * ddx + ddy * ddy > r * r) continue;
+        seen++;
+        if (!st.url) { missing++; continue; }
         drawTile(sk, st, tz, ((tx % n) + n) % n, ty, (tx - ccx) * tsz, (ty - ccy) * tsz, tsz);
       }
     }
@@ -119,10 +144,26 @@
     if (M.route) drawRoute(s);
     if (M.pois && M.pois.length) drawPois(s);
     if (M.dest) drawPin(M.dest[0], M.dest[1], s);
-    if (M.disp) drawCar(s);
     ctx.restore();
+    // place names from the built-in map where street tiles are missing (offline / not cached yet)
+    var total = Math.max(1, seen);
+    if (useBase && (sk === 'ksa' || missing > total * 0.25)) App.base.labels(ctx, toScreen, W, H, M.z, baseDark(sk), vb);
+    if (M.disp || M.route || M.dest) {
+      ctx.save(); ctx.translate(ax, ay); ctx.rotate(M.rot);
+      if (M.disp) drawCar(s);
+      ctx.restore();
+    }
+    if (missing > 0 && !useBase && App.base && App.base.ready) dirty = true;   // redraw with the built-in map underneath
+    if (!App.offline) { M.baseMode = false; offSince = 0; }
+    else if (sk !== 'ksa' && st.url && missing > total * 0.6) {
+      if (!offSince) offSince = Date.now();
+      else if (!M.baseMode && Date.now() - offSince > 8000 && M.follow) { M.baseMode = true; App.toast('بدون نت والشوارع هنا غير محفوظة — عرض خريطة المملكة المدمجة', 4000); }
+    } else offSince = 0;
+    lastMissing = missing;
+    baseOn = useBase && (sk === 'ksa' || missing > 0);
+    var attr = sk === 'ksa' ? BASE_ATTR : (baseOn ? st.attr + ' • ' + BASE_ATTR : st.attr);
     var a = App.$('attrib');
-    if (a._t !== st.attr) { a._t = st.attr; a.textContent = st.attr + ' • © أبو دانة للبرمجة'; }
+    if (a._t !== attr) { a._t = attr; a.textContent = attr + ' • © أبو دانة للبرمجة'; }
   }
 
   function drawRoute(s) {
@@ -154,7 +195,9 @@
     ctx.stroke();
     ctx.strokeStyle = th ? th.route : '#3db4f2';
     ctx.lineWidth = 7.5;
+    if (M.routeDashed) ctx.setLineDash([14, 12]);
     ctx.stroke();
+    ctx.setLineDash([]);
   }
 
   // points of interest (e.g. nearby mosques): round badges, the nearest one labelled
@@ -291,6 +334,7 @@
       if (M.autoZoom) {
         var sp = M.car.speed, wz = 17.4 - Math.max(0, Math.min(1, (sp - 20) / 110)) * 2.4;
         if (M.navZoom) wz = Math.max(wz, M.navZoom);
+        if (M.baseMode || styleKey() === 'ksa') wz = Math.min(wz, 13.6 - Math.max(0, Math.min(1, (sp - 40) / 80)) * 0.8);
         if (Math.abs(wz - M.z) > 0.01) { M.z += (wz - M.z) * Math.min(1, dt * 1.2); animating = true; }
       }
     } else if (!App.settings.headingUp && Math.abs(M.rot) > 0.002) {
@@ -308,6 +352,7 @@
   function resize() {
     var r = cv.getBoundingClientRect();
     dpr = Math.min(2, window.devicePixelRatio || 1);
+    M.dpr = dpr;
     W = r.width; H = r.height;
     cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
     dirty = true;
@@ -315,12 +360,15 @@
 
   // ---------- public API ----------
   M.invalidate = function () { dirty = true; };
+  M.resize = function () { if (cv) resize(); };
+  M.retryTiles = function () { tiles.forEach(function (t) { if (t.failed) t.failed = 1; }); dirty = true; };   // back online
   M.setCar = function (f) {
     M.car = { x: lon2x(f.lon), y: lat2y(f.lat), lat: f.lat, lon: f.lon, heading: f.heading, speed: f.speed, acc: f.acc, t: f.t };
     if (!M.hadFix) { M.hadFix = true; M.cx = M.car.x; M.cy = M.car.y; M.z = 16; }
     dirty = true;
   };
-  M.setRoute = function (coords) {
+  M.setRoute = function (coords, dashed) {
+    M.routeDashed = !!dashed;
     M.route = coords ? coords.map(function (c) { return [lon2x(c[0]), lat2y(c[1])]; }) : null;
     M.progressIdx = 0;
     dirty = true;
@@ -467,6 +515,7 @@
     if (last) { M.cx = lon2x(last.lon); M.cy = lat2y(last.lat); M.z = 15; }
     resize();
     window.addEventListener('resize', resize);
+    if (window.ResizeObserver) new ResizeObserver(function () { resize(); }).observe(cv);   // dashboard ↔ big map
     bindGestures();
     App.$('btnZoomIn').onclick = function () { M.zoomAt(1); };
     App.$('btnZoomOut').onclick = function () { M.zoomAt(-1); };

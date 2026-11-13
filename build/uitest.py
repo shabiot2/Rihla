@@ -27,6 +27,8 @@ window.prompt = function (cmd, arg) {
     case 'bt': return JSON.stringify({on:true, a2dp:2, hfp:2, dev:['iPhone', 'Galaxy S24']});
     case 'sys': return JSON.stringify({sdk:35, release:'15', model:'Camry XV70 Head Unit', maker:'Navigation Brand', board:'ums512', device:'ums512_1h10'});
     case 'temp': return JSON.stringify({z:[{t:'soc_thermal', v:'52000'}, {t:'cpu-big0', v:'57400'}, {t:'battery', v:'31000'}, {t:'pa_therm', v:'41000'}], b:310, s:0});
+    case 'net': return window.__net || '1';
+    case 'cache': return arg === 'size' ? JSON.stringify({n:1834, b:48234567}) : JSON.stringify({n:0, b:0});
     default: return '1';
   }
 };
@@ -66,8 +68,15 @@ def osrm_route(lat, lon):
                                       'geometry': {'coordinates': pts}, 'legs': [{'steps': steps}]}]}
 
 
+STATE = {'offline': False}
+
+
 def handle(route):
     url = route.request.url
+    if STATE['offline'] and not url.startswith('file:'):
+        if 'basemaps.cartocdn.com' in url:          # what the native cache answers for a tile it never saw
+            return route.fulfill(status=404, content_type='text/plain', body='Not cached')
+        return route.abort('internetdisconnected')
     if 'basemaps.cartocdn.com' in url or 'arcgisonline' in url:
         parts = url.split('?')[0].replace('@2x', '').rsplit('/', 3)
         z, x, y = int(parts[1]), int(parts[2]), int(parts[3].split('.')[0])
@@ -100,14 +109,15 @@ def handle(route):
     return route.abort()
 
 
-def run(w, h, name, actions, settings=None, clock=None):
+def run(w, h, name, actions, settings=None, clock=None, net='1'):
     if os.environ.get("FORCE_WH"): w, h = [int(x) for x in os.environ["FORCE_WH"].split("x")]
+    STATE['offline'] = net == '0'
     with sync_playwright() as p:
         b = p.chromium.launch()
         ctx = b.new_context(viewport={'width': w, 'height': h}, device_scale_factor=1,
                             user_agent='Mozilla/5.0 (Linux; Android 10) Chrome/120 Mobile CamryNav/2.1 (Android head unit; SDK 35)',
                             timezone_id='Asia/Riyadh', locale='ar-SA')
-        ctx.add_init_script(BRIDGE)
+        ctx.add_init_script(BRIDGE + ("window.__net='0';" if net == '0' else ''))
         st = {'onboarded': 2}
         st.update(settings or {})
         ctx.add_init_script('if(!sessionStorage.getItem("seeded")){sessionStorage.setItem("seeded","1");'
@@ -127,6 +137,8 @@ def run(w, h, name, actions, settings=None, clock=None):
         page.screenshot(path='%s/%s.png' % (OUT, name))
         calls = page.evaluate('window.__calls.map(c => c[0]).join(",")')
         b.close()
+        if STATE['offline']:     # uncached street tiles answer 404 offline — expected, not an error
+            errors = [e for e in errors if 'status of 404' not in e and 'ERR_INTERNET_DISCONNECTED' not in e]
         return errors, calls
 
 
@@ -316,6 +328,102 @@ if __name__ == '__main__':
         def d(p):
             drive(p, 3); p.click('#prayerCard'); p.wait_for_timeout(1500)
         print(run(1280, 720, 'unit_prayer', d, {'theme': 'royal', 'autoOccasion': False}))
+    elif which == 'offline':
+        # no internet: built-in Kingdom map under the missing street tiles, «you are in» chip, satellites
+        def a(p):
+            p.evaluate('onGnss(9,14)')
+            drive(p, 20)
+            p.wait_for_timeout(1500)
+            print('offline:', p.evaluate('App.offline'), 'base:', p.evaluate('App.base.ready'),
+                  'where:', p.evaluate("document.querySelector('#whereChip span').textContent"),
+                  'fix:', p.evaluate("document.getElementById('gFix').textContent"),
+                  'city:', p.evaluate("document.getElementById('pcCity').textContent"),
+                  'baseMode:', p.evaluate('App.map.baseMode'), 'z:', p.evaluate('App.map.z.toFixed(2)'),
+                  'stNet:', p.evaluate("document.getElementById('stNet').getAttribute('class')"))
+        print(run(1280, 720, 'off_main', a, net='0'))
+        def b(p):
+            drive(p, 2)
+            p.evaluate('App.map.follow=false; App.map.rot=0; App.map.lookAt(24.2, 44.8, 5.25)'); p.wait_for_timeout(1500)
+        print(run(1280, 720, 'off_kingdom', b, {'mapStyle': 'ksa'}, net='0'))
+        def c(p):
+            drive(p, 2)
+            p.evaluate('App.map.follow=false; App.map.rot=0; App.map.lookAt(21.55, 39.17, 12.2)'); p.wait_for_timeout(1500)
+        print(run(1280, 720, 'off_jeddah', c, {'mapStyle': 'ksa'}, net='0'))
+    elif which == 'offsearch':
+        def a(p):
+            drive(p, 2)
+            p.click('#searchBar'); p.wait_for_timeout(500)
+            p.fill('#sInput', 'الملقا'); p.press('#sInput', 'Enter'); p.wait_for_timeout(700)
+            print('results:', p.evaluate("[...document.querySelectorAll('#sResults .row b')].slice(0,5).map(b=>b.textContent).join(' | ')"))
+        print(run(1280, 720, 'off_search', a, net='0'))
+        def b(p):
+            drive(p, 2)
+            p.click('#searchBar'); p.wait_for_timeout(500)
+            p.fill('#sInput', 'ابها'); p.press('#sInput', 'Enter'); p.wait_for_timeout(700)
+            p.click('#sResults .row'); p.wait_for_timeout(700)
+        print(run(1280, 720, 'off_place', b, net='0'))
+    elif which == 'offnav':
+        def a(p):
+            p.evaluate('onGnss(11,16)')
+            drive(p, 3, hdg=10)
+            p.evaluate("App.nav.start({lat:24.7743, lon:46.7386, name:'حي النرجس', sub:'الرياض'})")
+            p.wait_for_timeout(1200)
+            drive(p, 3, lat=24.7148, lon=46.6765, hdg=10)
+            print('direct:', p.evaluate('!!(App.nav.active && App.nav.active.direct)'),
+                  'card:', p.evaluate("document.getElementById('ncInstr').textContent"),
+                  'dist:', p.evaluate("document.getElementById('ncDist').textContent"))
+        print(run(1280, 720, 'off_nav', a, net='0'))
+    elif which == 'offradio':
+        def a(p):
+            p.click('.dk[data-panel="radio"]'); p.wait_for_timeout(900)
+            p.screenshot(path='%s/off_radio.png' % OUT)
+            p.click('#rCarGo'); p.wait_for_timeout(4200)
+            print('launches:', p.evaluate("JSON.stringify(window.__calls.filter(c => c[0]==='launch').map(c => c[1]))"))
+            p.click('#sheetClose'); p.wait_for_timeout(300)
+            p.click('#mcNext'); p.wait_for_timeout(200)
+            print('card:', p.evaluate("document.getElementById('mcName').textContent + ' | ' + document.getElementById('mcSub').textContent + ' | ' + document.getElementById('mcGo').textContent"))
+            print('keys:', p.evaluate("JSON.stringify(window.__calls.filter(c => c[0]==='key').map(c => c[1]))"))
+            drive(p, 3)
+        print(run(1280, 720, 'off_radio_main', a, {'radioApp': 'com.syu.radio'}, net='0'))
+    elif which == 'offpanel':
+        def a(p):
+            p.click('#netChip'); p.wait_for_timeout(900)
+        print(run(1280, 720, 'off_panel', a, net='0'))
+        def b(p):
+            p.click('.dk[data-panel="radio"]'); p.wait_for_timeout(1200)
+        print(run(1280, 720, 'on_radio', b, {'radioApp': 'com.syu.radio'}))
+    elif which == 'dash':
+        def a(p):
+            p.evaluate('onGnss(10,15)')
+            drive(p, 6)
+            print('big:', p.evaluate("document.body.classList.contains('map-big')"),
+                  'place:', p.evaluate("document.getElementById('icPlace').textContent + ' | ' + document.getElementById('icSub').textContent"),
+                  'map:', p.evaluate("JSON.stringify(document.getElementById('map').getBoundingClientRect())"))
+        print(run(1280, 720, 'dash_1280', a))
+        print(run(1024, 600, 'dash_1024', lambda p: drive(p, 4)))
+        print(run(800, 480, 'dash_800', lambda p: drive(p, 4)))
+        print(run(720, 1280, 'dash_portrait', lambda p: drive(p, 4)))
+        def b(p):
+            drive(p, 3); p.click('#btnBig'); p.wait_for_timeout(900)
+            print('big after click:', p.evaluate("document.body.classList.contains('map-big')"),
+                  'saved:', p.evaluate('App.settings.mapBig'))
+        print(run(1280, 720, 'dash_bigmap', b))
+        def c(p):
+            drive(p, 2)
+            p.evaluate("App.nav.start({lat:24.73, lon:46.70, name:'برج المملكة'})"); p.wait_for_timeout(4500)
+            drive(p, 2, lat=24.7148, lon=46.6765)
+            print('nav big:', p.evaluate("document.body.classList.contains('map-big')"))
+            p.screenshot(path='%s/dash_nav.png' % OUT)
+            p.evaluate('App.nav.stop()'); p.wait_for_timeout(600)
+            print('after stop big:', p.evaluate("document.body.classList.contains('map-big')"))
+        print(run(1280, 720, 'dash_navstop', c))
+        def d(p):
+            drive(p, 2); p.click('.dk[data-panel="radio"]'); p.wait_for_timeout(900)
+        print(run(1280, 720, 'dash_panel', d))
+        def e(p):
+            p.evaluate("App.radio.play({n:'إذاعة القرآن الكريم - السعودية', u:'https://stream.radiojar.com/0tpy1h0kxtzuv'})")
+            drive(p, 3)
+        print(run(1280, 720, 'dash_online_radio', e, {'theme': 'royal', 'autoOccasion': False}))
     elif which == 'size':
         w, h = [int(x) for x in sys.argv[3].split('x')]
         print(run(w, h, 'ui_%dx%d' % (w, h), lambda p: drive(p, 4)))

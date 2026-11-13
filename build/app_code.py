@@ -16,6 +16,8 @@ PKG = 'com.carnav.camry'
 MAIN = 'Lcom/carnav/camry/Main;'
 CHROME = 'Lcom/carnav/camry/Chrome;'
 SYS = 'Lcom/carnav/camry/Sys;'
+WEB = 'Lcom/carnav/camry/Web;'
+GNSS = 'Lcom/carnav/camry/Gnss;'
 ACT = 'Landroid/app/Activity;'
 STR = 'Ljava/lang/String;'
 SB = 'Ljava/lang/StringBuilder;'
@@ -33,6 +35,7 @@ def build_classes():
     main.field('lm', 'Landroid/location/LocationManager;')
     main.field('tts', 'Landroid/speech/tts/TextToSpeech;')
     main.field('fc', 'Landroid/webkit/ValueCallback;')
+    main.field('gn', 'Ljava/lang/Object;')
 
     main.method('<init>', [], 'V', 1, '''
         invoke-direct {p0}, Landroid/app/Activity;-><init>()V
@@ -71,7 +74,7 @@ def build_classes():
         invoke-virtual {v1}, Landroid/webkit/WebSettings;->getUserAgentString()Ljava/lang/String;
         move-result-object v4
         invoke-virtual {v3, v4}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
-        const-string v4, " CamryNav/2.1 (Android head unit; SDK "
+        const-string v4, " CamryNav/2.3 (Android head unit; SDK "
         invoke-virtual {v3, v4}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
         sget v4, Landroid/os/Build$VERSION;->SDK_INT:I
         invoke-virtual {v3, v4}, Ljava/lang/StringBuilder;->append(I)Ljava/lang/StringBuilder;
@@ -83,8 +86,13 @@ def build_classes():
         new-instance v1, Lcom/carnav/camry/Chrome;
         invoke-direct {v1, p0}, Lcom/carnav/camry/Chrome;-><init>(Lcom/carnav/camry/Main;)V
         invoke-virtual {v0, v1}, Landroid/webkit/WebView;->setWebChromeClient(Landroid/webkit/WebChromeClient;)V
-        new-instance v1, Landroid/webkit/WebViewClient;
-        invoke-direct {v1}, Landroid/webkit/WebViewClient;-><init>()V
+        new-instance v1, Lcom/carnav/camry/Web;
+        new-instance v2, Ljava/io/File;
+        invoke-virtual {p0}, Landroid/app/Activity;->getFilesDir()Ljava/io/File;
+        move-result-object v3
+        const-string v4, "tiles"
+        invoke-direct {v2, v3, v4}, Ljava/io/File;-><init>(Ljava/io/File;Ljava/lang/String;)V
+        invoke-direct {v1, v2}, Lcom/carnav/camry/Web;-><init>(Ljava/io/File;)V
         invoke-virtual {v0, v1}, Landroid/webkit/WebView;->setWebViewClient(Landroid/webkit/WebViewClient;)V
         invoke-virtual {p0, v0}, Landroid/app/Activity;->setContentView(Landroid/view/View;)V
         const-string v1, "file:///android_asset/index.html"
@@ -192,11 +200,27 @@ def build_classes():
         if-eqz v0, :try_end
         invoke-virtual {p0, v0}, Lcom/carnav/camry/Main;->onLocationChanged(Landroid/location/Location;)V
         :try_end
+        :g_start
+        sget v0, Landroid/os/Build$VERSION;->SDK_INT:I
+        const/16 v2, 24
+        if-lt v0, v2, :g_end
+        iget-object v0, p0, Lcom/carnav/camry/Main;->gn:Ljava/lang/Object;
+        if-nez v0, :g_end
+        iget-object v1, p0, Lcom/carnav/camry/Main;->lm:Landroid/location/LocationManager;
+        if-eqz v1, :g_end
+        invoke-static {p0, v1}, Lcom/carnav/camry/Gnss;->start(Lcom/carnav/camry/Main;Landroid/location/LocationManager;)Ljava/lang/Object;
+        move-result-object v0
+        iput-object v0, p0, Lcom/carnav/camry/Main;->gn:Ljava/lang/Object;
+        :g_end
         return-void
         :handler
         move-exception v0
+        goto :g_start
+        :g_handler
+        move-exception v0
         return-void
         .catchall {:try_start .. :try_end} :handler
+        .catchall {:g_start .. :g_end} :g_handler
     ''')
 
     main.method('stopLoc', [], 'V', 2, '''
@@ -216,7 +240,7 @@ def build_classes():
     # ---- command dispatcher ----
     cmds = [('launch', True), ('intent', True), ('view', True), ('apps', False), ('icon', True),
             ('wifi', True), ('bt', True), ('tts', True), ('vol', True), ('key', True), ('full', True),
-            ('home', True), ('temp', True), ('sys', True)]
+            ('home', True), ('temp', True), ('sys', True), ('net', True), ('cache', True)]
     h = ['const-string v0, "ping"', S_EQ % ('v0', 'p1'), 'move-result v1', 'if-eqz v1, :c0',
          'const-string v0, "pong"', 'return-object v0']
     for k, (c, has_arg) in enumerate(cmds):
@@ -569,6 +593,18 @@ def build_classes():
         return-object v0
     ''')
 
+    main.method('net', [STR], STR, 3, '''
+        invoke-static {p0}, Lcom/carnav/camry/Sys;->net(Landroid/app/Activity;)Ljava/lang/String;
+        move-result-object v0
+        return-object v0
+    ''')
+    # street-map tile cache: "size" | "prune" (drop tiles older than 29 days) | "clear"
+    main.method('cache', [STR], STR, 3, '''
+        invoke-static {p0, p1}, Lcom/carnav/camry/Sys;->cache(Landroid/app/Activity;Ljava/lang/String;)Ljava/lang/String;
+        move-result-object v0
+        return-object v0
+    ''')
+
     # device temperature for the fan/cooling panel (see Sys)
     main.method('temp', [STR], STR, 3, '''
         invoke-static {p0}, Lcom/carnav/camry/Sys;->temp(Landroid/app/Activity;)Ljava/lang/String;
@@ -769,4 +805,352 @@ def build_classes():
         goto :out
         .catchall {:try_start .. :try_end} :handler
     ''', flags=ACC_PUBLIC | ACC_STATIC)
-    return [main, chrome, sys_]
+    UA_TILES = 'Rihla/2.3 (Android car head unit)'
+    CUT = '-1252800000'          # 14.5 days, applied twice -> tiles live at most 29 days (CARTO allows 30)
+
+    sys_.method('cutoff', [], 'J', 3, '''
+        new-instance v0, Ljava/util/concurrent/atomic/AtomicLong;
+        invoke-static {}, Ljava/lang/System;->currentTimeMillis()J
+        move-result-wide v1
+        invoke-direct {v0, v1, v2}, Ljava/util/concurrent/atomic/AtomicLong;-><init>(J)V
+        const-wide/32 v1, %s
+        invoke-virtual {v0, v1, v2}, Ljava/util/concurrent/atomic/AtomicLong;->addAndGet(J)J
+        invoke-virtual {v0, v1, v2}, Ljava/util/concurrent/atomic/AtomicLong;->addAndGet(J)J
+        move-result-wide v1
+        return-wide v1
+    ''' % CUT, flags=ACC_PUBLIC | ACC_STATIC)
+
+    # download url -> file (via a temp file, renamed when complete); true on success
+    sys_.method('fetch', [STR, 'Ljava/io/File;'], 'Z', 9, '''
+        :try_start
+        new-instance v0, Ljava/net/URL;
+        invoke-direct {v0, p0}, Ljava/net/URL;-><init>(Ljava/lang/String;)V
+        invoke-virtual {v0}, Ljava/net/URL;->openConnection()Ljava/net/URLConnection;
+        move-result-object v0
+        check-cast v0, Ljava/net/HttpURLConnection;
+        const/16 v1, 6000
+        invoke-virtual {v0, v1}, Ljava/net/URLConnection;->setConnectTimeout(I)V
+        const/16 v1, 12000
+        invoke-virtual {v0, v1}, Ljava/net/URLConnection;->setReadTimeout(I)V
+        const-string v1, "User-Agent"
+        const-string v2, "%s"
+        invoke-virtual {v0, v1, v2}, Ljava/net/URLConnection;->setRequestProperty(Ljava/lang/String;Ljava/lang/String;)V
+        invoke-virtual {v0}, Ljava/net/HttpURLConnection;->getResponseCode()I
+        move-result v1
+        const/16 v2, 200
+        if-ne v1, v2, :bad
+        invoke-virtual {v0}, Ljava/net/URLConnection;->getInputStream()Ljava/io/InputStream;
+        move-result-object v2
+        invoke-virtual {p1}, Ljava/io/File;->getParentFile()Ljava/io/File;
+        move-result-object v1
+        invoke-virtual {v1}, Ljava/io/File;->mkdirs()Z
+        new-instance v1, Ljava/lang/StringBuilder;
+        invoke-direct {v1}, Ljava/lang/StringBuilder;-><init>()V
+        invoke-virtual {p1}, Ljava/io/File;->getPath()Ljava/lang/String;
+        move-result-object v3
+        invoke-virtual {v1, v3}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+        const-string v3, ".part"
+        invoke-virtual {v1, v3}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+        invoke-static {}, Ljava/lang/Thread;->currentThread()Ljava/lang/Thread;
+        move-result-object v3
+        invoke-virtual {v3}, Ljava/lang/Thread;->getId()J
+        move-result-wide v4
+        invoke-virtual {v1, v4, v5}, Ljava/lang/StringBuilder;->append(J)Ljava/lang/StringBuilder;
+        invoke-virtual {v1}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+        move-result-object v3
+        new-instance v1, Ljava/io/File;
+        invoke-direct {v1, v3}, Ljava/io/File;-><init>(Ljava/lang/String;)V
+        new-instance v3, Ljava/io/FileOutputStream;
+        invoke-direct {v3, v1}, Ljava/io/FileOutputStream;-><init>(Ljava/io/File;)V
+        const/16 v4, 16384
+        new-array v4, v4, [B
+        :loop
+        invoke-virtual {v2, v4}, Ljava/io/InputStream;->read([B)I
+        move-result v5
+        if-lez v5, :eof
+        const/4 v6, 0
+        invoke-virtual {v3, v4, v6, v5}, Ljava/io/FileOutputStream;->write([BII)V
+        goto :loop
+        :eof
+        invoke-virtual {v3}, Ljava/io/FileOutputStream;->close()V
+        invoke-virtual {v2}, Ljava/io/InputStream;->close()V
+        invoke-virtual {v0}, Ljava/net/HttpURLConnection;->disconnect()V
+        invoke-virtual {v1, p1}, Ljava/io/File;->renameTo(Ljava/io/File;)Z
+        move-result v0
+        return v0
+        :bad
+        invoke-virtual {v0}, Ljava/net/HttpURLConnection;->disconnect()V
+        :try_end
+        const/4 v0, 0
+        return v0
+        :handler
+        move-exception v0
+        const/4 v0, 0
+        return v0
+        .catchall {:try_start .. :try_end} :handler
+    ''' % UA_TILES, flags=ACC_PUBLIC | ACC_STATIC)
+
+    sys_.method('serve', ['Ljava/io/File;'], 'Landroid/webkit/WebResourceResponse;', 11, '''
+        new-instance v0, Ljava/util/HashMap;
+        invoke-direct {v0}, Ljava/util/HashMap;-><init>()V
+        const-string v1, "Access-Control-Allow-Origin"
+        const-string v2, "*"
+        invoke-virtual {v0, v1, v2}, Ljava/util/HashMap;->put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+        const-string v1, "Cache-Control"
+        const-string v2, "max-age=86400"
+        invoke-virtual {v0, v1, v2}, Ljava/util/HashMap;->put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+        new-instance v3, Landroid/webkit/WebResourceResponse;
+        const-string v4, "image/png"
+        const/4 v5, 0
+        const/16 v6, 200
+        const-string v7, "OK"
+        move-object v8, v0
+        new-instance v9, Ljava/io/FileInputStream;
+        invoke-direct {v9, p0}, Ljava/io/FileInputStream;-><init>(Ljava/io/File;)V
+        invoke-direct/range {v3 .. v9}, Landroid/webkit/WebResourceResponse;-><init>(Ljava/lang/String;Ljava/lang/String;ILjava/lang/String;Ljava/util/Map;Ljava/io/InputStream;)V
+        return-object v3
+    ''', flags=ACC_PUBLIC | ACC_STATIC)
+
+    # empty 404: the page then shows the built-in Kingdom map at once instead of waiting
+    sys_.method('miss', [], 'Landroid/webkit/WebResourceResponse;', 9, '''
+        new-instance v0, Ljava/util/HashMap;
+        invoke-direct {v0}, Ljava/util/HashMap;-><init>()V
+        const-string v1, "Access-Control-Allow-Origin"
+        const-string v2, "*"
+        invoke-virtual {v0, v1, v2}, Ljava/util/HashMap;->put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+        new-instance v1, Landroid/webkit/WebResourceResponse;
+        const-string v2, "image/png"
+        const/4 v3, 0
+        const/16 v4, 404
+        const-string v5, "Not cached"
+        move-object v6, v0
+        new-instance v7, Ljava/io/ByteArrayInputStream;
+        const/4 v8, 0
+        new-array v8, v8, [B
+        invoke-direct {v7, v8}, Ljava/io/ByteArrayInputStream;-><init>([B)V
+        invoke-direct/range {v1 .. v7}, Landroid/webkit/WebResourceResponse;-><init>(Ljava/lang/String;Ljava/lang/String;ILjava/lang/String;Ljava/util/Map;Ljava/io/InputStream;)V
+        return-object v1
+    ''', flags=ACC_PUBLIC | ACC_STATIC)
+
+    # recursive size / prune of the tile folder
+    sys_.method('walk', ['Ljava/io/File;', 'Ljava/util/concurrent/atomic/AtomicLong;',
+                         'Ljava/util/concurrent/atomic/AtomicInteger;', 'J', 'Z'], 'V', 15, '''
+        invoke-virtual {p0}, Ljava/io/File;->listFiles()[Ljava/io/File;
+        move-result-object v0
+        if-eqz v0, :ret
+        array-length v1, v0
+        const/4 v2, 0
+        :loop
+        if-ge v2, v1, :ret
+        aget-object v3, v0, v2
+        invoke-virtual {v3}, Ljava/io/File;->isDirectory()Z
+        move-result v4
+        if-eqz v4, :file
+        move-object v4, p1
+        move-object v5, p2
+        move-wide v6, p3
+        move v8, p5
+        invoke-static/range {v3 .. v8}, Lcom/carnav/camry/Sys;->walk(Ljava/io/File;Ljava/util/concurrent/atomic/AtomicLong;Ljava/util/concurrent/atomic/AtomicInteger;JZ)V
+        goto :next
+        :file
+        invoke-virtual {v3}, Ljava/io/File;->lastModified()J
+        move-result-wide v4
+        if-eqz p5, :count
+        invoke-static {v4, v5, p3, p4}, Ljava/lang/Long;->compare(JJ)I
+        move-result v6
+        if-gez v6, :count
+        invoke-virtual {v3}, Ljava/io/File;->delete()Z
+        goto :next
+        :count
+        invoke-virtual {v3}, Ljava/io/File;->length()J
+        move-result-wide v4
+        invoke-virtual {p1, v4, v5}, Ljava/util/concurrent/atomic/AtomicLong;->addAndGet(J)J
+        invoke-virtual {p2}, Ljava/util/concurrent/atomic/AtomicInteger;->incrementAndGet()I
+        :next
+        add-int/lit8 v2, v2, 1
+        goto :loop
+        :ret
+        return-void
+    ''', flags=ACC_PUBLIC | ACC_STATIC)
+
+    sys_.method('cache', ['Landroid/app/Activity;', STR], STR, 11, '''
+        new-instance v0, Ljava/io/File;
+        invoke-virtual {p0}, Landroid/app/Activity;->getFilesDir()Ljava/io/File;
+        move-result-object v1
+        const-string v2, "tiles"
+        invoke-direct {v0, v1, v2}, Ljava/io/File;-><init>(Ljava/io/File;Ljava/lang/String;)V
+        new-instance v4, Ljava/util/concurrent/atomic/AtomicLong;
+        invoke-direct {v4}, Ljava/util/concurrent/atomic/AtomicLong;-><init>()V
+        new-instance v5, Ljava/util/concurrent/atomic/AtomicInteger;
+        invoke-direct {v5}, Ljava/util/concurrent/atomic/AtomicInteger;-><init>()V
+        move-object v3, v0
+        const-wide/16 v6, 0
+        const/4 v8, 0
+        const-string v1, "clear"
+        invoke-virtual {v1, p1}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
+        move-result v1
+        if-eqz v1, :np
+        sget-wide v6, Ljava/lang/Long;->MAX_VALUE:J
+        const/4 v8, 1
+        goto :go
+        :np
+        const-string v1, "prune"
+        invoke-virtual {v1, p1}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
+        move-result v1
+        if-eqz v1, :go
+        invoke-static {}, Lcom/carnav/camry/Sys;->cutoff()J
+        move-result-wide v6
+        const/4 v8, 1
+        :go
+        invoke-static/range {v3 .. v8}, Lcom/carnav/camry/Sys;->walk(Ljava/io/File;Ljava/util/concurrent/atomic/AtomicLong;Ljava/util/concurrent/atomic/AtomicInteger;JZ)V
+        new-instance v0, Lorg/json/JSONObject;
+        invoke-direct {v0}, Lorg/json/JSONObject;-><init>()V
+        const-string v1, "n"
+        invoke-virtual {v5}, Ljava/util/concurrent/atomic/AtomicInteger;->get()I
+        move-result v2
+        invoke-virtual {v0, v1, v2}, Lorg/json/JSONObject;->put(Ljava/lang/String;I)Lorg/json/JSONObject;
+        const-string v1, "b"
+        invoke-virtual {v4}, Ljava/util/concurrent/atomic/AtomicLong;->get()J
+        move-result-wide v2
+        invoke-virtual {v0, v1, v2, v3}, Lorg/json/JSONObject;->put(Ljava/lang/String;J)Lorg/json/JSONObject;
+        invoke-virtual {v0}, Lorg/json/JSONObject;->toString()Ljava/lang/String;
+        move-result-object v0
+        return-object v0
+    ''', flags=ACC_PUBLIC | ACC_STATIC)
+
+    sys_.method('net', ['Landroid/app/Activity;'], STR, 3, '''
+        :try_start
+        const-string v0, "connectivity"
+        invoke-virtual {p0, v0}, Landroid/app/Activity;->getSystemService(Ljava/lang/String;)Ljava/lang/Object;
+        move-result-object v0
+        check-cast v0, Landroid/net/ConnectivityManager;
+        invoke-virtual {v0}, Landroid/net/ConnectivityManager;->getActiveNetworkInfo()Landroid/net/NetworkInfo;
+        move-result-object v0
+        if-eqz v0, :off
+        invoke-virtual {v0}, Landroid/net/NetworkInfo;->isConnected()Z
+        move-result v1
+        if-eqz v1, :off
+        const-string v0, "1"
+        return-object v0
+        :off
+        const-string v0, "0"
+        return-object v0
+        :try_end
+        :handler
+        move-exception v0
+        const-string v0, "1"
+        return-object v0
+        .catchall {:try_start .. :try_end} :handler
+    ''', flags=ACC_PUBLIC | ACC_STATIC)
+
+    # ---- Web: WebViewClient that keeps viewed street-map tiles on the device (max 29 days) ----
+    web = ClassDef(WEB, 'Landroid/webkit/WebViewClient;')
+    web.field('dir', 'Ljava/io/File;')
+    web.method('<init>', ['Ljava/io/File;'], 'V', 2, '''
+        invoke-direct {p0}, Landroid/webkit/WebViewClient;-><init>()V
+        iput-object p1, p0, Lcom/carnav/camry/Web;->dir:Ljava/io/File;
+        return-void
+    ''')
+    web.method('shouldInterceptRequest', ['Landroid/webkit/WebView;', 'Landroid/webkit/WebResourceRequest;'],
+               'Landroid/webkit/WebResourceResponse;', 11, '''
+        :try_start
+        invoke-interface {p2}, Landroid/webkit/WebResourceRequest;->getUrl()Landroid/net/Uri;
+        move-result-object v0
+        invoke-virtual {v0}, Landroid/net/Uri;->getHost()Ljava/lang/String;
+        move-result-object v1
+        if-eqz v1, :pass
+        const-string v2, "basemaps.cartocdn.com"
+        invoke-virtual {v1, v2}, Ljava/lang/String;->endsWith(Ljava/lang/String;)Z
+        move-result v2
+        if-eqz v2, :pass
+        invoke-interface {p2}, Landroid/webkit/WebResourceRequest;->getMethod()Ljava/lang/String;
+        move-result-object v2
+        const-string v3, "GET"
+        invoke-virtual {v3, v2}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
+        move-result v2
+        if-eqz v2, :pass
+        invoke-virtual {v0}, Landroid/net/Uri;->getPath()Ljava/lang/String;
+        move-result-object v2
+        if-eqz v2, :pass
+        const-string v3, ".."
+        invoke-virtual {v2, v3}, Ljava/lang/String;->contains(Ljava/lang/CharSequence;)Z
+        move-result v3
+        if-nez v3, :pass
+        new-instance v3, Ljava/io/File;
+        iget-object v4, p0, Lcom/carnav/camry/Web;->dir:Ljava/io/File;
+        invoke-direct {v3, v4, v2}, Ljava/io/File;-><init>(Ljava/io/File;Ljava/lang/String;)V
+        invoke-virtual {v3}, Ljava/io/File;->lastModified()J
+        move-result-wide v4
+        invoke-static {}, Lcom/carnav/camry/Sys;->cutoff()J
+        move-result-wide v6
+        invoke-static {v4, v5, v6, v7}, Ljava/lang/Long;->compare(JJ)I
+        move-result v4
+        if-gtz v4, :serve
+        invoke-virtual {v0}, Landroid/net/Uri;->toString()Ljava/lang/String;
+        move-result-object v4
+        invoke-static {v4, v3}, Lcom/carnav/camry/Sys;->fetch(Ljava/lang/String;Ljava/io/File;)Z
+        move-result v4
+        if-nez v4, :serve
+        invoke-static {}, Lcom/carnav/camry/Sys;->miss()Landroid/webkit/WebResourceResponse;
+        move-result-object v0
+        return-object v0
+        :serve
+        invoke-static {v3}, Lcom/carnav/camry/Sys;->serve(Ljava/io/File;)Landroid/webkit/WebResourceResponse;
+        move-result-object v0
+        return-object v0
+        :try_end
+        :pass
+        const/4 v0, 0
+        return-object v0
+        :handler
+        move-exception v0
+        const/4 v0, 0
+        return-object v0
+        .catchall {:try_start .. :try_end} :handler
+    ''')
+
+    # ---- Gnss: satellites seen / used by the head unit's GPS (API 24+) ----
+    gnss = ClassDef(GNSS, 'Landroid/location/GnssStatus$Callback;')
+    gnss.field('m', MAIN)
+    gnss.method('<init>', [MAIN], 'V', 2, '''
+        invoke-direct {p0}, Landroid/location/GnssStatus$Callback;-><init>()V
+        iput-object p1, p0, Lcom/carnav/camry/Gnss;->m:Lcom/carnav/camry/Main;
+        return-void
+    ''')
+    gnss.method('onSatelliteStatusChanged', ['Landroid/location/GnssStatus;'], 'V', 7, '''
+        invoke-virtual {p1}, Landroid/location/GnssStatus;->getSatelliteCount()I
+        move-result v0
+        const/4 v1, 0
+        const/4 v2, 0
+        :loop
+        if-ge v2, v0, :done
+        invoke-virtual {p1, v2}, Landroid/location/GnssStatus;->usedInFix(I)Z
+        move-result v3
+        if-eqz v3, :skip
+        add-int/lit8 v1, v1, 1
+        :skip
+        add-int/lit8 v2, v2, 1
+        goto :loop
+        :done
+        new-instance v3, Ljava/lang/StringBuilder;
+        const-string v4, "window.onGnss&&onGnss("
+        invoke-direct {v3, v4}, Ljava/lang/StringBuilder;-><init>(Ljava/lang/String;)V
+        invoke-virtual {v3, v1}, Ljava/lang/StringBuilder;->append(I)Ljava/lang/StringBuilder;
+        const-string v4, ","
+        invoke-virtual {v3, v4}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+        invoke-virtual {v3, v0}, Ljava/lang/StringBuilder;->append(I)Ljava/lang/StringBuilder;
+        const-string v4, ")"
+        invoke-virtual {v3, v4}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+        invoke-virtual {v3}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+        move-result-object v4
+        iget-object v3, p0, Lcom/carnav/camry/Gnss;->m:Lcom/carnav/camry/Main;
+        invoke-virtual {v3, v4}, Lcom/carnav/camry/Main;->js(Ljava/lang/String;)V
+        return-void
+    ''')
+    gnss.method('start', [MAIN, 'Landroid/location/LocationManager;'], 'Ljava/lang/Object;', 3, '''
+        new-instance v0, Lcom/carnav/camry/Gnss;
+        invoke-direct {v0, p0}, Lcom/carnav/camry/Gnss;-><init>(Lcom/carnav/camry/Main;)V
+        invoke-virtual {p1, v0}, Landroid/location/LocationManager;->registerGnssStatusCallback(Landroid/location/GnssStatus$Callback;)Z
+        return-object v0
+    ''', flags=ACC_PUBLIC | ACC_STATIC)
+    return [main, chrome, sys_, web, gnss]

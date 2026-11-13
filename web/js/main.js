@@ -23,6 +23,7 @@
 
   function weather() {
     var f = App.loc.fix || App.prayer.loc;
+    if (App.offline) return;
     App.fetchJSON('https://api.open-meteo.com/v1/forecast?latitude=' + f.lat.toFixed(3) + '&longitude=' + f.lon.toFixed(3) +
       '&current=temperature_2m,weather_code&timezone=auto', 10000).then(function (j) {
         var c = j.current || {}, desc = '';
@@ -59,6 +60,9 @@
     App.nav.init();
     App.radio.init();
     App.system.init();
+    App.on('net', function (on) { App.system.status(); if (on) weather(); });
+    App.net.init();
+    App.dash.init();
     App.prayer.init();
     App.adhkar.init();
     App.tasks.init();
