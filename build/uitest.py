@@ -1,5 +1,6 @@
 """Render the car UI in headless Chrome with a mocked Android bridge + network, take screenshots."""
 import io
+import os
 import json
 import math
 import random
@@ -100,6 +101,7 @@ def handle(route):
 
 
 def run(w, h, name, actions, settings=None, clock=None):
+    if os.environ.get("FORCE_WH"): w, h = [int(x) for x in os.environ["FORCE_WH"].split("x")]
     with sync_playwright() as p:
         b = p.chromium.launch()
         ctx = b.new_context(viewport={'width': w, 'height': h}, device_scale_factor=1,
