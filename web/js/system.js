@@ -287,7 +287,8 @@
       row('الأرقام', '', seg('sDig', [['latn', '123'], ['arab', '١٢٣']], s.digits)) +
       row('نظام الساعة', '', seg('sClk', [['12', '١٢ ساعة'], ['24', '٢٤ ساعة']], s.clock24 ? 24 : 12)) +
       row('ملء الشاشة', 'إخفاء شريط النظام', sw('sFull', s.full)) +
-      row('الملخص اليومي', 'بطاقة المساعد عند أول تشغيل في اليوم', sw('sBrief', s.briefing)) + '</div>' +
+      row('الملخص اليومي', 'بطاقة المساعد عند أول تشغيل في اليوم', sw('sBrief', s.briefing)) +
+      row('نغمة الترحيب', 'مع شعار أبو دانة عند تشغيل التطبيق', sw('sIntroS', s.introSound) + '<button class="btn" id="sIntro" style="margin-right:.8vw">' + App.icon('play') + 'شاهد</button>') + '</div>' +
       '<div class="sec"><div class="sec-title">النظام</div><div class="btn-row">' +
       '<button class="btn" id="sRadioApp">' + App.icon('radio') + 'تطبيق الراديو</button>' +
       '<button class="btn" id="sBtApp">' + App.icon('bt') + 'تطبيق البلوتوث</button>' +
@@ -301,7 +302,7 @@
       '<span class="chip ' + (App.android.supported ? 'on' : 'danger') + '">' + App.icon(App.android.supported ? 'check' : 'close') +
       (App.android.supported ? 'متوافق' : 'نسخة قديمة') + '</span></div></div>' +
       '<div class="sec"><div class="sec-title">حول التطبيق</div><div class="about">' + App.brand('lg') +
-      '<div class="ab-txt"><b>رحلة — الإصدار ' + App.d('2.4') + '</b><span>جميع الحقوق محفوظة © ' + App.d('2026') + ' أبو دانة للبرمجة</span>' +
+      '<div class="ab-txt"><b>رحلة — الإصدار ' + App.d('2.5') + '</b><span>جميع الحقوق محفوظة © ' + App.d('2026') + ' أبو دانة للبرمجة</span>' +
       '<small>تصميم وتطوير أبو دانة للبرمجة • بيانات الخرائط © OpenStreetMap • خريطة المملكة المدمجة: Natural Earth وبيانات الأحياء من homaily/Saudi-Arabia-Regions-Cities-and-Districts (GPL-2.0) • الملاحة OSRM • الإذاعات mp3quran.net و radio-browser.info • الطقس Open-Meteo</small></div></div></div>';
 
     function bindSw(id, key, after) {
@@ -322,6 +323,8 @@
     bindSw('sFri', 'autoFriday', function () { s.themeLocked = false; App.saveSettings(); App.theme.apply(); P.refresh(); });
     bindSw('sFriRem', 'fridayRemind');
     bindSw('sBrief', 'briefing');
+    bindSw('sIntroS', 'introSound');
+    App.$('sIntro').onclick = function () { App.panels.close(); App.intro.play(); };
     App.theme.bindCards(body);
     App.theme.bindCustom(body, function () { body.querySelectorAll('[data-theme]').forEach(function (x) { x.classList.toggle('on', x.dataset.theme === 'custom'); }); });
     App.$('sCar').onclick = function () { App.panels.open('car'); };

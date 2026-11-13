@@ -582,18 +582,8 @@
     setTimeout(function () { if (box.parentNode) box.parentNode.removeChild(box); }, 6500);
   };
 
-  // ---------- start-up intro (car drives in, name fades up) ----------
-  TH.intro = function () {
-    var el = document.createElement('div');
-    el.className = 'intro';
-    el.innerHTML = '<div class="in-brand"><img src="img/splash.jpg" alt="أبو دانة للبرمجة"><i class="in-shine"></i></div>' +
-      '<div class="in-side"><div class="in-name">رحلة</div><div class="in-sub">' + App.esc(C.title()) + ' • ' + App.esc(TH.cur ? TH.cur.name : '') + ' • ' + App.esc(App.android.name) + '</div>' +
-      '<div class="in-by">' + App.brand() + '<span>جميع الحقوق محفوظة © ' + App.d('2026') + ' أبو دانة للبرمجة</span></div></div>';
-    document.body.appendChild(el);
-    el.onclick = function () { el.classList.add('out'); };
-    setTimeout(function () { el.classList.add('out'); }, 2600);
-    setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 3200);
-  };
+  // ---------- start-up welcome (js/intro.js): the Abu Dana logo assembles itself ----------
+  TH.intro = function () { if (App.intro) App.intro.play(); };
 
   TH.init = function () {
     TH.apply();

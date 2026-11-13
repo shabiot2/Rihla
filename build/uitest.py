@@ -460,6 +460,25 @@ if __name__ == '__main__':
             p.wait_for_timeout(7000); p.click('.dk[data-panel="settings"]'); p.wait_for_timeout(700)
         print(run(1280, 720, 'fri_settings', f, {}, clock=(2026, 11, 20, 16, 30)))
         print(run(720, 1280, 'fri_portrait', lambda p: (p.wait_for_timeout(7000), drive(p, 3)), {}, clock=(2026, 11, 20, 16, 30)))
+    elif which == 'intro2':
+        # the animated welcome, frame by frame
+        def a(p):
+            p.goto(WEB + '?intro=1')
+            last = 0
+            for ms in (500, 900, 1300, 1600, 2100, 2700, 3400, 4300, 5000):
+                p.wait_for_timeout(ms - last); last = ms
+                p.screenshot(path='%s/intro_%04d.png' % (OUT, ms))
+            p.wait_for_timeout(1500)
+            print('intro gone:', p.evaluate("!document.querySelector('.intro')"))
+        print(run(1280, 720, 'intro_after', a, {'theme': 'silver', 'autoOccasion': False, 'autoFriday': False}))
+        def b(p):
+            p.goto(WEB + '?intro=1'); p.wait_for_timeout(4600)
+        def c(p):
+            p.goto(WEB + '?intro=1'); p.wait_for_timeout(2750)
+        print(run(1280, 720, 'intro_center', c, {'theme': 'silver', 'autoOccasion': False, 'autoFriday': False}))
+        print(run(1280, 720, 'intro_final', b, {'theme': 'silver', 'autoOccasion': False, 'autoFriday': False}))
+        print(run(720, 1280, 'intro_portrait', b, {'theme': 'silver', 'autoOccasion': False, 'autoFriday': False}))
+        print(run(800, 480, 'intro_800', b, {'theme': 'silver', 'autoOccasion': False, 'autoFriday': False}))
     elif which == 'size':
         w, h = [int(x) for x in sys.argv[3].split('x')]
         print(run(w, h, 'ui_%dx%d' % (w, h), lambda p: drive(p, 4)))
