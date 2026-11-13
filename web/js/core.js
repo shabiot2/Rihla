@@ -43,11 +43,11 @@ var App = window.App = {};
       m = /SDK (\d+)/.exec(navigator.userAgent) || /Android (\d+(?:\.\d+)?)/.exec(navigator.userAgent);
       info = m ? (/SDK/.test(m[0]) ? { sdk: +m[1] } : { release: m[1] }) : {};
     }
-    var SDK2REL = { 33: '13', 34: '14', 35: '15', 36: '16', 37: '17' };
+    var SDK2REL = { 21: '5', 22: '5.1', 23: '6', 24: '7', 25: '7.1', 26: '8', 27: '8.1', 28: '9', 29: '10', 30: '11', 31: '12', 32: '12L', 33: '13', 34: '14', 35: '15', 36: '16', 37: '17' };
     if (!info.release && info.sdk) info.release = SDK2REL[info.sdk] || ('API ' + info.sdk);
-    if (!info.sdk && info.release) { var r = parseInt(info.release, 10); info.sdk = r >= 13 ? r + 20 : 0; }
+    if (!info.sdk && info.release) { var r = parseInt(info.release, 10); info.sdk = r >= 10 ? r + 19 + (r >= 13 ? 1 : 0) : 0; }
     info.name = info.release ? 'أندرويد ' + info.release : 'غير معروف';
-    info.supported = !info.sdk || info.sdk >= 33;
+    info.supported = !info.sdk || info.sdk >= 21;
     return info;
   })();
 

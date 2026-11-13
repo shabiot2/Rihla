@@ -32,7 +32,7 @@ KEYSTORE = os.path.join(HERE, 'release.p12')
 STOREPASS = 'camrynav2026'
 ALIAS = 'camry'
 APP_NAME = 'رحلة'
-VERSION_CODE, VERSION_NAME = 3, '2.1'
+VERSION_CODE, VERSION_NAME = 4, '2.2'
 ICON_PATH = 'res/drawable-xxxhdpi-v4/icon.png'
 
 PERMS = ['INTERNET', 'ACCESS_NETWORK_STATE', 'ACCESS_WIFI_STATE', 'CHANGE_WIFI_STATE',
@@ -76,8 +76,9 @@ def make_manifest():
     perms = [E('uses-permission', {'android:name': 'android.permission.' + p}) for p in PERMS]
     root = E('manifest', {'package': PKG, 'android:versionCode': ('dec', VERSION_CODE),
                           'android:versionName': VERSION_NAME}, [
-        # Android 13 (API 33) and newer; targetSdk 28 keeps the v1 signature valid and the direct Wi-Fi/BT toggles
-        E('uses-sdk', {'android:minSdkVersion': ('dec', 33), 'android:targetSdkVersion': ('dec', 28)}),
+        # installs on any Android 5+ (head units often report a newer version than they run);
+        # targetSdk 28 keeps the direct Wi-Fi/BT toggles
+        E('uses-sdk', {'android:minSdkVersion': ('dec', 21), 'android:targetSdkVersion': ('dec', 28)}),
     ] + perms + [
         E('application', {'android:label': APP_NAME, 'android:icon': ('ref', 0x7F010000),
                           'android:theme': ('ref', THEME_NO_TITLE_BAR),
@@ -162,6 +163,8 @@ def v1_signature_files(entries):
                            '-signedjar', signed, tmpjar, ALIAS], stdout=subprocess.DEVNULL)
     with zipfile.ZipFile(signed) as z:
         mf, sf = z.read('META-INF/MANIFEST.MF'), z.read('META-INF/CAMRY.SF')
+        assert sf.startswith(b'Signature-Version: 1.0\r\n')
+        sf = sf.replace(b'Signature-Version: 1.0\r\n', b'Signature-Version: 1.0\r\nX-Android-APK-Signed: 2\r\n', 1)
         extra = [n for n in z.namelist() if n.startswith('META-INF/') and
                  n not in ('META-INF/MANIFEST.MF', 'META-INF/CAMRY.SF', 'META-INF/CAMRY.RSA')]
         assert not extra, extra
@@ -175,6 +178,58 @@ def v1_signature_files(entries):
         serialization.Encoding.DER, [pkcs7.PKCS7Options.DetachedSignature, pkcs7.PKCS7Options.NoAttributes,
                                      pkcs7.PKCS7Options.Binary])
     return [('META-INF/MANIFEST.MF', mf, True), ('META-INF/CAMRY.SF', sf, True), ('META-INF/CAMRY.RSA', rsa, True)]
+
+
+# ---------------------------------------------------------------- APK Signature Scheme v2
+def _lp(b):
+    return struct.pack('<I', len(b)) + b
+
+
+def _chunked_sha256(sections):
+    digests = []
+    for sec in sections:
+        for i in range(0, len(sec), 1 << 20):
+            c = sec[i:i + (1 << 20)]
+            digests.append(hashlib.sha256(b'\xa5' + struct.pack('<I', len(c)) + c).digest())
+    return hashlib.sha256(b'\x5a' + struct.pack('<I', len(digests)) + b''.join(digests)).digest()
+
+
+def v2_sign(apk):
+    """Insert an APK Signing Block (v2, RSA PKCS#1 v1.5 + SHA-256, algorithm 0x0103)."""
+    from cryptography.hazmat.primitives import hashes, serialization
+    from cryptography.hazmat.primitives.asymmetric import padding
+    from cryptography.hazmat.primitives.serialization import pkcs12
+    with open(KEYSTORE, 'rb') as f:
+        key, cert, _ = pkcs12.load_key_and_certificates(f.read(), STOREPASS.encode())
+    eocd = apk.rfind(b'PK\x05\x06')
+    assert eocd > 0 and len(apk) - eocd == 22
+    cd_size, cd_off = struct.unpack_from('<II', apk, eocd + 12)
+    assert cd_off + cd_size == eocd
+    before, cd, eocd_b = apk[:cd_off], apk[cd_off:eocd], bytearray(apk[eocd:])
+    # for the digest the EOCD points at the signing block, i.e. the old CD offset (unchanged here)
+    digest = _chunked_sha256([before, cd, bytes(eocd_b)])
+    cert_der = cert.public_bytes(serialization.Encoding.DER)
+    signed_data = _lp(_lp(struct.pack('<I', 0x0103) + _lp(digest))) + _lp(_lp(cert_der)) + _lp(b'')
+    sig = key.sign(signed_data, padding.PKCS1v15(), hashes.SHA256())
+    pub = key.public_key().public_bytes(serialization.Encoding.DER, serialization.PublicFormat.SubjectPublicKeyInfo)
+    signer = _lp(signed_data) + _lp(_lp(struct.pack('<I', 0x0103) + _lp(sig))) + _lp(pub)
+    v2 = _lp(_lp(signer))
+    pair = struct.pack('<Q', 4 + len(v2)) + struct.pack('<I', 0x7109871a) + v2
+    block_size = len(pair) + 8 + 16                        # pairs + trailing size + magic
+    block = struct.pack('<Q', block_size) + pair + struct.pack('<Q', block_size) + b'APK Sig Block 42'
+    struct.pack_into('<I', eocd_b, 16, cd_off + len(block))
+    out = before + block + cd + bytes(eocd_b)
+    # self-check: recompute as a verifier would
+    e2 = out.rfind(b'PK\x05\x06')
+    co = struct.unpack_from('<I', out, e2 + 16)[0]
+    assert out[co - 16:co] == b'APK Sig Block 42'
+    bs = struct.unpack_from('<Q', out, co - 24)[0]
+    bstart = co - bs - 8
+    assert struct.unpack_from('<Q', out, bstart)[0] == bs
+    e_copy = bytearray(out[e2:]); struct.pack_into('<I', e_copy, 16, bstart)
+    assert _chunked_sha256([out[:bstart], out[co:e2], bytes(e_copy)]) == digest
+    key.public_key().verify(sig, signed_data, padding.PKCS1v15(), hashes.SHA256())
+    return out
 
 
 # ---------------------------------------------------------------- main
@@ -203,7 +258,7 @@ def main():
     log('  %d asset files' % (len(entries) - 4))
     log('[4/5] sign (v1) + align')
     sig = v1_signature_files(entries)
-    apk = zip_bytes(sig + entries)
+    apk = v2_sign(zip_bytes(sig + entries))
     path = os.path.join(OUT, 'Rihla.apk')
     with open(path, 'wb') as f:
         f.write(apk)

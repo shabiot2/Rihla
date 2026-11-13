@@ -296,9 +296,9 @@
       App.esc([App.android.maker, App.android.model, App.android.board].filter(Boolean).join(' • ') || 'شاشة أندرويد') +
       ' • ' + App.d(screen.width) + '×' + App.d(screen.height) + '</small></div>' +
       '<span class="chip ' + (App.android.supported ? 'on' : 'danger') + '">' + App.icon(App.android.supported ? 'check' : 'close') +
-      (App.android.supported ? 'متوافق' : 'أقل من أندرويد ١٣') + '</span></div></div>' +
+      (App.android.supported ? 'متوافق' : 'نسخة قديمة') + '</span></div></div>' +
       '<div class="sec"><div class="sec-title">حول التطبيق</div><div class="about">' + App.brand('lg') +
-      '<div class="ab-txt"><b>رحلة — الإصدار ' + App.d('2.1') + '</b><span>جميع الحقوق محفوظة © ' + App.d('2026') + ' أبو دانة للبرمجة</span>' +
+      '<div class="ab-txt"><b>رحلة — الإصدار ' + App.d('2.2') + '</b><span>جميع الحقوق محفوظة © ' + App.d('2026') + ' أبو دانة للبرمجة</span>' +
       '<small>تصميم وتطوير أبو دانة للبرمجة • بيانات الخرائط © OpenStreetMap • الملاحة OSRM • الإذاعات mp3quran.net و radio-browser.info • الطقس Open-Meteo</small></div></div></div>';
 
     function bindSw(id, key, after) {
