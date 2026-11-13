@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="0 0 192 192">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="30%" r="80%">
+      <stop offset="0" stop-color="#26313c"/>
+      <stop offset=".6" stop-color="#10161d"/>
+      <stop offset="1" stop-color="#06080b"/>
+    </radialGradient>
+    <radialGradient id="glow" cx="50%" cy="52%" r="50%">
+      <stop offset="0" stop-color="#38b6ef" stop-opacity=".35"/>
+      <stop offset="1" stop-color="#38b6ef" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="chrome" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset=".35" stop-color="#d6dce1"/>
+      <stop offset=".55" stop-color="#7d868f"/>
+      <stop offset=".8" stop-color="#e4e8eb"/>
+      <stop offset="1" stop-color="#8c959d"/>
+    </linearGradient>
+    <linearGradient id="spoke" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#e9edf0"/>
+      <stop offset="1" stop-color="#868f98"/>
+    </linearGradient>
+    <linearGradient id="blue" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#8ae4ff"/>
+      <stop offset="1" stop-color="#1f8fd6"/>
+    </linearGradient>
+  </defs>
+  <rect x="4" y="4" width="184" height="184" rx="42" fill="url(#bg)"/>
+  <rect x="5" y="5" width="182" height="182" rx="41" fill="none" stroke="url(#chrome)" stroke-opacity=".45" stroke-width="2"/>
+  <circle cx="96" cy="100" r="74" fill="url(#glow)"/>
+  <!-- steering wheel rim -->
+  <circle cx="96" cy="100" r="62" fill="none" stroke="#05070a" stroke-width="20" stroke-opacity=".55"/>
+  <circle cx="96" cy="98" r="62" fill="none" stroke="url(#chrome)" stroke-width="15"/>
+  <path d="M44.5 72 A62 62 0 0 1 147.5 72" fill="none" stroke="#ffffff" stroke-opacity=".35" stroke-width="3" stroke-linecap="round"/>
+  <!-- spokes -->
+  <path d="M38 104 L74 96 L78 108 L40 118 Z" fill="url(#spoke)"/>
+  <path d="M154 104 L118 96 L114 108 L152 118 Z" fill="url(#spoke)"/>
+  <path d="M88 122 L104 122 L108 158 L84 158 Z" fill="url(#spoke)"/>
+  <!-- hub with navigation arrow -->
+  <circle cx="96" cy="104" r="27" fill="#0b1015" stroke="url(#chrome)" stroke-width="4"/>
+  <path d="M96 84 L110 118 L96 110 L82 118 Z" fill="url(#blue)" stroke="#0b1015" stroke-width="1.5" stroke-linejoin="round"/>
+</svg>
