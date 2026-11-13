@@ -258,18 +258,12 @@
   };
   C.BRANDS = BRANDS; C.COLORS = COLORS; C.BODIES = BODIES;
 
-  // ---------- othio wordmark ----------
-  var oid = 0;
-  App.othio = function (cls) {
-    var id = 'ot' + (++oid);
-    return '<svg class="othio ' + (cls || '') + '" viewBox="0 0 132 50" role="img" aria-label="othio"><defs><linearGradient id="' + id + '" gradientUnits="userSpaceOnUse" x1="0" y1="4" x2="0" y2="46">' +
-      '<stop offset="0" style="stop-color:var(--bezel-0)"/><stop offset=".45" style="stop-color:var(--bezel-1)"/>' +
-      '<stop offset=".62" style="stop-color:var(--bezel-2)"/><stop offset="1" style="stop-color:var(--bezel-3)"/></linearGradient></defs>' +
-      '<g fill="none" stroke="url(#' + id + ')" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">' +
-      '<circle cx="17" cy="30" r="11"/><path d="M40 9v25q0 8 8 8M33 19h14"/><path d="M59 6v36M59 29q0-11 10.5-11T80 29v13"/>' +
-      '<path d="M92 20v22"/><circle cx="115" cy="30" r="11"/></g>' +
-      '<circle cx="92" cy="9" r="4.2" style="fill:var(--accent)"/></svg>';
+  // ---------- brand credit: أبو دانة للبرمجة ----------
+  App.brand = function (cls) {
+    return '<span class="brand ' + (cls || '') + '"><b>أبو دانة</b><small>للبرمجة</small></span>';
   };
+  App.BRAND = 'أبو دانة للبرمجة';
+  App.APP_NAME = 'رحلة';
 
   // ---------- occasions ----------
   App.occasion = function (now) {
@@ -463,10 +457,10 @@
     document.body.appendChild(w);
     function step1() {
       w.innerHTML = '<div class="wl-card"><div class="wl-head"><span class="wl-logo">' + App.icon('wheel') + '</span>' +
-        '<div><h1>أهلاً بك في <span class="silver-text">مِقْوَد</span></h1><p>واجهة قيادة ذكية تناسب أي سيارة — اختر سيارتك وثيمك المفضّل' +
+        '<div><h1>أهلاً بك في <span class="silver-text">رحلة</span></h1><p>واجهة قيادة ذكية تناسب أي سيارة — اختر سيارتك وثيمك المفضّل' +
         '<span class="wl-dev">' + App.icon('cube') + App.esc(App.android.name) + (App.android.model ? ' • ' + App.esc(App.android.model) : '') + '</span></p></div></div>' +
         '<div class="wl-body" id="wlEd">' + C.editor() + '</div>' +
-        '<div class="wl-foot"><span class="wl-dots"><i class="on"></i><i></i></span><span class="wl-copy">' + App.othio() + '<small>© ' + App.d('2026') + '</small></span>' +
+        '<div class="wl-foot"><span class="wl-dots"><i class="on"></i><i></i></span><span class="wl-copy">' + App.brand() + '<small>© ' + App.d('2026') + '</small></span>' +
         '<button class="btn primary" id="wNext">التالي ' + App.icon('back') + '</button></div></div>';
       C.bindEditor(App.$('wlEd'));
       App.$('wNext').onclick = step2;
@@ -475,7 +469,7 @@
       w.innerHTML = '<div class="wl-card"><div class="wl-head"><span class="wl-logo">' + App.icon('palette') + '</span>' +
         '<div><h1>اختر الثيم</h1><p>تقدر تغيّره أي وقت من الإعدادات. ثيمات اليوم الوطني ويوم التأسيس تتفعّل تلقائياً في موسمها.</p></div></div>' +
         '<div class="wl-body">' + TH.cards(TH.effectiveKey()) + '<div class="sec-title" style="margin-top:1.4vmin">لون الثيم المخصص</div>' + TH.customRow() + '</div>' +
-        '<div class="wl-foot"><span class="wl-dots"><i></i><i class="on"></i></span><span class="wl-copy">' + App.othio() + '<small>© ' + App.d('2026') + '</small></span>' +
+        '<div class="wl-foot"><span class="wl-dots"><i></i><i class="on"></i></span><span class="wl-copy">' + App.brand() + '<small>© ' + App.d('2026') + '</small></span>' +
         '<button class="btn primary" id="wDone">ابدأ القيادة ' + App.icon('car') + '</button></div></div>';
       TH.bindCards(w);
       TH.bindCustom(w, function () { w.querySelectorAll('[data-theme]').forEach(function (x) { x.classList.toggle('on', x.dataset.theme === 'custom'); }); });
@@ -521,8 +515,8 @@
     var el = document.createElement('div');
     el.className = 'intro';
     el.innerHTML = '<div class="in-brand"><img src="img/splash.jpg" alt="أبو دانة للبرمجة"><i class="in-shine"></i></div>' +
-      '<div class="in-side"><div class="in-name">مِقْوَد</div><div class="in-sub">' + App.esc(C.title()) + ' • ' + App.esc(TH.cur ? TH.cur.name : '') + ' • ' + App.esc(App.android.name) + '</div>' +
-      '<div class="in-by">' + App.othio() + '<span>جميع الحقوق محفوظة © ' + App.d('2026') + ' othio</span></div></div>';
+      '<div class="in-side"><div class="in-name">رحلة</div><div class="in-sub">' + App.esc(C.title()) + ' • ' + App.esc(TH.cur ? TH.cur.name : '') + ' • ' + App.esc(App.android.name) + '</div>' +
+      '<div class="in-by">' + App.brand() + '<span>جميع الحقوق محفوظة © ' + App.d('2026') + ' أبو دانة للبرمجة</span></div></div>';
     document.body.appendChild(el);
     el.onclick = function () { el.classList.add('out'); };
     setTimeout(function () { el.classList.add('out'); }, 2600);

@@ -122,7 +122,7 @@
     if (M.disp) drawCar(s);
     ctx.restore();
     var a = App.$('attrib');
-    if (a._t !== st.attr) { a._t = st.attr; a.textContent = st.attr + ' • © othio'; }
+    if (a._t !== st.attr) { a._t = st.attr; a.textContent = st.attr + ' • © أبو دانة للبرمجة'; }
   }
 
   function drawRoute(s) {

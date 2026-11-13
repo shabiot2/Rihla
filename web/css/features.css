@@ -240,7 +240,7 @@
 .intro .in-name { font-size: 9vmin; font-weight: 800; letter-spacing: .02em; background: var(--chrome); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .intro .in-sub { font-size: 2.3vmin; color: var(--muted); margin-top: .4vmin; }
 .intro .in-by { margin-top: 3vmin; display: flex; flex-direction: column; align-items: center; }
-.intro .in-by .othio { height: 5vmin; width: auto; }
+.intro .in-by .brand b { font-size: 3.6vmin; } .intro .in-by .brand small { font-size: 1.8vmin; }
 .intro .in-by span { font-size: 1.7vmin; color: var(--muted); margin-top: .7vmin; }
 @keyframes fadeUp { from { opacity: 0; transform: translateY(2vmin); } to { opacity: 1; transform: none; } }
 @media (max-aspect-ratio: 1/1) { .intro { flex-direction: column; } .intro .in-brand { height: 50vh; } .intro .in-side { margin: 3vmin 0 0; } }
@@ -269,17 +269,21 @@
 .stepn { width: 5vmin; height: 5vmin; flex: none; border-radius: 50%; margin-left: 1.1vw; display: flex; align-items: center; justify-content: center;
   font-weight: 800; font-size: 2.2vmin; background: linear-gradient(160deg, var(--pri-a), var(--pri-b)); color: var(--on-accent); }
 
-/* ---------- othio rights ---------- */
-.othio { display: inline-block; vertical-align: middle; }
+/* ---------- brand credit ---------- */
+.brand { display: inline-flex; flex-direction: column; align-items: center; line-height: 1; font-family: var(--f-disp); }
+.brand b { font-size: 2.6vmin; font-weight: 800; background: var(--chrome); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.brand small { font-size: 1.5vmin; font-weight: 700; color: var(--accent); letter-spacing: .14em; margin-top: .3vmin; }
+.brand.lg b { font-size: 4.2vmin; }
+.brand.lg small { font-size: 2vmin; }
 .about { display: flex; align-items: center; padding: 1.8vmin 1.8vw; border-radius: 18px; border: 1px solid var(--line2);
   background: radial-gradient(70% 140% at 90% 50%, rgba(var(--accent-rgb), .1), transparent 70%), linear-gradient(150deg, var(--card-a), var(--card-c)); }
-.about .othio { height: 7.5vmin; width: auto; flex: none; margin-left: 2.4vw; }
+.about .brand { flex: none; margin-left: 2.4vw; }
 .about .ab-txt { flex: 1; min-width: 0; line-height: 1.6; }
 .about .ab-txt b { display: block; font-size: 2.5vmin; }
 .about .ab-txt span { display: block; font-size: 2.1vmin; color: var(--accent); font-weight: 700; }
 .about .ab-txt small { display: block; font-size: 1.55vmin; color: var(--muted); }
 .wl-copy { display: flex; align-items: center; }
-.wl-copy .othio { height: 3.4vmin; width: auto; }
+.wl-copy .brand b { font-size: 2vmin; } .wl-copy .brand small { font-size: 1.2vmin; }
 .wl-copy small { font-size: 1.6vmin; color: var(--muted); margin-right: .6vw; }
 .wl-dev { display: inline-flex; align-items: center; margin-right: 1vw; padding: .2vmin .9vw; border-radius: 99px; font-size: 1.6vmin; color: var(--accent); background: rgba(var(--accent-rgb), .1); border: 1px solid rgba(var(--accent-rgb), .35); }
 .wl-dev .ic { width: 2vmin; height: 2vmin; margin-left: .4vw; }

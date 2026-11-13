@@ -31,7 +31,7 @@ TMP = os.path.join(ROOT, 'tmp')
 KEYSTORE = os.path.join(HERE, 'release.p12')
 STOREPASS = 'camrynav2026'
 ALIAS = 'camry'
-APP_NAME = 'مقود'
+APP_NAME = 'رحلة'
 VERSION_CODE, VERSION_NAME = 3, '2.1'
 ICON_PATH = 'res/drawable-xxxhdpi-v4/icon.png'
 
@@ -204,7 +204,7 @@ def main():
     log('[4/5] sign (v1) + align')
     sig = v1_signature_files(entries)
     apk = zip_bytes(sig + entries)
-    path = os.path.join(OUT, 'CamryNav.apk')
+    path = os.path.join(OUT, 'Rihla.apk')
     with open(path, 'wb') as f:
         f.write(apk)
     log('[5/5] verify')
