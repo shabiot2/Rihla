@@ -130,8 +130,8 @@
     var name, sub, tag, ok = true, go, goIc;
     if (R.cur) {
       name = R.cur.n;
-      sub = R.playing ? '<span class="eq"><i></i><i></i><i></i></span>إذاعة أونلاين — يعمل الآن' :
-        audio.paused ? 'إذاعة أونلاين — متوقف مؤقتاً' : 'جارٍ الاتصال بالإذاعة…';
+      sub = R.playing ? '<span class="eq"><i></i><i></i><i></i></span>أونلاين — يعمل الآن' :
+        audio.paused ? 'أونلاين — متوقف مؤقتاً' : 'جارٍ الاتصال…';
       tag = 'إنترنت'; ok = false; go = 'إيقاف'; goIc = 'stop';
     } else if (R.car) {
       name = 'راديو السيارة';
@@ -315,6 +315,13 @@
     audio.addEventListener('waiting', ui);
     audio.addEventListener('error', function () {
       R.playing = false;
+      if (R.cur && R.cur.alt && R.cur.alt.length) {             // another mirror of the same recording
+        R.cur.u = R.cur.alt.shift();
+        audio.src = R.cur.u;
+        audio.play().catch(function () { });
+        ui();
+        return;
+      }
       if (R.cur && retry < 2) {
         retry++;
         setTimeout(function () { if (R.cur) { audio.src = R.cur.u; audio.play().catch(function () { }); } }, 2500);

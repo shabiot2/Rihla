@@ -71,6 +71,7 @@ h1, h2, h3, .disp { font-family: var(--f-disp); }
 #app::before {
   content: ""; position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 0; pointer-events: none;
   background-image: var(--pattern); background-size: var(--pattern-size); opacity: var(--pattern-op);
+  background-position: var(--pattern-pos, 0 0); background-repeat: var(--pattern-rep, repeat);
 }
 #topbar, #main, #dock { position: relative; z-index: 1; }
 

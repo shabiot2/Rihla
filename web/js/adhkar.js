@@ -55,8 +55,70 @@
     { n: 100, s: 'رواه البخاري ومسلم',
       m: 'أَسْتَغْفِرُ اللَّهَ وَأَتُوبُ إِلَيْهِ' }
   ];
-  var TITLES = { m: 'أذكار الصباح', e: 'أذكار المساء' };
+  var TITLES = { m: 'أذكار الصباح', e: 'أذكار المساء', f: 'سنن الجمعة' };
   var A = App.adhkar = { mode: null };
+
+  // ---------- Friday (from Maghrib on Thursday to the end of Friday) ----------
+  var SUNAN = [
+    { id: 'g', ic: 'drop', t: 'الاغتسال والتطيّب ولبس أحسن الثياب', q: 'غُسل يوم الجمعة واجب على كل محتلم', s: 'متفق عليه' },
+    { id: 'e', ic: 'mosque', t: 'التبكير إلى صلاة الجمعة والإنصات للخطبة', q: 'من اغتسل يوم الجمعة غُسل الجنابة ثم راح فكأنما قرّب بدنة', s: 'متفق عليه' },
+    { id: 'k', ic: 'book', t: 'قراءة سورة الكهف', q: 'من قرأ سورة الكهف في يوم الجمعة أضاء له من النور ما بين الجمعتين', s: 'رواه الحاكم والبيهقي، وصححه الألباني', kahf: true },
+    { id: 's', ic: 'beads', t: 'الإكثار من الصلاة على النبي ﷺ', q: 'فأكثروا عليَّ من الصلاة فيه، فإن صلاتكم معروضة عليَّ', s: 'رواه أبو داود • اضغط على العدّاد مع كل صلاة', count: 100 },
+    { id: 'd', ic: 'clock', t: 'تحرّي ساعة الإجابة بالدعاء', q: 'فيه ساعة لا يوافقها عبد مسلم وهو قائم يصلي يسأل الله تعالى شيئاً إلا أعطاه إياه', s: 'متفق عليه • «فالتمسوها آخر ساعة بعد العصر» رواه أبو داود', hour: true }
+  ];
+  function friKey() { return 'fri.' + App.fridayKey(); }
+  function friState() { return App.store.get(friKey(), null) || {}; }
+  A.isFriday = function () { return !!(App.fridayPhase && App.fridayPhase()); };
+  // Surat Al-Kahf, Mishary Alafasy (mp3quran.net) — two mirrors, then another reciter
+  A.playKahf = function () {
+    var a = 'https://cdn.mp3quran.net/audio/mishary-alafasy/r1/018.mp3';
+    App.radio.play({ n: 'سورة الكهف — مشاري العفاسي', u: a,
+      alt: ['https://server8.mp3quran.net/afs/018.mp3', 'https://cdn.mp3quran.net/audio/maher-muaiqly/r1/018.mp3'] });
+  };
+  function hourText() {
+    var t = App.prayer.today;
+    if (!t || new Date().getDay() !== 5) return '';
+    return ' — اليوم من ' + App.hmFull(new Date(t[4].getTime() - 3600e3)) + ' إلى أذان المغرب ' + App.hmFull(t[4]);
+  }
+  function renderFriday(body) {
+    var st = friState(), ph = App.fridayPhase() || 'day', done = 0;
+    var star = '<svg viewBox="-30 -30 60 60"><path d="M0 -26L26 0L0 26L-26 0ZM-18.38 -18.38H18.38V18.38H-18.38Z"/><circle r="5"/></svg>';
+    var html = '<div class="fri-head">' + star + '<div><b>' + (ph === 'eve' ? 'ليلة الجمعة' : 'جمعة مباركة') + '</b>' +
+      '<small>سنن يوم الجمعة — اضغط على ما أنجزته، ويتجدد كل أسبوع</small></div></div>';
+    html += SUNAN.map(function (x) {
+      var isDone = x.count ? (st.s || 0) >= x.count : !!st[x.id];
+      if (isDone) done++;
+      var act = x.count ?
+        '<span class="salawat" data-sal="1">' + ringSvg(Math.max(0, x.count - (st.s || 0)), x.count) + '<b class="num">' + App.d(st.s || 0) + '</b></span>' :
+        '<span class="sn-check">' + App.icon('check') + '</span>';
+      return '<div class="sunna' + (isDone ? ' done' : '') + '" data-s="' + x.id + '">' + App.icon(x.ic, 'sn-ic') +
+        '<div class="sn-txt"><b>' + x.t + '</b><q>' + x.q + '</q><small>' + x.s + (x.hour ? hourText() : '') +
+        (x.id === 'e' && App.prayer.today && new Date().getDay() === 5 ? ' — أذان الجمعة ' + App.hmFull(App.prayer.today[2]) : '') + '</small>' +
+        (x.kahf ? '<button class="btn" data-kahf="1">' + App.icon('play') + 'استمع لسورة الكهف</button>' : '') + '</div>' +
+        '<div class="sn-act">' + act + '</div></div>';
+    }).join('');
+    html += '<div class="adh-meta" style="margin-top:.6vmin"><span id="fDone">أنجزت ' + App.d(done) + ' من ' + App.d(SUNAN.length) + '</span><span>تقبّل الله منا ومنكم</span></div>';
+    return html;
+  }
+  function ringSvg(left, total) { return ring(left, total); }
+  function bindFriday(body) {
+    body.querySelectorAll('.sunna').forEach(function (el) {
+      el.onclick = function (e) {
+        if (e.target.closest('[data-kahf]')) { A.playKahf(); return; }
+        var id = el.dataset.s, st = friState();
+        if (id === 's') st.s = (st.s || 0) + 1;
+        else st[id] = !st[id];
+        App.store.set(friKey(), st);
+        // update in place (a full refresh would scroll the list back to the top)
+        if (id === 's') el.querySelector('.salawat').innerHTML = ring(Math.max(0, 100 - st.s), 100) + '<b class="num">' + App.d(st.s) + '</b>';
+        el.classList.toggle('done', id === 's' ? st.s >= 100 : !!st[id]);
+        el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump');
+        var done = SUNAN.filter(function (x) { return x.count ? (st.s || 0) >= x.count : !!st[x.id]; }).length;
+        var fd = App.$('fDone');
+        if (fd) fd.textContent = 'أنجزت ' + App.d(done) + ' من ' + App.d(SUNAN.length);
+      };
+    });
+  }
 
   function items(mode) { return LIST.filter(function (x) { return !x.only || x.only === mode; }); }
   function text(x, mode) { return mode === 'e' && x.e ? x.e : x.m; }
@@ -86,12 +148,22 @@
   }
 
   function render(body) {
-    var mode = A.mode || A.autoMode();
+    var mode = A.mode || A.autoMode(), fri = A.isFriday();
+    if (mode === 'f' && !fri) mode = A.autoMode();
     A.mode = mode;
+    var tabs = '<div class="adh-top"><div class="tabs"><button data-m="m"' + (mode === 'm' ? ' class="on"' : '') + '>' + App.icon('sun') + ' ' + TITLES.m + '</button>' +
+      '<button data-m="e"' + (mode === 'e' ? ' class="on"' : '') + '>' + App.icon('moon') + ' ' + TITLES.e + '</button>' +
+      (fri ? '<button data-m="f"' + (mode === 'f' ? ' class="on"' : '') + '>' + App.icon('mosque') + ' ' + TITLES.f + '</button>' : '') + '</div>';
+    App.$('sheetTitle').textContent = mode === 'f' ? 'سنن يوم الجمعة' : App.panelDefs.adhkar.title;
+    if (mode === 'f') {
+      body.innerHTML = tabs + '</div>' + renderFriday(body);
+      body.querySelectorAll('[data-m]').forEach(function (b) { b.onclick = function () { A.mode = b.dataset.m; App.panels.refresh(); }; });
+      bindFriday(body);
+      return;
+    }
     var it = items(mode), st = state(mode), f = App.loc.fix;
     var scale = App.settings.adhkarScale || 1;
-    var html = '<div class="adh-top"><div class="tabs"><button data-m="m"' + (mode === 'm' ? ' class="on"' : '') + '>' + App.icon('sun') + ' ' + TITLES.m + '</button>' +
-      '<button data-m="e"' + (mode === 'e' ? ' class="on"' : '') + '>' + App.icon('moon') + ' ' + TITLES.e + '</button></div>' +
+    var html = tabs +
       '<button class="round small" id="aSm">' + '<b style="font-size:1.7vmin">أ-</b></button><button class="round small" id="aLg"><b style="font-size:2.3vmin">أ+</b></button>' +
       '<button class="round small" id="aReset">' + App.icon('reset') + '</button></div>';
     if (f && f.speed > 20) html += '<div class="drive-note">' + App.icon('car') + 'أنت تقود الآن — ردّدها من حفظك، واقرأ النص بعد ما توقف بأمان.</div>';
@@ -159,5 +231,52 @@
       }
     });
   }
-  A.init = function () { setInterval(check, 30000); setTimeout(check, 5000); };
+  var lastSal = 0;
+  function fridayCheck() {
+    var ph = App.fridayPhase && App.fridayPhase();
+    if (!ph || App.settings.fridayRemind === false || !App.prayer.today) return;
+    var now = new Date(), t = App.prayer.today, fk = App.fridayKey(now);
+    // a gentle line every two hours (no sound)
+    if (!lastSal) lastSal = Date.now() - 105 * 60000;
+    if (Date.now() - lastSal > 2 * 3600e3) { lastSal = Date.now(); App.toast('اللَّهُمَّ صَلِّ وَسَلِّمْ عَلَى نَبِيِّنَا مُحَمَّد ﷺ', 7000); }
+    if (ph !== 'day') return;
+    function once(id, from, to, fn) {
+      var k = 'friRem.' + fk + id;
+      if (now >= from && now < to && !App.store.get(k, false)) { App.store.set(k, true); fn(); return true; }
+      return false;
+    }
+    var dh = t[2].getTime();
+    // one card at a time: Jumu'ah first, then the hour of answer, then Al-Kahf (any time before Asr, not around the prayer)
+    if (once('early', dh - 75 * 60000, dh - 30 * 60000, function () {
+      App.reminder.show({
+        kind: 'صلاة الجمعة', icon: 'mosque', title: 'أذان الجمعة ' + App.hmFull(t[2]) + ' — بكّر للمسجد',
+        sub: 'من اغتسل يوم الجمعة ثم راح فكأنما قرّب بدنة',
+        buttons: [['mosques', 'المساجد القريبة', 'mosque'], ['ok', 'تم', 'check']],
+        onButton: function (b) { if (b === 'mosques') App.panels.open('prayer'); }
+      });
+      App.nav.say('صلاة الجمعة بعد ' + Math.max(1, Math.round((dh - now) / 60000)) + ' دقيقة. بكّر للمسجد');
+    })) return;
+    if (once('hour', t[4].getTime() - 60 * 60000, t[4].getTime() - 5 * 60000, function () {
+      App.reminder.show({
+        kind: 'ساعة الإجابة', icon: 'clock', title: 'آخر ساعة من يوم الجمعة',
+        sub: 'التمسوها آخر ساعة بعد العصر — أكثر من الدعاء حتى أذان المغرب ' + App.hmFull(t[4]),
+        buttons: [['ok', 'تم', 'check'], ['open', 'سنن الجمعة', 'mosque']],
+        onButton: function (b) { if (b === 'open') A.open('f'); }
+      });
+    })) return;
+    var nearPrayer = now >= dh - 75 * 60000 && now < dh + 50 * 60000;
+    if (!nearPrayer && !friState().k) once('kahf', t[1].getTime() + 3600e3, t[3].getTime(), function () {
+      App.reminder.show({
+        kind: 'يوم الجمعة', icon: 'book', title: 'لا تنسَ سورة الكهف',
+        sub: 'من قرأها يوم الجمعة أضاء له من النور ما بين الجمعتين — تقدر تسمعها وأنت تقود',
+        buttons: [['play', 'استمع لسورة الكهف', 'play'], ['open', 'سنن الجمعة', 'mosque'], ['later', 'لاحقاً', 'close']],
+        onButton: function (b) { if (b === 'play') A.playKahf(); if (b === 'open') A.open('f'); }
+      });
+    });
+  }
+  A.fridayCheck = fridayCheck;
+  A.init = function () {
+    setInterval(function () { check(); fridayCheck(); }, 30000);
+    setTimeout(function () { check(); fridayCheck(); }, 5000);
+  };
 })();

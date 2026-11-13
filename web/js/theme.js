@@ -13,11 +13,32 @@
     najdi: svgUrl("<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64'><path d='M0 64 16 50 32 64ZM32 64 48 50 64 64Z' fill='#fff' fill-opacity='.05'/><path d='M32 10 41 19 32 28 23 19Z' fill='none' stroke='#fff' stroke-opacity='.06' stroke-width='1.5'/><circle cx='32' cy='19' r='2' fill='#fff' fill-opacity='.06'/></svg>"),
     sadu: svgUrl("<svg xmlns='http://www.w3.org/2000/svg' width='84' height='48'><path d='M0 24 10.5 14 21 24 31.5 14 42 24 52.5 14 63 24 73.5 14 84 24' fill='none' stroke='#e3b866' stroke-opacity='.11' stroke-width='2.2'/><path d='M42 2 48 8 42 14 36 8ZM0 34 6 40 0 46ZM84 34 78 40 84 46Z' fill='#e3b866' fill-opacity='.09'/><path d='M21 36 25 40 21 44 17 40ZM63 36 67 40 63 44 59 40Z' fill='#2f8f5c' fill-opacity='.12'/></svg>")
   };
+  // Friday: an eight-pointed star lattice (two interlaced squares, tips touching) and a mosque silhouette
+  function star8(cx, cy, R) {
+    var a = R / Math.SQRT2, f = function (x) { return Math.round(x * 100) / 100; };
+    return 'M' + f(cx) + ' ' + f(cy - R) + 'L' + f(cx + R) + ' ' + f(cy) + 'L' + f(cx) + ' ' + f(cy + R) + 'L' + f(cx - R) + ' ' + f(cy) + 'Z' +
+      'M' + f(cx - a) + ' ' + f(cy - a) + 'H' + f(cx + a) + 'V' + f(cy + a) + 'H' + f(cx - a) + 'Z';
+  }
+  var STARS = [[36, 36], [0, 0], [72, 0], [0, 72], [72, 72]];
+  PAT.islamic = svgUrl("<svg xmlns='http://www.w3.org/2000/svg' width='72' height='72'>" +
+    "<path d='" + STARS.map(function (c) { return star8(c[0], c[1], 25.46); }).join('') + "' fill='none' stroke='#e3be6a' stroke-opacity='.12' stroke-width='1.3'/>" +
+    "<path d='" + STARS.map(function (c) { return star8(c[0], c[1], 11); }).join('') + "' fill='none' stroke='#e3be6a' stroke-opacity='.07' stroke-width='1'/>" +
+    STARS.map(function (c) { return "<circle cx='" + c[0] + "' cy='" + c[1] + "' r='2.6' fill='#e3be6a' fill-opacity='.11'/>"; }).join('') + "</svg>");
+  PAT.mosque = svgUrl("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 70' preserveAspectRatio='xMidYMax meet'><g fill='#e3be6a' fill-opacity='.11'>" +
+    "<rect x='130' y='48' width='140' height='22'/><rect x='156' y='42' width='88' height='7'/>" +
+    "<path d='M152 43C152 29 170 21 200 13C230 21 248 29 248 43Z'/><rect x='199' y='4' width='2' height='10'/><circle cx='200' cy='4' r='2.4'/>" +
+    "<path d='M100 57C100 47 108 43 115 40C122 43 130 47 130 57Z'/><rect x='97' y='56' width='36' height='14'/>" +
+    "<path d='M270 57C270 47 278 43 285 40C292 43 300 47 300 57Z'/><rect x='267' y='56' width='36' height='14'/>" +
+    "<rect x='80' y='18' width='8' height='52'/><rect x='77' y='29' width='14' height='3'/><rect x='81.5' y='10' width='5' height='9'/><path d='M80 10 84 0 88 10Z'/>" +
+    "<rect x='312' y='18' width='8' height='52'/><rect x='309' y='29' width='14' height='3'/><rect x='313.5' y='10' width='5' height='9'/><path d='M312 10 316 0 320 10Z'/>" +
+    "</g><g fill='#021510' fill-opacity='.55'><path d='M144 70V60a6 6 0 0 1 12 0v10ZM168 70V58a7 7 0 0 1 14 0v12ZM218 70V58a7 7 0 0 1 14 0v12ZM244 70V60a6 6 0 0 1 12 0v10Z'/>" +
+    "<path d='M193 70V56a7 7 0 0 1 14 0v14Z'/></g></svg>");
   var SILVER = ['#ffffff', '#d3d9de', '#7f8891', '#e2e6e9', '#8a939b'];
   var GOLD = ['#fff7e0', '#ead08c', '#8a6a33', '#f3dca6', '#9c7a3f'];
 
   var BASE = {
     bg0: '#1b232c', bg1: '#0b0f13', bg2: '#07090c', pattern: PAT.carbon, patternSize: '6px 6px', patternOp: '1',
+    patternPos: '0 0', patternRep: 'repeat',
     cardA: '#18202a', cardB: '#10151c', cardC: '#0d1116', card: '#121820',
     sheet: 'rgba(10,13,17,.965)', glass: 'rgba(17,22,28,.9)',
     line: 'rgba(255,255,255,.075)', line2: 'rgba(255,255,255,.14)',
@@ -93,6 +114,22 @@
       gaugeA: '#b0823a', gaugeB: '#ffe9b3', halo: '#e7bd68', faceA: '#4a301c', faceB: '#26180c', faceC: '#140c05',
       route: '#ffd37a', routeCase: '#6b4527'
     }, { bezel: GOLD, occasion: 'founding' }),
+    friday: T('الجمعة', 'أخضر وذهبي بزخارف إسلامية', {
+      bg0: '#0f4d3c', bg1: '#062a21', bg2: '#021510',
+      pattern: PAT.mosque + ',' + PAT.islamic, patternSize: 'auto var(--top-h), 72px 72px',
+      patternPos: 'center top, center top', patternRep: 'no-repeat, repeat', patternOp: '1',
+      cardA: '#0f3d31', cardB: '#0a2b23', cardC: '#061d17', card: '#082820',
+      sheet: 'rgba(3,22,17,.97)', glass: 'rgba(5,33,26,.93)', line: 'rgba(227,190,106,.12)', line2: 'rgba(227,190,106,.26)',
+      text: '#fbf4e2', muted: '#c6c9a9', dim: '#7c8d74',
+      accent: '#e3be6a', accentRgb: '227,190,106', accentD: '#b0883a', accentL: '#ffe6a8', onAccent: '#1a1306',
+      chrome: 'linear-gradient(180deg,#fff7e0 0%,#ecd08a 38%,#a5813f 54%,#f5dfaa 100%)',
+      chromeH: 'linear-gradient(90deg,#9c7a3f 0%,#fff1c9 30%,#c9a35c 55%,#fff7e0 80%,#a8854a 100%)',
+      btnA: '#12473a', btnB: '#0b3229', dockA: '#0f3d31', dockB: '#072820', actA: '#1b5c49', actB: '#103e32',
+      field: '#0a2b23', chip: '#134537', seg: '#0c3329', tabOn: '#18594a', off: '#1e4d40', press: '#12473a',
+      navcA: '#1d7a5e', navcB: '#0f4a3a', priA: '#ecc778', priB: '#c39a46',
+      gaugeA: '#c9a24f', gaugeB: '#fff1c4', halo: '#e3be6a', faceA: '#0f3f32', faceB: '#072219', faceC: '#03120d',
+      route: '#ffd37a', routeCase: '#0b4a39'
+    }, { bezel: GOLD, occasion: 'friday', prevPat: PAT.islamic, prevSize: '36px 36px' }),
     black: T('أسود ليلي', 'مريح للعين في القيادة الليلية', {
       bg0: '#0a0a0a', bg1: '#030303', bg2: '#000000', pattern: 'none',
       cardA: '#0d0d0d', cardB: '#080808', cardC: '#050505', card: '#0a0a0a',
@@ -107,7 +144,7 @@
     }),
     custom: T('مخصص', 'اختر لونك المفضّل', {})
   };
-  var ORDER = ['silver', 'royal', 'match', 'national', 'founding', 'black', 'custom'];
+  var ORDER = ['silver', 'royal', 'match', 'friday', 'national', 'founding', 'black', 'custom'];
   var CUSTOM_COLORS = ['#56c8f5', '#2d6cf0', '#7c5cff', '#d64bff', '#ff4fa3', '#ff4b4f', '#ff8a2b', '#ffc93c',
     '#d4af37', '#5dfc8d', '#16b8a6', '#c0c7cd'];
 
@@ -266,19 +303,37 @@
   App.APP_NAME = 'رحلة';
 
   // ---------- occasions ----------
-  App.occasion = function (now) {
+  // 'day' on Friday, 'eve' on Thursday after Maghrib (ليلة الجمعة), otherwise null
+  App.fridayPhase = function (now) {
     now = now || new Date();
-    var m = now.getMonth() + 1, d = now.getDate(), y = now.getFullYear();
+    var dow = now.getDay();
+    if (dow === 5) return 'day';
+    if (dow !== 4) return null;
+    var t = App.prayer && App.prayer.today, mg = t && t[4];
+    if (!mg || mg.toDateString() !== now.toDateString()) mg = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 17, 45);
+    return now >= mg ? 'eve' : null;
+  };
+  App.fridayKey = function (now) {
+    now = now || new Date();
+    return new Date(now.getFullYear(), now.getMonth(), now.getDate() + (now.getDay() === 4 ? 1 : 0)).toDateString();
+  };
+  App.occasion = function (now, noFriday) {
+    now = now || new Date();
+    var m = now.getMonth() + 1, d = now.getDate(), y = now.getFullYear(), occ = null;
     if (m === 9 && d >= 16 && d <= 30) {
-      return { theme: 'national', today: d === 23, label: 'اليوم الوطني السعودي ' + App.d(y - 1930), greet: 'كل عام والوطن بخير 💚' };
+      occ = { theme: 'national', today: d === 23, label: 'اليوم الوطني السعودي ' + App.d(y - 1930), greet: 'كل عام والوطن بخير 💚' };
+    } else if (m === 2 && d >= 15 && d <= 28) {
+      occ = { theme: 'founding', today: d === 22, label: 'يوم التأسيس — منذ ' + App.d(1727) + 'م', greet: 'يوم بدينا 🤍' };
     }
-    if (m === 2 && d >= 15 && d <= 28) {
-      return { theme: 'founding', today: d === 22, label: 'يوم التأسيس — منذ ' + App.d(1727) + 'م', greet: 'يوم بدينا 🤍' };
+    var fr = noFriday ? null : App.fridayPhase(now);
+    if (fr && !(occ && occ.today)) {            // the national / founding day itself still wins
+      return { theme: 'friday', weekly: true, today: fr === 'day', key: 'friday' + App.fridayKey(now),
+        label: fr === 'day' ? 'جمعة مباركة' : 'ليلة الجمعة', greet: 'اللهم صلِّ وسلِّم على نبينا محمد' };
     }
-    return null;
+    return occ;
   };
 
-  function occKey(occ) { return occ ? occ.theme + new Date().getFullYear() : false; }
+  function occKey(occ) { return occ ? (occ.key || occ.theme + new Date().getFullYear()) : false; }
   function lockIfOccasion() { App.settings.themeLocked = occKey(App.occasion()); }
 
   // ---------- apply ----------
@@ -286,7 +341,8 @@
   function kebab(k) { return '--' + k.replace(/[A-Z]/g, function (c) { return '-' + c.toLowerCase(); }); }
   TH.effectiveKey = function () {
     var s = App.settings, occ = App.occasion();
-    if (s.autoOccasion !== false && occ && s.themeLocked !== occKey(occ)) return occ.theme;
+    if (occ && occ.weekly && s.autoFriday === false) occ = App.occasion(null, true);
+    if (occ && (occ.weekly || s.autoOccasion !== false) && s.themeLocked !== occKey(occ)) return occ.theme;
     return THEMES[s.theme] ? s.theme : 'silver';
   };
   TH.get = function (key) {
@@ -312,9 +368,10 @@
   TH.cards = function (sel) {
     return '<div class="theme-grid">' + TH.list().map(function (x) {
       var v = x.t.v;
+      var pat = x.t.prevPat || v.pattern, psz = x.t.prevSize || v.patternSize;
       return '<button class="theme-card' + (x.key === sel ? ' on' : '') + '" data-theme="' + x.key + '">' +
         '<span class="tc-prev" style="background:radial-gradient(120% 90% at 85% -10%,' + v.bg0 + ' 0%,' + v.bg1 + ' 55%,' + v.bg2 + ' 100%)">' +
-        '<span class="tc-pat" style="background-image:' + v.pattern.replace(/"/g, "'") + ';background-size:' + v.patternSize + '"></span>' +
+        '<span class="tc-pat" style="background-image:' + pat.replace(/"/g, "'") + ';background-size:' + psz + '"></span>' +
         '<span class="tc-gauge" style="border-color:' + v.gaugeA + ';box-shadow:0 0 10px ' + v.halo + '"></span>' +
         '<span class="tc-map" style="background:' + v.cardB + ';border-color:' + v.line2 + '"><i style="background:' + v.route + '"></i></span>' +
         '<span class="tc-dock">' + [0, 1, 2, 3].map(function (i) {
@@ -484,8 +541,23 @@
   };
 
   // ---------- celebration (on the national / founding day itself, once) ----------
+  function fridayHero(occ, force) {
+    var k = 'friHero.' + occ.key + (occ.today ? 'd' : 'e');      // once on Thursday night, once on Friday
+    if (!force && (window.__noHero || App.store.get(k, false))) return;     // __noHero: UI test harness
+    App.store.set(k, true);
+    var el = document.createElement('div');
+    el.className = 'fri-hero';
+    el.innerHTML = '<div class="fh-box"><svg class="fh-star" viewBox="-30 -30 60 60"><path d="' + star8(0, 0, 26) + '"/><circle r="6"/></svg>' +
+      '<b>' + occ.label + '</b><span>اللَّهُمَّ صَلِّ وَسَلِّمْ وَبَارِكْ عَلَى نَبِيِّنَا مُحَمَّد</span>' +
+      '<small>«فأكثِروا عليَّ من الصلاة فيه» — رواه أبو داود</small></div>';
+    document.body.appendChild(el);
+    el.onclick = function () { el.classList.add('out'); };
+    setTimeout(function () { el.classList.add('out'); }, 6000);
+    setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 6800);
+  }
   TH.celebrate = function (force) {
     var occ = App.occasion();
+    if (occ && occ.weekly) { if (TH.key === 'friday' || force) fridayHero(occ, force); return; }
     if (!occ || (!occ.today && !force)) return;
     var key = 'celebrated' + new Date().toDateString();
     if (!force && App.store.get(key, false)) return;
@@ -530,7 +602,7 @@
     App.$('carChip').onclick = function () { App.panels.open('car'); };
     App.on('settings', function () { C.renderChip(); });
     // re-check occasions at midnight-ish
-    setInterval(function () { if (TH.effectiveKey() !== TH.key) TH.apply(); }, 60000);
+    setInterval(function () { if (TH.effectiveKey() !== TH.key) { TH.apply(); TH.celebrate(false); } }, 60000);
     if ((App.settings.onboarded || 0) < 2) setTimeout(TH.welcome, 400);
     else {
       if (!window.__noIntro) TH.intro();

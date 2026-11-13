@@ -89,6 +89,8 @@
 
   // ---------- state + UI ----------
   var NAMES = ['الفجر', 'الشروق', 'الظهر', 'العصر', 'المغرب', 'العشاء'];
+  // on Friday the noon prayer is «الجمعة»
+  function nm(i, d) { return i === 2 && d && d.getDay() === 5 ? 'الجمعة' : NAMES[i]; }
   var P = App.prayer = {
     loc: App.store.get('prayLoc', { lat: 24.7136, lon: 46.6753, city: 'الرياض' }),
     today: null, tomorrow: null, dayKey: '', alerted: {}
@@ -155,6 +157,7 @@
     var nx = P.next(now), lis = ul.children;
     for (var i = 0; i < 6; i++) {
       var t = nx.tomorrow && i === 0 ? P.tomorrow[0] : P.today[i];
+      lis[i].querySelector('span').textContent = nm(i, t);
       lis[i].querySelector('b').textContent = App.hm(t);
       lis[i].className = (i === 1 ? 'sun ' : '') + (i === nx.i ? 'next' : (!nx.tomorrow && t < now ? 'past' : ''));
     }
@@ -164,6 +167,7 @@
   // ---------- nearest mosque ----------
   var KAABA = { lat: 21.422487, lon: 39.826206 };
   P.NAMES = NAMES;
+  P.name = nm;
   P.nearestMosques = function () { return App.nav.nearby('mosque', 3000); };
   P.goMosque = function (m) {
     if (!m) return;
@@ -185,7 +189,7 @@
     var box = App.$('prayerAlert');
     var isPrayer = i !== 1;
     box.innerHTML = App.icon(isPrayer ? 'mosque' : 'sun', 'pa-icon') +
-      (isPrayer ? 'حان الآن موعد صلاة' : 'حان الآن وقت') + '<b class="pa-name">' + NAMES[i] + '</b>' +
+      (isPrayer ? 'حان الآن موعد صلاة' : 'حان الآن وقت') + '<b class="pa-name">' + nm(i, P.today[i]) + '</b>' +
       '<div class="pa-time num">' + App.hmFull(P.today[i]) + '</div>' +
       (isPrayer ? '<div class="pa-mosque" id="paMosque"><span class="spinner small"></span> جارٍ البحث عن أقرب مسجد…</div>' +
         '<div class="btn-row"><button class="btn primary" id="paGo" disabled>' + App.icon('route') + 'انطلق لأقرب مسجد</button>' +
@@ -202,7 +206,7 @@
     App.$('paClose').onclick = function () { box.classList.add('hidden'); };
     App.$('paGo').onclick = function () { box.classList.add('hidden'); P.goMosque(found[0]); };
     App.$('paMap').onclick = function () { box.classList.add('hidden'); if (found.length) P.showMosquesOnMap(found); else App.panels.open('prayer'); };
-    var spoken = 'حان الآن موعد صلاة ' + NAMES[i];
+    var spoken = 'حان الآن موعد صلاة ' + nm(i, P.today[i]);
     P.nearestMosques().then(function (list) {
       found = list;
       var el = App.$('paMosque');
@@ -222,7 +226,7 @@
   function preReminder(i, mins) {
     App.reminder.show({
       kind: 'تذكير الصلاة', icon: 'mosque',
-      title: 'باقي ' + App.d(mins) + ' دقائق على صلاة ' + NAMES[i],
+      title: 'باقي ' + App.d(mins) + ' دقائق على صلاة ' + nm(i, P.today[i]),
       sub: 'جارٍ البحث عن أقرب مسجد…',
       buttons: [['go', 'انطلق لأقرب مسجد', 'route', true], ['list', 'المساجد القريبة', 'mosque'], ['close', 'إغلاق', 'close']],
       onButton: function (b, ctx) {
@@ -237,7 +241,7 @@
         }).catch(function () { setSub(App.offline ? 'بدون نت — ما عندي مساجد محفوظة لهذا المكان' : 'تعذّر البحث — تحقق من الإنترنت'); });
       }
     });
-    App.nav.say('باقي ' + mins + ' دقائق على صلاة ' + NAMES[i]);
+    App.nav.say('باقي ' + mins + ' دقائق على صلاة ' + nm(i, P.today[i]));
   }
 
   // ---------- qibla ----------
@@ -273,14 +277,14 @@
     var rel = moving ? q.bearing - f.heading : q.bearing;
     body.innerHTML =
       '<div class="pray-hero"><div class="ph-next"><small>الصلاة القادمة' + (P.loc.city ? ' — ' + App.esc(P.loc.city) : '') + '</small>' +
-      '<b>' + NAMES[nx.i] + ' <span class="num">' + App.hmFull(nx.t) + '</span></b><span class="cd num" id="ppCd">بعد ' + App.countdown(nx.t - now) + '</span>' +
+      '<b>' + nm(nx.i, nx.t) + ' <span class="num">' + App.hmFull(nx.t) + '</span></b><span class="cd num" id="ppCd">بعد ' + App.countdown(nx.t - now) + '</span>' +
       '<div class="btn-row" style="margin-top:1.2vmin"><button class="btn" id="ppMorning">' + App.icon('sun') + 'أذكار الصباح</button>' +
       '<button class="btn" id="ppEvening">' + App.icon('moon') + 'أذكار المساء</button></div></div>' +
       '<div class="qibla">' + qiblaSvg(rel) + '<b class="num">القبلة ' + App.d(Math.round(q.bearing)) + '° ' + App.geo.dir8(q.bearing) + '</b>' +
       '<small>' + (moving ? relText(rel) + ' • ' : '') + 'مكة على بعد ' + App.fmtDist(q.dist) + '</small></div></div>' +
       '<div class="ptimes">' + NAMES.map(function (n, i) {
         var t = nx.tomorrow && i === 0 ? P.tomorrow[0] : P.today[i];
-        return '<div class="' + (i === nx.i ? 'next' : (!nx.tomorrow && t < now ? 'past' : '')) + '"><span>' + n + '</span><b class="num">' + App.hm(t) + '</b></div>';
+        return '<div class="' + (i === nx.i ? 'next' : (!nx.tomorrow && t < now ? 'past' : '')) + '"><span>' + nm(i, t) + '</span><b class="num">' + App.hm(t) + '</b></div>';
       }).join('') + '</div>' +
       '<div class="sec"><div class="sec-title"><span>أقرب المساجد</span><button class="chip" id="ppMap">' + App.icon('map') + 'على الخريطة</button></div>' +
       '<div id="ppList"><div class="spinner"></div></div></div>';
@@ -319,13 +323,13 @@
     if (cd) { var nn = P.next(now); cd.textContent = 'بعد ' + App.countdown(nn.t - now); }
     var nx = P.next(now), left = nx.t - now;
     var pill = App.$('nextPill');
-    pill.querySelector('.np-name').textContent = NAMES[nx.i];
+    pill.querySelector('.np-name').textContent = nm(nx.i, nx.t);
     pill.querySelector('.np-time').textContent = App.hmFull(nx.t);
     pill.querySelector('.np-left').textContent = 'بعد ' + App.countdown(left);
     var justNow = -1;
     for (var k = 0; k < 6; k++) if (now - P.today[k] >= 0 && now - P.today[k] < 10 * 60000 && k !== 1) justNow = k;
     pill.classList.toggle('now', justNow >= 0);
-    App.$('pcCountdown').textContent = NAMES[nx.i] + ' بعد ' + App.countdown(left);
+    App.$('pcCountdown').textContent = nm(nx.i, nx.t) + ' بعد ' + App.countdown(left);
     if (Math.abs(left) < 1000 || now.getSeconds() === 0) render(now);
   };
 

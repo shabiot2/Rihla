@@ -225,7 +225,7 @@
     if (w) { lines.push(['sun', 'الجو ' + w.t + '° ' + w.desc]); speak.push('الجو ' + w.t + ' درجة، ' + w.desc); }
     var P = App.prayer, nx = P.today ? P.next(new Date()) : null;
     if (nx) {
-      var name = P.NAMES[nx.i], left = App.durText(nx.t - new Date());
+      var name = P.name(nx.i, nx.t), left = App.durText(nx.t - new Date());
       lines.push(['mosque', 'الصلاة القادمة ' + name + ' بعد ' + left]);
       speak.push('الصلاة القادمة ' + name + ' بعد ' + left.replace(/[٠-٩]/g, function (d) { return '٠١٢٣٤٥٦٧٨٩'.indexOf(d); }));
     }

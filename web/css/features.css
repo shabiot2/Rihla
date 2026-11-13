@@ -139,7 +139,7 @@
 .dh-count b { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; font-size: 3vmin; }
 .dhikr.done { opacity: .55; border-color: rgba(var(--ok-rgb), .5); }
 .dhikr.done .dh-count b { color: var(--ok); }
-.dhikr.bump { animation: bump .18s ease-out; }
+.dhikr.bump, .sunna.bump { animation: bump .18s ease-out; }
 @keyframes bump { 50% { transform: scale(.985); } }
 .adh-done { text-align: center; padding: 3vmin 0; }
 .adh-done b { display: block; font-size: 4.4vmin; color: var(--ok); }
@@ -287,3 +287,53 @@
 .wl-copy small { font-size: 1.6vmin; color: var(--muted); margin-right: .6vw; }
 .wl-dev { display: inline-flex; align-items: center; margin-right: 1vw; padding: .2vmin .9vw; border-radius: 99px; font-size: 1.6vmin; color: var(--accent); background: rgba(var(--accent-rgb), .1); border: 1px solid rgba(var(--accent-rgb), .35); }
 .wl-dev .ic { width: 2vmin; height: 2vmin; margin-left: .4vw; }
+
+/* ---------- Friday (theme «الجمعة»): greeting, chip, sunnah list ---------- */
+body[data-theme="friday"] .occ-chip { font-family: var(--f-naskh); font-size: 2.35vmin; font-weight: 400; padding: .2vmin 1.4vw .5vmin; line-height: 1.6; }
+body[data-theme="friday"] .w-title .ic, body[data-theme="friday"] .pc-city .ic { color: var(--accent); }
+.fri-hero {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 90; display: flex; align-items: center; justify-content: center;
+  background: radial-gradient(60% 60% at 50% 45%, rgba(4,30,22,.72), rgba(2,14,10,.9)); animation: fhIn .6s ease-out both;
+}
+.fri-hero.out { animation: fhOut .7s ease-in forwards; }
+@keyframes fhIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fhOut { to { opacity: 0; } }
+.fh-box {
+  text-align: center; padding: 3vmin 5vw 3.4vmin; border-radius: 28px; max-width: 80vw;
+  background: linear-gradient(160deg, rgba(15,61,49,.96), rgba(6,29,23,.96)); border: 1px solid rgba(227,190,106,.6);
+  box-shadow: 0 0 0 6px rgba(227,190,106,.07), 0 24px 70px rgba(0,0,0,.6); animation: fhPop .8s cubic-bezier(.2,.9,.25,1.15) both;
+}
+@keyframes fhPop { from { transform: scale(.85); opacity: 0; } to { transform: none; opacity: 1; } }
+.fh-star { width: 12vmin; height: 12vmin; margin-bottom: .6vmin; animation: fhSpin 18s linear infinite; }
+.fh-star path { fill: none; stroke: #e3be6a; stroke-width: 1.6; stroke-linejoin: round; }
+.fh-star circle { fill: #e3be6a; fill-opacity: .85; }
+@keyframes fhSpin { to { transform: rotate(360deg); } }
+.fh-box b { display: block; font-family: var(--f-naskh); font-weight: 400; font-size: 8vmin; line-height: 1.5;
+  background: var(--chrome); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.fh-box span { display: block; font-family: var(--f-naskh); font-size: 3.2vmin; color: #fbf4e2; line-height: 1.8; }
+.fh-box small { display: block; margin-top: .8vmin; font-size: 1.9vmin; color: #c6c9a9; }
+
+.fri-head { display: flex; align-items: center; padding: 1.4vmin 1.4vw; margin-bottom: 1.4vmin; border-radius: 16px;
+  background: linear-gradient(150deg, rgba(var(--accent-rgb), .16), rgba(var(--accent-rgb), .04)); border: 1px solid rgba(var(--accent-rgb), .4); }
+.fri-head svg { width: 7vmin; height: 7vmin; flex: none; margin-left: 1.2vw; }
+.fri-head svg path { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linejoin: round; }
+.fri-head svg circle { fill: var(--accent); }
+.fri-head b { display: block; font-family: var(--f-naskh); font-weight: 400; font-size: 3.6vmin; line-height: 1.5; color: var(--accent-l); }
+.fri-head small { font-size: 1.8vmin; color: var(--muted); }
+.sunna { display: flex; align-items: flex-start; width: 100%; text-align: right; padding: 1.3vmin 1.2vw; margin-bottom: .9vmin; border-radius: 14px;
+  background: var(--card); border: 1px solid var(--line); }
+.sunna.done { border-color: rgba(var(--ok-rgb), .5); background: rgba(var(--ok-rgb), .06); }
+.sunna .sn-ic { width: 3.6vmin; height: 3.6vmin; flex: none; margin: .3vmin 0 0 1.1vw; color: var(--accent); }
+.sunna .sn-txt { flex: 1; min-width: 0; line-height: 1.55; }
+.sunna .sn-txt b { display: block; font-size: 2.3vmin; }
+.sunna .sn-txt q { display: block; font-family: var(--f-naskh); font-size: 2.15vmin; color: var(--text); opacity: .92; quotes: "«" "»"; margin: .3vmin 0; line-height: 1.8; }
+.sunna .sn-txt small { display: block; font-size: 1.6vmin; color: var(--muted); }
+.sunna .sn-act { display: flex; flex-direction: column; align-items: center; flex: none; margin-right: 1vw; }
+.sunna .sn-check { width: 5.6vmin; height: 5.6vmin; min-width: 36px; min-height: 36px; border-radius: 50%; border: 2px solid var(--line2);
+  display: flex; align-items: center; justify-content: center; color: transparent; }
+.sunna.done .sn-check { background: var(--ok); border-color: var(--ok); color: #fff; }
+.sunna .sn-check .ic { width: 3vmin; height: 3vmin; }
+.sunna .btn { margin-top: .8vmin; min-height: 5.4vmin; font-size: 1.9vmin; }
+.salawat { position: relative; width: 9vmin; height: 9vmin; min-width: 58px; min-height: 58px; }
+.salawat svg { width: 100%; height: 100%; }
+.salawat b { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; font-size: 2.3vmin; }

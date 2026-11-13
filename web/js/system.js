@@ -257,6 +257,7 @@
       '<div class="sec"><div class="sec-title">المظهر والثيمات</div>' + App.theme.cards(App.theme.key) +
       '<div class="sec-title" style="margin-top:.6vmin">لون الثيم «مخصص»</div>' + App.theme.customRow() +
       row('ثيمات المناسبات تلقائياً', 'اليوم الوطني في سبتمبر ويوم التأسيس في فبراير', sw('sOcc', s.autoOccasion)) +
+      row('ثيم الجمعة تلقائياً', 'أخضر وذهبي بزخارف إسلامية — من مغرب الخميس إلى آخر يوم الجمعة', sw('sFri', s.autoFriday)) +
       row('سيارتي', App.esc(App.car.title() + (App.car.subtitle() ? ' — ' + App.car.subtitle() : '')),
         '<button class="btn" id="sCar">' + App.icon('car') + 'تعديل</button>') +
       row('شاشة الترحيب', 'إعادة خطوات اختيار السيارة والثيم', '<button class="btn" id="sWelcome">' + App.icon('sparkle') + 'عرض</button>') + '</div>' +
@@ -274,6 +275,7 @@
       row('تنبيه دخول الوقت', 'نغمة قصيرة مع أقرب مسجد', sw('sChime', s.adhanChime)) +
       row('تذكير قبل الصلاة', 'مع اقتراح أقرب مسجد', seg('sPre', [['0', 'إيقاف'], ['5', '٥ د'], ['10', '١٠ د'], ['15', '١٥ د'], ['20', '٢٠ د']], s.prePrayer || 0)) +
       row('تذكير الأذكار', 'أذكار الصباح بعد الفجر والمساء بعد العصر', sw('sAdh', s.adhkarRemind)) +
+      row('تذكيرات يوم الجمعة', 'سورة الكهف، التبكير للجمعة، ساعة الإجابة، والصلاة على النبي ﷺ', sw('sFriRem', s.fridayRemind)) +
       row('الموقع', App.esc(App.prayer.loc.city || '') + ' ' + App.ll(App.prayer.loc.lat, App.prayer.loc.lon, 3),
         '<button class="btn" id="sLoc">تحديث من GPS</button>') +
       '<div class="grid3">' + PN.map(function (n, i) {
@@ -299,7 +301,7 @@
       '<span class="chip ' + (App.android.supported ? 'on' : 'danger') + '">' + App.icon(App.android.supported ? 'check' : 'close') +
       (App.android.supported ? 'متوافق' : 'نسخة قديمة') + '</span></div></div>' +
       '<div class="sec"><div class="sec-title">حول التطبيق</div><div class="about">' + App.brand('lg') +
-      '<div class="ab-txt"><b>رحلة — الإصدار ' + App.d('2.3') + '</b><span>جميع الحقوق محفوظة © ' + App.d('2026') + ' أبو دانة للبرمجة</span>' +
+      '<div class="ab-txt"><b>رحلة — الإصدار ' + App.d('2.4') + '</b><span>جميع الحقوق محفوظة © ' + App.d('2026') + ' أبو دانة للبرمجة</span>' +
       '<small>تصميم وتطوير أبو دانة للبرمجة • بيانات الخرائط © OpenStreetMap • خريطة المملكة المدمجة: Natural Earth وبيانات الأحياء من homaily/Saudi-Arabia-Regions-Cities-and-Districts (GPL-2.0) • الملاحة OSRM • الإذاعات mp3quran.net و radio-browser.info • الطقس Open-Meteo</small></div></div></div>';
 
     function bindSw(id, key, after) {
@@ -317,6 +319,8 @@
     bindSw('sFull', 'full', function () { N.call('full', s.full ? '1' : '0'); });
     bindSw('sOcc', 'autoOccasion', function () { s.themeLocked = false; App.saveSettings(); App.theme.apply(); P.refresh(); });
     bindSw('sAdh', 'adhkarRemind');
+    bindSw('sFri', 'autoFriday', function () { s.themeLocked = false; App.saveSettings(); App.theme.apply(); P.refresh(); });
+    bindSw('sFriRem', 'fridayRemind');
     bindSw('sBrief', 'briefing');
     App.theme.bindCards(body);
     App.theme.bindCustom(body, function () { body.querySelectorAll('[data-theme]').forEach(function (x) { x.classList.toggle('on', x.dataset.theme === 'custom'); }); });

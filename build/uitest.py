@@ -109,7 +109,7 @@ def handle(route):
     return route.abort()
 
 
-def run(w, h, name, actions, settings=None, clock=None, net='1'):
+def run(w, h, name, actions, settings=None, clock=None, net='1', hero=False):
     if os.environ.get("FORCE_WH"): w, h = [int(x) for x in os.environ["FORCE_WH"].split("x")]
     STATE['offline'] = net == '0'
     with sync_playwright() as p:
@@ -117,7 +117,7 @@ def run(w, h, name, actions, settings=None, clock=None, net='1'):
         ctx = b.new_context(viewport={'width': w, 'height': h}, device_scale_factor=1,
                             user_agent='Mozilla/5.0 (Linux; Android 10) Chrome/120 Mobile CamryNav/2.1 (Android head unit; SDK 35)',
                             timezone_id='Asia/Riyadh', locale='ar-SA')
-        ctx.add_init_script(BRIDGE + ("window.__net='0';" if net == '0' else ''))
+        ctx.add_init_script(BRIDGE + ("window.__net='0';" if net == '0' else '') + ('' if hero else 'window.__noHero=true;'))
         st = {'onboarded': 2}
         st.update(settings or {})
         ctx.add_init_script('if(!sessionStorage.getItem("seeded")){sessionStorage.setItem("seeded","1");'
@@ -424,6 +424,42 @@ if __name__ == '__main__':
             p.evaluate("App.radio.play({n:'إذاعة القرآن الكريم - السعودية', u:'https://stream.radiojar.com/0tpy1h0kxtzuv'})")
             drive(p, 3)
         print(run(1280, 720, 'dash_online_radio', e, {'theme': 'royal', 'autoOccasion': False}))
+    elif which == 'friday':
+        def a(p):
+            p.wait_for_timeout(2600)
+            p.screenshot(path='%s/fri_greeting.png' % OUT)
+            drive(p, 6)
+            print('theme:', p.evaluate('App.theme.key'), 'chip:', p.evaluate("document.getElementById('occChip').textContent"),
+                  'dhuhr:', p.evaluate("document.querySelectorAll('#prayerList li span')[2].textContent"),
+                  'reminder:', p.evaluate("document.getElementById('reminder').classList.contains('hidden') ? '-' : document.querySelector('#reminder .rm-t').textContent"))
+        print(run(1280, 720, 'fri_dash', a, {}, clock=(2026, 11, 20, 10, 30), hero=True))
+        def b(p):
+            p.wait_for_timeout(7500)
+            p.click('.dk[data-panel="adhkar"]'); p.wait_for_timeout(500)
+            p.click('[data-m="f"]'); p.wait_for_timeout(500)
+            p.click('.sunna[data-s="g"]'); p.wait_for_timeout(200)
+            for _ in range(13): p.click('.sunna[data-s="s"] .salawat'); p.wait_for_timeout(60)
+            p.wait_for_timeout(400)
+            print('state:', p.evaluate("JSON.stringify(App.store.get('fri.' + App.fridayKey(), null))"))
+        print(run(1280, 720, 'fri_sunan', b, {}, clock=(2026, 11, 20, 8, 40)))
+        def c(p):
+            p.wait_for_timeout(7000)
+            print('kahf reminder:', p.evaluate("document.getElementById('reminder').classList.contains('hidden') ? '-' : document.querySelector('#reminder .rm-t').textContent"))
+            p.click('#reminder [data-b="play"]'); p.wait_for_timeout(600)
+            print('playing:', p.evaluate('App.radio.cur && App.radio.cur.n'), '|', p.evaluate("document.getElementById('mcName').textContent"))
+        print(run(1280, 720, 'fri_kahf', c, {}, clock=(2026, 11, 20, 8, 40)))
+        def d(p):
+            drive(p, 3)
+            print('thu night:', p.evaluate('App.theme.key'), p.evaluate("document.getElementById('occChip').textContent"))
+        print(run(1280, 720, 'fri_thursday_night', d, {}, clock=(2026, 11, 19, 20, 15)))
+        def e(p):
+            drive(p, 3)
+            print('saturday:', p.evaluate('App.theme.key'), p.evaluate("document.getElementById('occChip').classList.contains('hidden')"))
+        print(run(1280, 720, 'fri_saturday', e, {}, clock=(2026, 11, 21, 10, 0)))
+        def f(p):
+            p.wait_for_timeout(7000); p.click('.dk[data-panel="settings"]'); p.wait_for_timeout(700)
+        print(run(1280, 720, 'fri_settings', f, {}, clock=(2026, 11, 20, 16, 30)))
+        print(run(720, 1280, 'fri_portrait', lambda p: (p.wait_for_timeout(7000), drive(p, 3)), {}, clock=(2026, 11, 20, 16, 30)))
     elif which == 'size':
         w, h = [int(x) for x in sys.argv[3].split('x')]
         print(run(w, h, 'ui_%dx%d' % (w, h), lambda p: drive(p, 4)))
