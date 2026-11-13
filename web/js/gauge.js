@@ -95,7 +95,7 @@
     last = ts;
     var diff = G.target - G.shown;
     if (Math.abs(diff) > 0.05) {
-      G.shown += diff * Math.min(1, dt * 6);
+      G.shown += diff * Math.min(1, dt * 11);          // snappy: ~0.25 s to settle on a new GPS speed
       var v = G.shown;
       el.needle.setAttribute('transform', 'rotate(' + ang(v).toFixed(2) + ' 150 150)');
       var dash = (el.C * 0.75 * Math.min(v, MAX) / MAX).toFixed(1) + ' ' + el.C.toFixed(1);

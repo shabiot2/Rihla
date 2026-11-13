@@ -302,7 +302,7 @@
     requestAnimationFrame(frame);
     var dt = Math.min(0.2, (ts - lastFrame) / 1000 || 0.016);
     lastFrame = ts;
-    if (M.paused || !W) return;
+    if (M.paused || M.off || !W) return;
     var animating = false;
     // dead-reckon the car between GPS fixes
     if (M.car) {

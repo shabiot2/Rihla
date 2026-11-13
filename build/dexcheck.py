@@ -14,6 +14,12 @@ from dex import OPS, SIZES, words_of
 
 OBJ = 'Ljava/lang/Object;'
 SUPER = {
+    'Landroid/content/pm/ApplicationInfo;': 'Landroid/content/pm/PackageItemInfo;',
+    'Landroid/content/pm/ActivityInfo;': 'Landroid/content/pm/ComponentInfo;',
+    'Landroid/content/pm/ComponentInfo;': 'Landroid/content/pm/PackageItemInfo;',
+    'Landroid/content/pm/PackageItemInfo;': 'Ljava/lang/Object;',
+    'Landroid/content/pm/PackageInfo;': 'Ljava/lang/Object;',
+    'Landroid/content/ComponentName;': 'Ljava/lang/Object;',
     'Lcom/carnav/camry/Main;': 'Landroid/app/Activity;',
     'Lcom/carnav/camry/Chrome;': 'Landroid/webkit/WebChromeClient;',
     'Landroid/app/Activity;': 'Landroid/view/ContextThemeWrapper;',

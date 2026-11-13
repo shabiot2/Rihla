@@ -204,6 +204,28 @@ body.map-big .media-card, body.map-big .info-card { display: none; }
   box-shadow: inset 0 0 0 1px rgba(255,255,255,.06), inset 0 -40px 60px -30px rgba(0,0,0,.6); }
 #map { position: absolute; top: 0; left: 0; width: 100%; height: 100%; touch-action: none; display: block; }
 
+/* ---------- no map (default): the map column becomes app shortcuts ---------- */
+.apps-card { grid-area: apps; display: none; }
+body.no-map #main, body.no-map.map-big #main {
+  grid-template-columns: minmax(250px, 31vw) minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-rows: auto auto minmax(0, 1fr);
+  grid-template-areas: "gauge prayer apps" "gauge media apps" "gauge info apps";
+}
+body.no-map #mapWrap, body.no-map .dk[data-panel="nav"], body.no-map .mini-player { display: none !important; }
+body.no-map .apps-card, body.no-map.map-big .media-card, body.no-map.map-big .info-card { display: flex; }
+.apps-card { flex-direction: column; padding: 1vmin .9vw 1.1vmin; min-height: 0; }
+.ac-grid { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(3, 1fr); grid-auto-rows: 1fr; gap: .9vmin .7vw; }
+.ac-tile {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 0; min-height: 0; padding: .6vmin .3vw;
+  border-radius: 16px; border: 1px solid var(--line); background: linear-gradient(180deg, var(--btn-a), var(--btn-b));
+  box-shadow: 0 3px 10px rgba(0,0,0,.3); font-size: 1.9vmin; font-weight: 600; line-height: 1.45;
+}
+.ac-tile:active { transform: scale(.97); background: var(--press); }
+.ac-tile img, .ac-tile .ph, .ac-tile > .ic { width: 7.4vmin; height: 7.4vmin; min-width: 40px; min-height: 40px; margin-bottom: .6vmin; border-radius: 14px; object-fit: contain; }
+.ac-tile > .ic { padding: 1.5vmin; background: rgba(var(--accent-rgb), .14); color: var(--accent); }
+.ac-tile .ph { display: flex; align-items: center; justify-content: center; font-size: 3.4vmin; background: rgba(255,255,255,.08); }
+.ac-tile span:last-child { max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
 /* ---------- dashboard widgets ---------- */
 .w-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: .7vmin; font-size: 1.9vmin; }
 .w-title { display: flex; align-items: center; font-weight: 700; color: var(--text); white-space: nowrap; }
@@ -316,6 +338,9 @@ body:not(.map-big) .speed-warn { top: 8.5vmin; }
     gap: 1.2vmin 1.5vw; padding: 1.2vmin 1.5vw;
   }
   body.map-big #main { grid-template-rows: 48vmin minmax(0, 1fr); grid-template-areas: "gauge prayer" "map map"; }
+  body.no-map #main, body.no-map.map-big #main { grid-template-columns: minmax(0, 1.12fr) minmax(0, 1fr);
+    grid-template-rows: 48vmin auto minmax(0, 1fr); grid-template-areas: "gauge prayer" "media info" "apps apps"; }
+  .ac-grid { grid-template-columns: repeat(4, 1fr); }
   .prayer-card { display: flex; flex-direction: column; }
   .prayer-list { grid-template-columns: repeat(2, 1fr); flex: 1; align-content: space-evenly; }
   .weather { font-size: 0; }

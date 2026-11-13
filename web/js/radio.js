@@ -169,35 +169,80 @@
       return RADIO_PKGS.indexOf(a.p) >= 0 || /radio|راديو|مذياع|إذاعة|اذاعة|\bfm\b/i.test(a.l) || /radio|fmradio/i.test(a.p);
     });
   }
-  // back: true = start the radio and return to Rihla after a moment (the tuner keeps playing in the background)
+  // the saved radio is a package ("com.x.radio") or an activity ("com.x/com.x.RadioActivity")
+  function launchRadio(saved) {
+    return App.Native.call(saved.indexOf('/') > 0 ? 'start' : 'launch', saved) === '1';
+  }
+  function radioLabel(saved) {
+    if (saved.indexOf('/') > 0) return App.settings.radioLabel || 'الراديو';
+    return appName(saved);
+  }
+  // back: return to Rihla after a moment — only when the user turned it on (some radios stop in the background)
   R.openCarRadio = function (choose, back) {
     if (!App.Native.has) { App.toast('هذه الميزة تعمل داخل شاشة السيارة'); return; }
+    if (back == null) back = App.settings.radioBack === true;
     var saved = App.settings.radioApp;
-    if (saved && !choose && App.Native.call('launch', saved) === '1') {
+    if (saved && !choose && launchRadio(saved)) {
       if (R.playing) audio.pause();
       R.cur = null;
       R.car = true;
-      if (!R.carName || R.carApp !== saved) { R.carApp = saved; R.carName = appName(saved); }
+      if (!R.carName || R.carApp !== saved) { R.carApp = saved; R.carName = radioLabel(saved); }
       ui();
       if (back) {
-        setTimeout(function () { App.Native.call('launch', SELF); }, 3500);
+        setTimeout(function () { App.Native.call('launch', SELF); }, 4000);
         App.toast('جارٍ تشغيل راديو السيارة… ونرجع لرحلة', 3000);
       }
       return;
     }
+    if (saved && !choose) App.toast('ما انفتح تطبيق الراديو المحفوظ — اختره من جديد');
     var c = candidates();
-    if (c.length === 1 && !choose) { App.settings.radioApp = c[0].p; App.saveSettings(); R.openCarRadio(false, back); return; }
-    App.panels.push('اختر تطبيق الراديو', function (body) {
-      var list = c.length ? c : App.system.apps();
-      body.innerHTML = '<div class="note" style="margin-bottom:1.2vmin">' + (c.length ? 'اختر تطبيق راديو السيارة (FM) — سيُحفظ اختيارك.' :
-        'لم يُعثر على تطبيق راديو تلقائياً، اختره من القائمة:') + '</div>' +
-        list.map(function (a) {
-          return '<button class="row" data-p="' + App.esc(a.p) + '">' + App.icon('radio', 'lead') + '<span class="txt"><b>' +
-            App.esc(a.l) + '</b><small>' + App.esc(a.p) + '</small></span></button>';
+    if (c.length === 1 && !choose && !saved) { App.settings.radioApp = c[0].p; App.saveSettings(); R.openCarRadio(false, back); return; }
+    R.pick(back);
+  };
+  // choose the radio: likely apps first, a deep search for radio screens inside other apps, then every app
+  R.pick = function (back) {
+    App.panels.push('اختر راديو الشاشة', function (body) {
+      var c = candidates(), all = App.system.apps(), cp = c.map(function (a) { return a.p; });
+      var rest = all.filter(function (a) { return cp.indexOf(a.p) < 0; });
+      function rows(list, kind) {
+        return list.map(function (a) {
+          var v = kind === 'act' ? a.p + '/' + a.c : a.p, cur = App.settings.radioApp === v;
+          return '<button class="row' + (cur ? ' on' : '') + '" data-v="' + App.esc(v) + '" data-l="' + App.esc(a.l) + '">' +
+            '<span class="lead-icon" data-icon="' + App.esc(a.p) + '">' + App.icon('radio', 'lead') + '</span><span class="txt"><b>' + App.esc(a.l) +
+            (cur ? ' ✓' : '') + '</b><small>' + App.esc(kind === 'act' ? a.c : a.p) + '</small></span></button>';
         }).join('');
-      body.querySelectorAll('[data-p]').forEach(function (b) {
-        b.onclick = function () { App.settings.radioApp = b.dataset.p; App.saveSettings(); App.panels.close(); R.openCarRadio(false, back); };
-      });
+      }
+      body.innerHTML = '<div class="note" style="margin-bottom:1.2vmin">اختر التطبيق اللي يفتح راديو FM حق الشاشة — يتحفظ اختيارك. ' +
+        'إذا ما لقيته، اضغط «ابحث عن الراديو داخل الشاشة».</div>' +
+        (c.length ? '<div class="sec-title">غالباً واحد من هذي</div>' + rows(c) : '') +
+        '<button class="btn primary" id="rDeep" style="width:100%;margin:1vmin 0 1.4vmin">' + App.icon('search') + 'ابحث عن الراديو داخل الشاشة</button>' +
+        '<div id="rDeepRes"></div>' +
+        '<div class="sec-title">كل التطبيقات</div>' + rows(rest);
+      function bind(root) {
+        root.querySelectorAll('[data-v]').forEach(function (b) {
+          b.onclick = function () {
+            App.settings.radioApp = b.dataset.v;
+            App.settings.radioLabel = b.dataset.l;
+            App.saveSettings();
+            R.carName = null;
+            App.panels.close();
+            R.openCarRadio(false, back);
+          };
+        });
+      }
+      bind(body);
+      App.system.lazyIcons(body);
+      App.$('rDeep').onclick = function () {
+        var out = App.$('rDeepRes');
+        out.innerHTML = '<div class="empty">جارٍ البحث في تطبيقات الشاشة…</div>';
+        setTimeout(function () {                                     // let the message paint: the scan takes a moment
+          var r = App.Native.json('radios', '') || [];
+          out.innerHTML = r.length ? '<div class="sec-title">شاشات راديو موجودة داخل التطبيقات</div>' + rows(r, 'act') :
+            '<div class="empty">ما لقيت شاشة راديو مخفية — اختر من القائمة تحت</div>';
+          bind(out);
+          App.system.lazyIcons(out);
+        }, 60);
+      };
     });
   };
   function mediaKey(code) {
@@ -228,8 +273,10 @@
       '<button class="btn" data-vol="up">' + App.icon('vol-up') + 'رفع</button>' +
       '<button class="btn" id="rCar">' + App.icon('expand') + 'شاشة الراديو</button>' +
       '<button class="btn" id="rPick">' + App.icon('edit') + (ra ? 'تغيير التطبيق' : 'اختيار التطبيق') + '</button></div>' +
-      '<div class="note" style="margin-top:.8vmin">«شغّل الراديو» يفتح راديو الشاشة ويرجعك لرحلة والراديو شغّال. ' +
-      'أزرار المحطات ترسل نفس أوامر أزرار الطارة — لو ما استجاب تطبيق الراديو، اختر المحطة من «شاشة الراديو».</div></div>' +
+      '<div class="set-row" style="margin-top:.9vmin"><div class="txt"><b>ارجع لرحلة بعد تشغيل الراديو</b>' +
+      '<small>فعّله فقط إذا كان راديو شاشتك يكمل شغّال بالخلفية</small></div>' +
+      '<button class="switch' + (App.settings.radioBack ? ' on' : '') + '" id="rBack"></button></div>' +
+      '<div class="note" style="margin-top:.6vmin">أزرار المحطات ترسل نفس أوامر أزرار الطارة — لو ما استجاب تطبيق الراديو، اختر المحطة من «شاشة الراديو».</div></div>' +
       '<div id="rNow" class="now-playing hidden">' +
       '<button id="rNowBtn" class="round"></button>' +
       '<div class="meta"><b id="rNowName"></b><small id="rNowSub"></small></div>' +
@@ -241,9 +288,14 @@
       '<div id="rList"></div>';
     App.$('rNowBtn').onclick = R.toggle;
     App.$('rStop').onclick = R.stop;
-    App.$('rCarGo').onclick = function () { R.openCarRadio(false, true); };
+    App.$('rCarGo').onclick = function () { R.openCarRadio(false); };
     App.$('rCar').onclick = function () { R.openCarRadio(false, false); };
-    App.$('rPick').onclick = function () { R.openCarRadio(true, true); };
+    App.$('rPick').onclick = function () { R.pick(); };
+    App.$('rBack').onclick = function () {
+      App.settings.radioBack = !App.settings.radioBack;
+      App.saveSettings();
+      App.panels.refresh();
+    };
     App.$('rBt').onclick = function () { App.system.openBtApp(); };
     body.querySelectorAll('[data-key]').forEach(function (b) { b.onclick = function () { mediaKey(b.dataset.key); }; });
     body.querySelectorAll('[data-vol]').forEach(function (b) { b.onclick = function () { vol(b.dataset.vol); }; });
@@ -332,7 +384,7 @@
     App.$('mpPrev').onclick = function () { mediaKey('88'); };
     App.$('mpNext').onclick = function () { mediaKey('87'); };
     App.$('mpClose').onclick = function () { R.car = false; ui(); };
-    App.$('mcGo').onclick = function () { if (R.cur) R.stop(); else R.openCarRadio(false, !R.car); };
+    App.$('mcGo').onclick = function () { if (R.cur) R.stop(); else R.openCarRadio(false); };
     App.$('mcPlay').onclick = function () { if (R.cur) R.toggle(); else mediaKey('85'); };
     App.$('mcPrev').onclick = function () { if (R.cur) R.step(-1); else mediaKey('88'); };
     App.$('mcNext').onclick = function () { if (R.cur) R.step(1); else mediaKey('87'); };

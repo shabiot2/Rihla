@@ -37,7 +37,14 @@
     var fix = { lat: lat, lon: lon, speed: kmh, heading: heading, acc: acc, alt: alt, t: now, src: src };
     prev = fix;
     L.fix = fix;
+    App.gauge.set(kmh);                 // the needle follows every fix right away (the 1 Hz tick only refreshes the texts)
     App.emit('loc', fix);
+  }
+  // a remembered position (from before the engine started) — shown, but never treated as live speed
+  function lastKnown(lat, lon, acc, alt, time) {
+    if (L.fix && L.fix.src !== 'last') return;
+    L.fix = { lat: lat, lon: lon, speed: 0, heading: L.heading, acc: acc, alt: alt, t: Date.now(), src: 'last', when: time };
+    App.emit('loc', L.fix);
   }
 
   // satellites from the head unit's GPS receiver (Android 7+)
@@ -45,6 +52,7 @@
 
   // called by the Android shell (see app_code.py)
   window.onNativeLoc = function (lat, lon, spd, hasSpd, brg, hasBrg, acc, time, alt) {
+    if (time > 0 && Date.now() - time > 120000) { lastKnown(lat, lon, acc, alt, time); return; }
     L.lastNative = Date.now();
     handle(lat, lon, spd, hasSpd, brg, hasBrg, acc, alt, 'gps');
   };
@@ -85,11 +93,12 @@
   function tick() {
     var f = L.fix, now = Date.now();
     var age = f ? (now - f.t) / 1000 : 1e9;
-    var stale = age > 6;
+    var stale = age > 6 || (f && f.src === 'last');
     var kmh = f && !stale ? f.speed : 0;
     var sat = L.sats && now - L.sats.t < 15000 ? L.sats : null;
     var satTxt = sat ? App.d(sat.used) + '/' + App.d(sat.total) + ' قمر' : '';
     var text = !f ? 'جارٍ البحث عن إشارة GPS…' + (sat ? ' (' + App.d(sat.total) + ' قمر مرئي)' : '') :
+      f.src === 'last' ? 'آخر موقع معروف — جارٍ التقاط الأقمار' + (sat ? ' (' + App.d(sat.used) + '/' + App.d(sat.total) + ')' : '') :
       stale ? 'إشارة GPS ضعيفة' + (sat ? ' • ' + satTxt : '') :
       (f.src === 'gps' ? 'GPS السيارة' : 'موقع تقريبي') + (satTxt ? ' • ' + satTxt : '') + ' • ±' + App.d(Math.round(f.acc || 0)) + ' م';
     App.gauge.set(kmh, { heading: f && !stale && kmh > 3 ? f.heading : null, text: text });

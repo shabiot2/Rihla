@@ -141,7 +141,16 @@
     }).catch(function () { });
   }
 
+  // the navigation app used when the map inside Rihla is off: the user's choice, else Google Maps, else Waze, else ask
+  N.pref = function () {
+    var p = App.settings.navApp;
+    if (p && p !== 'auto') return p;
+    var apps = App.Native.has ? App.system.apps() : [];
+    var has = function (x) { return apps.some(function (a) { return a.p === x; }); };
+    return has('com.google.android.apps.maps') ? 'google' : has('com.waze') ? 'waze' : 'geo';
+  };
   N.start = function (dest) {
+    if (!App.settings.maps) { App.panels.close(); N.openExternal(N.pref(), dest); return; }
     var f = App.loc.fix, from = f ? { lat: f.lat, lon: f.lon, bearing: f.speed > 10 ? f.heading : null } : null;
     if (!from) { App.toast('لا توجد إشارة GPS بعد — لا يمكن حساب المسار'); return; }
     App.panels.close();
@@ -440,7 +449,7 @@
         '<button class="btn" id="pGeo">' + App.icon('map') + 'تطبيق ملاحة آخر</button></div>' +
         (App.offline ? '<div class="drive-note">' + App.icon('nonet') + 'بدون نت: «ابدأ الملاحة» يرشدك بالاتجاه المباشر والمسافة. للتوجيه شارع بشارع استخدم تطبيق ملاحة بخرائط محمّلة.</div>' : '') +
         '<div class="btn-row">' +
-        '<button class="btn" id="pShow">' + App.icon('locate') + 'عرض على الخريطة</button>' +
+        (App.settings.maps ? '<button class="btn" id="pShow">' + App.icon('locate') + 'عرض على الخريطة</button>' : '') +
         '<button class="btn" id="pHome">' + App.icon('home') + 'حفظ كمنزل</button>' +
         '<button class="btn" id="pWork">' + App.icon('work') + 'حفظ كعمل</button>' +
         '<button class="btn" id="pTask">' + App.icon('tasks') + 'أضف كمهمة</button></div>';
@@ -448,7 +457,7 @@
       App.$('pGoogle').onclick = function () { N.openExternal('google', p); };
       App.$('pWaze').onclick = function () { N.openExternal('waze', p); };
       App.$('pGeo').onclick = function () { N.openExternal('geo', p); };
-      App.$('pShow').onclick = function () { App.panels.close(); App.map.setDest(p.lat, p.lon); App.map.lookAt(p.lat, p.lon, 16); };
+      if (App.$('pShow')) App.$('pShow').onclick = function () { App.panels.close(); App.map.setDest(p.lat, p.lon); App.map.lookAt(p.lat, p.lon, 16); };
       App.$('pHome').onclick = function () { savePlace('home', p); };
       App.$('pWork').onclick = function () { savePlace('work', p); };
       App.$('pTask').onclick = function () {

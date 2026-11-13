@@ -182,7 +182,10 @@ def build_classes():
         return-void
     ''')
 
-    main.method('startLoc', [], 'V', 8, '''
+    # GPS: updates as fast as the receiver gives them; an immediate position from the last known fix
+    # (gps, then network, then passive); and once per start, assisted-GPS (time + XTRA orbit data)
+    # so the head unit locks onto satellites much sooner.
+    main.method('startLoc', [], 'V', 9, '''
         :try_start
         const-string v0, "location"
         invoke-virtual {p0, v0}, Landroid/app/Activity;->getSystemService(Ljava/lang/String;)Ljava/lang/Object;
@@ -191,16 +194,26 @@ def build_classes():
         iput-object v0, p0, Lcom/carnav/camry/Main;->lm:Landroid/location/LocationManager;
         move-object v1, v0
         const-string v2, "gps"
-        const-wide/16 v3, 500
+        const-wide/16 v3, 0
         const/4 v5, 0
         move-object v6, p0
         invoke-virtual/range {v1 .. v6}, Landroid/location/LocationManager;->requestLocationUpdates(Ljava/lang/String;JFLandroid/location/LocationListener;)V
         invoke-virtual {v1, v2}, Landroid/location/LocationManager;->getLastKnownLocation(Ljava/lang/String;)Landroid/location/Location;
         move-result-object v0
+        if-nez v0, :have
+        const-string v2, "network"
+        invoke-virtual {v1, v2}, Landroid/location/LocationManager;->getLastKnownLocation(Ljava/lang/String;)Landroid/location/Location;
+        move-result-object v0
+        if-nez v0, :have
+        const-string v2, "passive"
+        invoke-virtual {v1, v2}, Landroid/location/LocationManager;->getLastKnownLocation(Ljava/lang/String;)Landroid/location/Location;
+        move-result-object v0
         if-eqz v0, :try_end
+        :have
         invoke-virtual {p0, v0}, Lcom/carnav/camry/Main;->onLocationChanged(Landroid/location/Location;)V
         :try_end
         :g_start
+        const/4 v7, 0
         sget v0, Landroid/os/Build$VERSION;->SDK_INT:I
         const/16 v2, 24
         if-lt v0, v2, :g_end
@@ -211,7 +224,20 @@ def build_classes():
         invoke-static {p0, v1}, Lcom/carnav/camry/Gnss;->start(Lcom/carnav/camry/Main;Landroid/location/LocationManager;)Ljava/lang/Object;
         move-result-object v0
         iput-object v0, p0, Lcom/carnav/camry/Main;->gn:Ljava/lang/Object;
+        const/4 v7, 1
         :g_end
+        if-eqz v7, :ret
+        :x_start
+        iget-object v1, p0, Lcom/carnav/camry/Main;->lm:Landroid/location/LocationManager;
+        if-eqz v1, :x_end
+        const-string v3, "gps"
+        const-string v4, "force_time_injection"
+        const/4 v5, 0
+        invoke-virtual {v1, v3, v4, v5}, Landroid/location/LocationManager;->sendExtraCommand(Ljava/lang/String;Ljava/lang/String;Landroid/os/Bundle;)Z
+        const-string v4, "force_xtra_injection"
+        invoke-virtual {v1, v3, v4, v5}, Landroid/location/LocationManager;->sendExtraCommand(Ljava/lang/String;Ljava/lang/String;Landroid/os/Bundle;)Z
+        :x_end
+        :ret
         return-void
         :handler
         move-exception v0
@@ -219,8 +245,12 @@ def build_classes():
         :g_handler
         move-exception v0
         return-void
+        :x_handler
+        move-exception v0
+        return-void
         .catchall {:try_start .. :try_end} :handler
         .catchall {:g_start .. :g_end} :g_handler
+        .catchall {:x_start .. :x_end} :x_handler
     ''')
 
     main.method('stopLoc', [], 'V', 2, '''
@@ -240,7 +270,8 @@ def build_classes():
     # ---- command dispatcher ----
     cmds = [('launch', True), ('intent', True), ('view', True), ('apps', False), ('icon', True),
             ('wifi', True), ('bt', True), ('tts', True), ('vol', True), ('key', True), ('full', True),
-            ('home', True), ('temp', True), ('sys', True), ('net', True), ('cache', True)]
+            ('home', True), ('temp', True), ('sys', True), ('net', True), ('cache', True),
+            ('radios', False), ('start', True)]
     h = ['const-string v0, "ping"', S_EQ % ('v0', 'p1'), 'move-result v1', 'if-eqz v1, :c0',
          'const-string v0, "pong"', 'return-object v0']
     for k, (c, has_arg) in enumerate(cmds):
@@ -278,6 +309,102 @@ def build_classes():
         invoke-virtual {p0, v0}, Landroid/app/Activity;->startActivity(Landroid/content/Intent;)V
         const-string v1, "1"
         return-object v1
+    ''')
+
+    # launch an activity by component "package/class" (radio screens that have no launcher icon of their own)
+    main.method('start', [STR], STR, 5, '''
+        invoke-static {p1}, Landroid/content/ComponentName;->unflattenFromString(Ljava/lang/String;)Landroid/content/ComponentName;
+        move-result-object v1
+        if-eqz v1, :bad
+        new-instance v0, Landroid/content/Intent;
+        invoke-direct {v0}, Landroid/content/Intent;-><init>()V
+        invoke-virtual {v0, v1}, Landroid/content/Intent;->setComponent(Landroid/content/ComponentName;)Landroid/content/Intent;
+        const/high16 v2, 0x10000000
+        invoke-virtual {v0, v2}, Landroid/content/Intent;->addFlags(I)Landroid/content/Intent;
+        invoke-virtual {p0, v0}, Landroid/app/Activity;->startActivity(Landroid/content/Intent;)V
+        const-string v2, "1"
+        return-object v2
+        :bad
+        const-string v2, "0"
+        return-object v2
+    ''')
+
+    # every exported activity whose class name mentions radio / fm / tuner -> [{"p","c","l"}]
+    main.method('radios', [], STR, 15, '''
+        invoke-virtual {p0}, Landroid/app/Activity;->getPackageManager()Landroid/content/pm/PackageManager;
+        move-result-object v0
+        const/4 v1, 0
+        invoke-virtual {v0, v1}, Landroid/content/pm/PackageManager;->getInstalledApplications(I)Ljava/util/List;
+        move-result-object v1
+        new-instance v2, Lorg/json/JSONArray;
+        invoke-direct {v2}, Lorg/json/JSONArray;-><init>()V
+        invoke-interface {v1}, Ljava/util/List;->size()I
+        move-result v3
+        const/4 v4, 0
+        :pk_loop
+        if-ge v4, v3, :done
+        :try_start
+        invoke-interface {v1, v4}, Ljava/util/List;->get(I)Ljava/lang/Object;
+        move-result-object v5
+        check-cast v5, Landroid/content/pm/ApplicationInfo;
+        iget-object v5, v5, Landroid/content/pm/PackageItemInfo;->packageName:Ljava/lang/String;
+        const/4 v6, 1
+        invoke-virtual {v0, v5, v6}, Landroid/content/pm/PackageManager;->getPackageInfo(Ljava/lang/String;I)Landroid/content/pm/PackageInfo;
+        move-result-object v6
+        iget-object v6, v6, Landroid/content/pm/PackageInfo;->activities:[Landroid/content/pm/ActivityInfo;
+        if-eqz v6, :try_end
+        array-length v7, v6
+        const/4 v8, 0
+        :ac_loop
+        if-ge v8, v7, :try_end
+        aget-object v9, v6, v8
+        iget-boolean v10, v9, Landroid/content/pm/ComponentInfo;->exported:Z
+        if-eqz v10, :ac_next
+        iget-object v10, v9, Landroid/content/pm/PackageItemInfo;->name:Ljava/lang/String;
+        invoke-virtual {v10}, Ljava/lang/String;->toLowerCase()Ljava/lang/String;
+        move-result-object v10
+        const-string v11, "radio"
+        invoke-virtual {v10, v11}, Ljava/lang/String;->contains(Ljava/lang/CharSequence;)Z
+        move-result v11
+        if-nez v11, :ac_hit
+        const-string v11, "fm"
+        invoke-virtual {v10, v11}, Ljava/lang/String;->contains(Ljava/lang/CharSequence;)Z
+        move-result v11
+        if-nez v11, :ac_hit
+        const-string v11, "tuner"
+        invoke-virtual {v10, v11}, Ljava/lang/String;->contains(Ljava/lang/CharSequence;)Z
+        move-result v11
+        if-eqz v11, :ac_next
+        :ac_hit
+        new-instance v11, Lorg/json/JSONObject;
+        invoke-direct {v11}, Lorg/json/JSONObject;-><init>()V
+        const-string v12, "p"
+        invoke-virtual {v11, v12, v5}, Lorg/json/JSONObject;->put(Ljava/lang/String;Ljava/lang/Object;)Lorg/json/JSONObject;
+        iget-object v13, v9, Landroid/content/pm/PackageItemInfo;->name:Ljava/lang/String;
+        const-string v12, "c"
+        invoke-virtual {v11, v12, v13}, Lorg/json/JSONObject;->put(Ljava/lang/String;Ljava/lang/Object;)Lorg/json/JSONObject;
+        invoke-virtual {v9, v0}, Landroid/content/pm/PackageItemInfo;->loadLabel(Landroid/content/pm/PackageManager;)Ljava/lang/CharSequence;
+        move-result-object v13
+        invoke-interface {v13}, Ljava/lang/CharSequence;->toString()Ljava/lang/String;
+        move-result-object v13
+        const-string v12, "l"
+        invoke-virtual {v11, v12, v13}, Lorg/json/JSONObject;->put(Ljava/lang/String;Ljava/lang/Object;)Lorg/json/JSONObject;
+        invoke-virtual {v2, v11}, Lorg/json/JSONArray;->put(Ljava/lang/Object;)Lorg/json/JSONArray;
+        :ac_next
+        add-int/lit8 v8, v8, 1
+        goto :ac_loop
+        :try_end
+        :pk_next
+        add-int/lit8 v4, v4, 1
+        goto :pk_loop
+        :done
+        invoke-virtual {v2}, Lorg/json/JSONArray;->toString()Ljava/lang/String;
+        move-result-object v0
+        return-object v0
+        :handler
+        move-exception v10
+        goto :pk_next
+        .catchall {:try_start .. :try_end} :handler
     ''')
 
     main.method('view', [STR], STR, 5, '''

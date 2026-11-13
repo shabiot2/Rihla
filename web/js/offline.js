@@ -91,10 +91,14 @@
     setInterval(check, 8000);
     window.addEventListener('online', check);
     window.addEventListener('offline', check);
-    App.$('netChip').onclick = function () { App.panels.open('offline'); };
+    App.$('netChip').onclick = function () {
+      if (App.settings.maps) App.panels.open('offline');
+      else App.toast('بدون إنترنت — العدّاد والـGPS والصلاة وراديو السيارة شغّالة', 4000);
+    };
     App.$('whereChip').onclick = function () { App.panels.open('offline'); };
     if (App.Native.has) setTimeout(function () { App.Native.call('cache', 'prune'); }, 15000);
-    App.base.load();
+    // the Kingdom data (districts / cities) loads after the welcome, so start-up stays smooth
+    setTimeout(App.base.load, App.settings.maps ? 1500 : 7000);
     App.on('baseReady', where);
     setInterval(where, 4000);
   };

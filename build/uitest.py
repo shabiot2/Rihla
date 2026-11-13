@@ -29,6 +29,9 @@ window.prompt = function (cmd, arg) {
     case 'temp': return JSON.stringify({z:[{t:'soc_thermal', v:'52000'}, {t:'cpu-big0', v:'57400'}, {t:'battery', v:'31000'}, {t:'pa_therm', v:'41000'}], b:310, s:0});
     case 'net': return window.__net || '1';
     case 'cache': return arg === 'size' ? JSON.stringify({n:1834, b:48234567}) : JSON.stringify({n:0, b:0});
+    case 'radios': return JSON.stringify([{p:'com.ts.MainUI', c:'com.ts.main.radio.RadioMainActivity', l:'Radio'},
+      {p:'com.android.fmradio', c:'com.android.fmradio.FmMainActivity', l:'FM Radio'}]);
+    case 'start': return arg.indexOf('/') > 0 ? '1' : '0';
     default: return '1';
   }
 };
@@ -118,7 +121,7 @@ def run(w, h, name, actions, settings=None, clock=None, net='1', hero=False):
                             user_agent='Mozilla/5.0 (Linux; Android 10) Chrome/120 Mobile CamryNav/2.1 (Android head unit; SDK 35)',
                             timezone_id='Asia/Riyadh', locale='ar-SA')
         ctx.add_init_script(BRIDGE + ("window.__net='0';" if net == '0' else '') + ('' if hero else 'window.__noHero=true;'))
-        st = {'onboarded': 2}
+        st = {'onboarded': 2, 'maps': True}
         st.update(settings or {})
         ctx.add_init_script('if(!sessionStorage.getItem("seeded")){sessionStorage.setItem("seeded","1");'
                             'localStorage.clear();localStorage.setItem("cn.settings", %s);'
@@ -479,6 +482,57 @@ if __name__ == '__main__':
         print(run(1280, 720, 'intro_final', b, {'theme': 'silver', 'autoOccasion': False, 'autoFriday': False}))
         print(run(720, 1280, 'intro_portrait', b, {'theme': 'silver', 'autoOccasion': False, 'autoFriday': False}))
         print(run(800, 480, 'intro_800', b, {'theme': 'silver', 'autoOccasion': False, 'autoFriday': False}))
+    elif which == 'nomap':
+        NM = {'maps': False}
+        def a(p):
+            p.evaluate('onGnss(10,15)')
+            drive(p, 5)
+            print('no-map:', p.evaluate("document.body.classList.contains('no-map')"),
+                  'tiles:', p.evaluate("[...document.querySelectorAll('#acGrid .ac-tile span:last-child')].map(e=>e.textContent).join(' | ')"),
+                  'map drawn:', p.evaluate('!App.map.off'))
+        print(run(1280, 720, 'nm_dash', a, NM))
+        print(run(1024, 600, 'nm_1024', lambda p: drive(p, 3), NM))
+        print(run(800, 480, 'nm_800', lambda p: drive(p, 3), NM))
+        print(run(720, 1280, 'nm_portrait', lambda p: drive(p, 3), NM))
+        def b(p):
+            drive(p, 2); p.click('#acEdit'); p.wait_for_timeout(500)
+            p.click('#scGrid .app[data-p="com.anghami"]'); p.wait_for_timeout(300)
+        print(run(1280, 720, 'nm_edit', b, NM))
+        def c(p):
+            p.evaluate('onGnss(9,13)'); drive(p, 3); p.click('#infoCard'); p.wait_for_timeout(600)
+        print(run(1280, 720, 'nm_where', c, NM))
+        def d(p):
+            p.click('.dk[data-panel="radio"]'); p.wait_for_timeout(600)
+            p.click('#rPick'); p.wait_for_timeout(500)
+            p.click('#rDeep'); p.wait_for_timeout(700)
+            p.screenshot(path='%s/nm_radio_pick.png' % OUT)
+            p.click('#rDeepRes [data-v]'); p.wait_for_timeout(400)
+            print('saved:', p.evaluate('App.settings.radioApp'), 'calls:', p.evaluate("JSON.stringify(window.__calls.filter(c => c[0]==='start'||c[0]==='launch'))"))
+            p.wait_for_timeout(4500)
+            print('after 4.5s (no auto-return):', p.evaluate("JSON.stringify(window.__calls.filter(c => c[0]==='launch'))"))
+        print(run(1280, 720, 'nm_radio_after', d, NM))
+        def e(p):
+            p.click('.dk[data-panel="radio"]'); p.wait_for_timeout(700)
+        print(run(1280, 720, 'nm_radio', e, dict(NM, radioApp='com.syu.radio')))
+        def f(p):
+            import time
+            old = int(time.time() * 1000) - 3600 * 1000
+            p.evaluate('onNativeLoc(24.7136,46.6753,0,false,0,false,25,%d,612)' % old); p.wait_for_timeout(1500)
+            print('last-known:', p.evaluate("document.getElementById('gFix').textContent"), '|', p.evaluate("document.getElementById('icSub').textContent"))
+            p.evaluate('onGnss(7,12)')
+            p.evaluate('onNativeLoc(24.7136,46.6753,25,true,90,true,6,Date.now(),612)'); p.wait_for_timeout(500)
+            print('live:', p.evaluate("document.getElementById('gFix').textContent"), 'needle target:', p.evaluate('App.gauge.target.toFixed(0)'))
+        print(run(1280, 720, 'nm_gps', f, NM))
+        def g(p):
+            drive(p, 2); p.click('.dk[data-panel="settings"]'); p.wait_for_timeout(600)
+            p.evaluate("document.getElementById('sMaps').scrollIntoView({block:'center'})"); p.wait_for_timeout(300)
+        print(run(1280, 720, 'nm_settings', g, NM))
+        def h(p):
+            p.click('.dk[data-panel="prayer"]') if p.query_selector('.dk[data-panel="prayer"]') else p.click('#prayerCard')
+            p.wait_for_timeout(500)
+            p.evaluate("App.nav.start({lat:24.7, lon:46.68, name:'مسجد'})"); p.wait_for_timeout(300)
+            print('external nav:', p.evaluate("JSON.stringify(window.__calls.filter(c => c[0]==='view').map(c=>c[1]))"))
+        print(run(1280, 720, 'nm_navext', h, NM))
     elif which == 'size':
         w, h = [int(x) for x in sys.argv[3].split('x')]
         print(run(w, h, 'ui_%dx%d' % (w, h), lambda p: drive(p, 4)))

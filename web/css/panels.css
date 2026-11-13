@@ -247,3 +247,11 @@ body.is-offline .weather { opacity: .45; }
 /* keep the mini player clear of the recenter button and the navigation bar */
 body.map-big.has-mini .locate { bottom: 9.5vmin; }
 body.navigating .mini-player { bottom: calc(var(--dock-h) + 11vmin); }
+/* app icons inside list rows (radio picker) */
+.row > img { width: 5.6vmin; height: 5.6vmin; min-width: 34px; min-height: 34px; margin-left: 1.2vw; border-radius: 12px; flex: none; object-fit: contain; }
+.row.on { border-color: rgba(var(--accent-rgb), .6); background: rgba(var(--accent-rgb), .08); }
+/* shortcut editor */
+.app.picked { border-color: rgba(var(--accent-rgb), .7); background: rgba(var(--accent-rgb), .12); }
+.app .sc-n { position: absolute; top: .5vmin; left: .5vmin; min-width: 3.4vmin; height: 3.4vmin; padding: 0 .4vw; border-radius: 99px;
+  background: var(--accent); color: var(--on-accent); font-size: 1.8vmin; display: flex; align-items: center; justify-content: center; }
+.app .ic.bi { width: 7vmin; height: 7vmin; padding: 1.4vmin; margin-bottom: .7vmin; border-radius: 1.6vmin; background: rgba(var(--accent-rgb), .14); color: var(--accent); }

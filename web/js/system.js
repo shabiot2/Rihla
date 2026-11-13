@@ -97,6 +97,7 @@
   };
   function placeholder(l) { return '<span class="ph">' + App.esc(String(l || '?').trim().charAt(0)) + '</span>'; }
 
+  S.lazyIcons = lazyIcons;
   function lazyIcons(root) {
     var q = Array.prototype.slice.call(root.querySelectorAll('[data-icon]'));
     (function step() {
@@ -266,11 +267,13 @@
       row('حد السرعة', 'كم/س', '<div class="stepper"><button class="round small" data-lim="-10">' + App.icon('minus') +
         '</button><b class="num" id="sLim">' + App.d(s.speedLimit) + '</b><button class="round small" data-lim="10">' + App.icon('plus') + '</button></div>') +
       row('عداد الرحلة', 'أو اضغط مطولاً على العدّاد', '<button class="btn" id="sTrip">تصفير</button>') + '</div>' +
-      '<div class="sec"><div class="sec-title">الخريطة والملاحة</div>' +
-      row('نمط الخريطة', '', seg('sStyle', [['auto', 'تلقائي'], ['light', 'نهاري'], ['dark', 'ليلي'], ['sat', 'قمر صناعي'], ['ksa', 'بدون نت']], s.mapStyle)) +
+      '<div class="sec"><div class="sec-title">الملاحة</div>' +
+      row('الخريطة داخل التطبيق', s.maps ? 'تظهر في الداش بورد' : 'مطفأة — مكانها اختصاراتك، والمسارات تفتح في تطبيق الملاحة', sw('sMaps', s.maps)) +
+      row('تطبيق الملاحة', 'للمساجد والأماكن والمهام', seg('sNavApp', [['auto', 'تلقائي'], ['google', 'خرائط قوقل'], ['waze', 'ويز'], ['geo', 'أسأل كل مرة']], s.navApp || 'auto')) +
+      (s.maps ? row('نمط الخريطة', '', seg('sStyle', [['auto', 'تلقائي'], ['light', 'نهاري'], ['dark', 'ليلي'], ['sat', 'قمر صناعي'], ['ksa', 'بدون نت']], s.mapStyle)) +
       row('الخرائط بدون نت', 'خريطة المملكة المدمجة والشوارع المحفوظة', '<button class="btn" id="sOffline">' + App.icon('map') + 'فتح</button>') +
-      row('الخريطة باتجاه السير', 'عند الإيقاف يكون الشمال للأعلى', sw('sHead', s.headingUp)) +
-      row('التوجيه الصوتي', 'يتطلب محرك نطق عربي في الشاشة', sw('sVoice', s.voice)) + '</div>' +
+      row('الخريطة باتجاه السير', 'عند الإيقاف يكون الشمال للأعلى', sw('sHead', s.headingUp)) : '') +
+      row('التنبيهات الصوتية', 'الصلاة والجمعة والملاحة — يتطلب محرك نطق عربي في الشاشة', sw('sVoice', s.voice)) + '</div>' +
       '<div class="sec"><div class="sec-title">مواقيت الصلاة — تقويم أم القرى</div>' +
       row('تنبيه دخول الوقت', 'نغمة قصيرة مع أقرب مسجد', sw('sChime', s.adhanChime)) +
       row('تذكير قبل الصلاة', 'مع اقتراح أقرب مسجد', seg('sPre', [['0', 'إيقاف'], ['5', '٥ د'], ['10', '١٠ د'], ['15', '١٥ د'], ['20', '٢٠ د']], s.prePrayer || 0)) +
@@ -302,7 +305,7 @@
       '<span class="chip ' + (App.android.supported ? 'on' : 'danger') + '">' + App.icon(App.android.supported ? 'check' : 'close') +
       (App.android.supported ? 'متوافق' : 'نسخة قديمة') + '</span></div></div>' +
       '<div class="sec"><div class="sec-title">حول التطبيق</div><div class="about">' + App.brand('lg') +
-      '<div class="ab-txt"><b>رحلة — الإصدار ' + App.d('2.5') + '</b><span>جميع الحقوق محفوظة © ' + App.d('2026') + ' أبو دانة للبرمجة</span>' +
+      '<div class="ab-txt"><b>رحلة — الإصدار ' + App.d('2.6') + '</b><span>جميع الحقوق محفوظة © ' + App.d('2026') + ' أبو دانة للبرمجة</span>' +
       '<small>تصميم وتطوير أبو دانة للبرمجة • بيانات الخرائط © OpenStreetMap • خريطة المملكة المدمجة: Natural Earth وبيانات الأحياء من homaily/Saudi-Arabia-Regions-Cities-and-Districts (GPL-2.0) • الملاحة OSRM • الإذاعات mp3quran.net و radio-browser.info • الطقس Open-Meteo</small></div></div></div>';
 
     function bindSw(id, key, after) {
@@ -314,7 +317,7 @@
       };
     }
     bindSw('sAlert', 'speedAlert');
-    bindSw('sHead', 'headingUp');
+    if (s.maps) bindSw('sHead', 'headingUp');
     bindSw('sVoice', 'voice', function () { if (s.voice) N.call('tts', ''); });
     bindSw('sChime', 'adhanChime');
     bindSw('sFull', 'full', function () { N.call('full', s.full ? '1' : '0'); });
@@ -350,8 +353,12 @@
         b.onclick = function () { fn(b.dataset.v); App.saveSettings(); P.refresh(); };
       });
     }
-    bindSeg('sStyle', function (v) { s.mapStyle = v; });
-    App.$('sOffline').onclick = App.net.open;
+    if (s.maps) {
+      bindSeg('sStyle', function (v) { s.mapStyle = v; });
+      App.$('sOffline').onclick = App.net.open;
+    }
+    bindSeg('sNavApp', function (v) { s.navApp = v; });
+    bindSw('sMaps', 'maps', function () { App.dash.applyMaps(); P.refresh(); });
     bindSeg('sDig', function (v) { s.digits = v; });
     bindSeg('sClk', function (v) { s.clock24 = v === '24'; });
     bindSeg('sPre', function (v) { s.prePrayer = +v; });
@@ -363,7 +370,7 @@
       App.toast('تم تحديث موقع حساب المواقيت');
       setTimeout(P.refresh, 300);
     };
-    App.$('sRadioApp').onclick = function () { App.radio.openCarRadio(true); };
+    App.$('sRadioApp').onclick = function () { App.radio.pick(); };
     App.$('sBtApp').onclick = function () { S.openBtApp(true); };
     App.$('sGps').onclick = function () { S.intent('android.settings.LOCATION_SOURCE_SETTINGS'); };
     App.$('sAndroid').onclick = function () { S.intent('android.settings.SETTINGS'); };
