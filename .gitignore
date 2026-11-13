@@ -1,5 +1,5 @@
 tmp/
-out/*.disasm.txt
+out/
 build/release.p12
 __pycache__/
 *.pyc

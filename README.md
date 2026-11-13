@@ -8,6 +8,8 @@
 
 جميع الحقوق محفوظة © 2026 **أبو دانة للبرمجة** — Abu Dana for Programming
 
+<img src="releases/preview-1280x720.png" width="820" alt="الداش بورد">
+
 </div>
 
 ---
@@ -28,7 +30,7 @@
 
 ## التثبيت
 
-1. حمّل آخر `Rihla-*.apk` من [Releases](../../releases) أو من مجلد `out/`.
+1. حمّل آخر ملف من مجلد [`releases/`](releases/) — مباشرة: [Rihla-v2.1-android13plus.apk](https://github.com/shabiot2/Rihla/raw/main/releases/Rihla-v2.1-android13plus.apk).
 2. انقله لشاشة السيارة (فلاش USB أو مشاركة) وافتحه، ووافق على التثبيت من مصادر غير معروفة.
 3. عند أول تشغيل اسمح بالموقع (للسرعة والصلاة) والبلوتوث.
 
