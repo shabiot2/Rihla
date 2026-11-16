@@ -38,7 +38,7 @@
 
 ## التثبيت
 
-1. حمّل آخر ملف من مجلد [`releases/`](releases/) — مباشرة: [Rihla-v2.6.apk](https://github.com/shabiot2/Rihla/raw/main/releases/Rihla-v2.6.apk).
+1. حمّل آخر ملف من مجلد [`releases/`](releases/) — مباشرة: [Rihla-v3.0.apk](https://github.com/shabiot2/Rihla/raw/main/releases/Rihla-v3.0.apk).
 2. انقله لشاشة السيارة (فلاش USB أو مشاركة) وافتحه، ووافق على التثبيت من مصادر غير معروفة.
 3. عند أول تشغيل اسمح بالموقع (للسرعة والصلاة) والبلوتوث.
 
