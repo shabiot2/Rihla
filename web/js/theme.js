@@ -1,152 +1,62 @@
-/* theme.js — themes (all original artwork), car profile for any make/model, occasions
-   (Saudi National Day / Founding Day), welcome screen. Loaded right after core.js. */
+/* theme.js — the skins. Each one is its own world: layout, type, background, motion and the way the prayer
+   day is drawn (a 24-hour ring, a sun path over the dunes, a neon timeline, a watch dial, a mihrab, a rainbow).
+   Also: the car profile, occasions (Friday, National Day, Founding Day) and the welcome screen. */
 (function () {
   'use strict';
 
-  // ---------- SVG background patterns (original geometric motifs) ----------
+  // ---------- original geometric patterns (used by the Friday / National / Founding backgrounds) ----------
   function svgUrl(svg) { return 'url("data:image/svg+xml,' + encodeURIComponent(svg).replace(/'/g, '%27') + '")'; }
-  var PAT = {
-    carbon: svgUrl("<svg xmlns='http://www.w3.org/2000/svg' width='6' height='6'><rect width='3' height='3' fill='#fff' fill-opacity='.022'/><rect x='3' y='3' width='3' height='3' fill='#fff' fill-opacity='.022'/></svg>"),
-    stripes: svgUrl("<svg xmlns='http://www.w3.org/2000/svg' width='56' height='56'><path d='M-14 70 70 -14' stroke='#fff' stroke-opacity='.045' stroke-width='16'/><path d='M14 70 70 14' stroke='#fff' stroke-opacity='.02' stroke-width='3'/></svg>"),
-    pitch: svgUrl("<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><rect width='90' height='180' fill='#fff' fill-opacity='.028'/></svg>"),
-    pitchLines: svgUrl("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1000 620'><g fill='none' stroke='#fff' stroke-opacity='.07' stroke-width='3'><rect x='30' y='30' width='940' height='560'/><path d='M500 30v560'/><circle cx='500' cy='310' r='92'/><rect x='30' y='170' width='150' height='280'/><rect x='820' y='170' width='150' height='280'/><rect x='30' y='245' width='55' height='130'/><rect x='915' y='245' width='55' height='130'/></g><circle cx='500' cy='310' r='5' fill='#fff' fill-opacity='.08'/></svg>"),
-    najdi: svgUrl("<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64'><path d='M0 64 16 50 32 64ZM32 64 48 50 64 64Z' fill='#fff' fill-opacity='.05'/><path d='M32 10 41 19 32 28 23 19Z' fill='none' stroke='#fff' stroke-opacity='.06' stroke-width='1.5'/><circle cx='32' cy='19' r='2' fill='#fff' fill-opacity='.06'/></svg>"),
-    sadu: svgUrl("<svg xmlns='http://www.w3.org/2000/svg' width='84' height='48'><path d='M0 24 10.5 14 21 24 31.5 14 42 24 52.5 14 63 24 73.5 14 84 24' fill='none' stroke='#e3b866' stroke-opacity='.11' stroke-width='2.2'/><path d='M42 2 48 8 42 14 36 8ZM0 34 6 40 0 46ZM84 34 78 40 84 46Z' fill='#e3b866' fill-opacity='.09'/><path d='M21 36 25 40 21 44 17 40ZM63 36 67 40 63 44 59 40Z' fill='#2f8f5c' fill-opacity='.12'/></svg>")
-  };
-  // Friday: an eight-pointed star lattice (two interlaced squares, tips touching) and a mosque silhouette
   function star8(cx, cy, R) {
     var a = R / Math.SQRT2, f = function (x) { return Math.round(x * 100) / 100; };
     return 'M' + f(cx) + ' ' + f(cy - R) + 'L' + f(cx + R) + ' ' + f(cy) + 'L' + f(cx) + ' ' + f(cy + R) + 'L' + f(cx - R) + ' ' + f(cy) + 'Z' +
       'M' + f(cx - a) + ' ' + f(cy - a) + 'H' + f(cx + a) + 'V' + f(cy + a) + 'H' + f(cx - a) + 'Z';
   }
   var STARS = [[36, 36], [0, 0], [72, 0], [0, 72], [72, 72]];
-  PAT.islamic = svgUrl("<svg xmlns='http://www.w3.org/2000/svg' width='72' height='72'>" +
-    "<path d='" + STARS.map(function (c) { return star8(c[0], c[1], 25.46); }).join('') + "' fill='none' stroke='#e3be6a' stroke-opacity='.12' stroke-width='1.3'/>" +
-    "<path d='" + STARS.map(function (c) { return star8(c[0], c[1], 11); }).join('') + "' fill='none' stroke='#e3be6a' stroke-opacity='.07' stroke-width='1'/>" +
-    STARS.map(function (c) { return "<circle cx='" + c[0] + "' cy='" + c[1] + "' r='2.6' fill='#e3be6a' fill-opacity='.11'/>"; }).join('') + "</svg>");
-  PAT.mosque = svgUrl("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 70' preserveAspectRatio='xMidYMax meet'><g fill='#e3be6a' fill-opacity='.11'>" +
-    "<rect x='130' y='48' width='140' height='22'/><rect x='156' y='42' width='88' height='7'/>" +
-    "<path d='M152 43C152 29 170 21 200 13C230 21 248 29 248 43Z'/><rect x='199' y='4' width='2' height='10'/><circle cx='200' cy='4' r='2.4'/>" +
-    "<path d='M100 57C100 47 108 43 115 40C122 43 130 47 130 57Z'/><rect x='97' y='56' width='36' height='14'/>" +
-    "<path d='M270 57C270 47 278 43 285 40C292 43 300 47 300 57Z'/><rect x='267' y='56' width='36' height='14'/>" +
-    "<rect x='80' y='18' width='8' height='52'/><rect x='77' y='29' width='14' height='3'/><rect x='81.5' y='10' width='5' height='9'/><path d='M80 10 84 0 88 10Z'/>" +
-    "<rect x='312' y='18' width='8' height='52'/><rect x='309' y='29' width='14' height='3'/><rect x='313.5' y='10' width='5' height='9'/><path d='M312 10 316 0 320 10Z'/>" +
-    "</g><g fill='#021510' fill-opacity='.55'><path d='M144 70V60a6 6 0 0 1 12 0v10ZM168 70V58a7 7 0 0 1 14 0v12ZM218 70V58a7 7 0 0 1 14 0v12ZM244 70V60a6 6 0 0 1 12 0v10Z'/>" +
-    "<path d='M193 70V56a7 7 0 0 1 14 0v14Z'/></g></svg>");
-  var SILVER = ['#ffffff', '#d3d9de', '#7f8891', '#e2e6e9', '#8a939b'];
-  var GOLD = ['#fff7e0', '#ead08c', '#8a6a33', '#f3dca6', '#9c7a3f'];
-
-  var BASE = {
-    bg0: '#1b232c', bg1: '#0b0f13', bg2: '#07090c', pattern: PAT.carbon, patternSize: '6px 6px', patternOp: '1',
-    patternPos: '0 0', patternRep: 'repeat',
-    cardA: '#18202a', cardB: '#10151c', cardC: '#0d1116', card: '#121820',
-    sheet: 'rgba(10,13,17,.965)', glass: 'rgba(17,22,28,.9)',
-    line: 'rgba(255,255,255,.075)', line2: 'rgba(255,255,255,.14)',
-    text: '#eaeef2', muted: '#8d99a6', dim: '#5b6670',
-    accent: '#56c8f5', accentRgb: '86,200,245', accentD: '#1f8fd6', accentL: '#7fe0ff', onAccent: '#ffffff',
-    chrome: 'linear-gradient(180deg,#ffffff 0%,#dfe4e8 35%,#9ba4ac 52%,#e6eaed 100%)',
-    chromeH: 'linear-gradient(90deg,#8e979f 0%,#eef1f3 30%,#b9c0c6 55%,#f7f9fa 80%,#9aa3ab 100%)',
-    btnA: '#232d38', btnB: '#19212a', dockA: '#1a222b', dockB: '#11161c', actA: '#17323f', actB: '#10202a',
-    field: '#161d25', chip: '#222c36', seg: '#1a222b', tabOn: '#24303c', off: '#2a333d', press: '#1b2530',
-    navcA: '#1d6fb0', navcB: '#134b7a', priA: '#2a9be0', priB: '#1b72b3',
-    gaugeA: '#1f8fd6', gaugeB: '#7fe0ff', halo: '#38b6ef', faceA: '#1e2731', faceB: '#0d1217', faceC: '#07090c',
-    route: '#3db4f2', routeCase: '#0b4f86'
+  var PAT = App.patterns = {
+    islamic: svgUrl("<svg xmlns='http://www.w3.org/2000/svg' width='72' height='72'>" +
+      "<path d='" + STARS.map(function (c) { return star8(c[0], c[1], 25.46); }).join('') + "' fill='none' stroke='#e3be6a' stroke-opacity='.13' stroke-width='1.3'/>" +
+      "<path d='" + STARS.map(function (c) { return star8(c[0], c[1], 11); }).join('') + "' fill='none' stroke='#e3be6a' stroke-opacity='.08' stroke-width='1'/>" +
+      STARS.map(function (c) { return "<circle cx='" + c[0] + "' cy='" + c[1] + "' r='2.6' fill='#e3be6a' fill-opacity='.12'/>"; }).join('') + "</svg>"),
+    najdi: svgUrl("<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64'><path d='M0 64 16 50 32 64ZM32 64 48 50 64 64Z' fill='#fff' fill-opacity='.06'/>" +
+      "<path d='M32 10 41 19 32 28 23 19Z' fill='none' stroke='#fff' stroke-opacity='.08' stroke-width='1.5'/><circle cx='32' cy='19' r='2' fill='#fff' fill-opacity='.08'/></svg>"),
+    sadu: svgUrl("<svg xmlns='http://www.w3.org/2000/svg' width='84' height='48'><rect width='84' height='48' fill='#7c1e22'/>" +
+      "<path d='M0 24 10.5 14 21 24 31.5 14 42 24 52.5 14 63 24 73.5 14 84 24' fill='none' stroke='#f3dca6' stroke-width='3'/>" +
+      "<path d='M42 2 48 8 42 14 36 8ZM0 34 6 40 0 46ZM84 34 78 40 84 46Z' fill='#f3dca6'/><path d='M21 36 25 40 21 44 17 40ZM63 36 67 40 63 44 59 40Z' fill='#1d1208'/>" +
+      "<rect y='0' width='84' height='3' fill='#1d1208'/><rect y='45' width='84' height='3' fill='#1d1208'/></svg>")
   };
-  function T(name, sub, over, extra) {
-    var v = {}, k;
-    for (k in BASE) v[k] = BASE[k];
-    for (k in over) v[k] = over[k];
-    var t = { name: name, sub: sub, v: v, bezel: SILVER };
-    for (k in extra || {}) t[k] = extra[k];
-    return t;
-  }
+  App.star8 = star8;
 
-  var THEMES = {
-    silver: T('فضي كلاسيك', 'معدني أنيق', {}),
-    royal: T('الأزرق الملكي', 'روح المدرّجات الزرقاء', {
-      bg0: '#1546a8', bg1: '#0a2160', bg2: '#040c26', pattern: PAT.stripes, patternSize: '56px 56px',
-      cardA: '#163a86', cardB: '#0d2459', cardC: '#081a40', card: '#0f2655',
-      sheet: 'rgba(6,18,48,.97)', glass: 'rgba(9,26,66,.92)', line: 'rgba(255,255,255,.1)', line2: 'rgba(255,255,255,.2)',
-      text: '#ffffff', muted: '#a9bfe6', dim: '#6683b8',
-      accent: '#ffffff', accentRgb: '255,255,255', accentD: '#2d6cf0', accentL: '#dfe9ff',
-      btnA: '#1d4294', btnB: '#12306f', dockA: '#173a85', dockB: '#0d2459', actA: '#2d6cf0', actB: '#1b48b8',
-      field: '#0d2459', chip: '#173a85', seg: '#12306f', tabOn: '#2456c4', off: '#22407e', press: '#1b3f8f',
-      navcA: '#2d6cf0', navcB: '#163a86', priA: '#3f7cff', priB: '#1f55d6',
-      gaugeA: '#2d6cf0', gaugeB: '#ffffff', halo: '#7fa8ff', faceA: '#173a85', faceB: '#0b1f4d', faceC: '#05112b',
-      route: '#ffffff', routeCase: '#1f55d6'
-    }),
-    match: T('ليلة المباراة', 'عشب الملعب وأضواء كاشفة', {
-      bg0: '#1f5a36', bg1: '#0b2617', bg2: '#04110a', pattern: PAT.pitch + ',' + PAT.pitchLines,
-      patternSize: '180px 180px, 100% 100%', patternOp: '1',
-      cardA: '#163a27', cardB: '#0e2619', cardC: '#091b11', card: '#0f271a',
-      sheet: 'rgba(6,20,12,.97)', glass: 'rgba(10,30,19,.92)', line: 'rgba(255,255,255,.09)', line2: 'rgba(255,255,255,.17)',
-      text: '#f4f8f2', muted: '#9fc0aa', dim: '#5f806b',
-      accent: '#5dfc8d', accentRgb: '93,252,141', accentD: '#1fa152', accentL: '#c4ffd6',
-      btnA: '#1d4a31', btnB: '#123220', dockA: '#18402a', dockB: '#0e2619', actA: '#23693f', actB: '#16452a',
-      field: '#0e2619', chip: '#1b4530', seg: '#133322', tabOn: '#23603b', off: '#234a33', press: '#1d4a31',
-      navcA: '#1fa152', navcB: '#126b36', priA: '#2fbf6a', priB: '#1a8a4a',
-      gaugeA: '#1fa152', gaugeB: '#e9ffe9', halo: '#5dfc8d', faceA: '#173d29', faceB: '#0b2216', faceC: '#05130b',
-      route: '#5dfc8d', routeCase: '#0d4a26'
-    }),
-    national: T('اليوم الوطني', 'أخضر وأبيض بنقوش نجدية', {
-      bg0: '#1e7a4d', bg1: '#0d3b25', bg2: '#052014', pattern: PAT.najdi, patternSize: '64px 64px',
-      cardA: '#176142', cardB: '#0f412b', cardC: '#0a2d1d', card: '#0f3a26',
-      sheet: 'rgba(5,30,19,.97)', glass: 'rgba(8,42,26,.92)', line: 'rgba(255,255,255,.1)', line2: 'rgba(255,255,255,.2)',
-      text: '#ffffff', muted: '#b3dcc4', dim: '#6f9c82',
-      accent: '#ffffff', accentRgb: '255,255,255', accentD: '#1f8a55', accentL: '#e8fff1',
-      btnA: '#1d6d48', btnB: '#134d33', dockA: '#18603f', dockB: '#0f412b', actA: '#2a9a63', actB: '#1d6d48',
-      field: '#0f412b', chip: '#1a5c3d', seg: '#134d33', tabOn: '#24845a', off: '#256446', press: '#1d6d48',
-      navcA: '#24945e', navcB: '#14603c', priA: '#2fb070', priB: '#1f8a55',
-      gaugeA: '#1f9e5f', gaugeB: '#ffffff', halo: '#9ff2c5', faceA: '#176142', faceB: '#0b3220', faceC: '#052014',
-      route: '#ffffff', routeCase: '#14603c'
-    }, { occasion: 'national' }),
-    founding: T('يوم التأسيس', 'ذهبي نجدي بنقوش السدو', {
-      bg0: '#6b4527', bg1: '#33200f', bg2: '#170e05', pattern: PAT.sadu, patternSize: '84px 48px',
-      cardA: '#4d321d', cardB: '#362313', cardC: '#25170c', card: '#2f1f11',
-      sheet: 'rgba(25,15,6,.97)', glass: 'rgba(38,24,11,.93)', line: 'rgba(255,233,190,.1)', line2: 'rgba(255,233,190,.2)',
-      text: '#fbf1dc', muted: '#cfb68a', dim: '#8d7553',
-      accent: '#e7bd68', accentRgb: '231,189,104', accentD: '#b0823a', accentL: '#ffe3a3', onAccent: '#1d1405',
-      chrome: 'linear-gradient(180deg,#fff7e0 0%,#ead08c 38%,#a07a3c 54%,#f3dca6 100%)',
-      chromeH: 'linear-gradient(90deg,#9c7a3f 0%,#fff1c9 30%,#c9a35c 55%,#fff7e0 80%,#a8854a 100%)',
-      btnA: '#5a3b22', btnB: '#3e2815', dockA: '#4d321d', dockB: '#2e1d10', actA: '#7d5429', actB: '#56381d',
-      field: '#2e1d10', chip: '#4a301b', seg: '#3e2815', tabOn: '#6e4a26', off: '#5a3f26', press: '#5a3b22',
-      navcA: '#9b6f30', navcB: '#5e3f1c', priA: '#ecc271', priB: '#c0913f',
-      gaugeA: '#b0823a', gaugeB: '#ffe9b3', halo: '#e7bd68', faceA: '#4a301c', faceB: '#26180c', faceC: '#140c05',
-      route: '#ffd37a', routeCase: '#6b4527'
-    }, { bezel: GOLD, occasion: 'founding' }),
-    friday: T('الجمعة', 'أخضر وذهبي بزخارف إسلامية', {
-      bg0: '#0f4d3c', bg1: '#062a21', bg2: '#021510',
-      pattern: PAT.mosque + ',' + PAT.islamic, patternSize: 'auto var(--top-h), 72px 72px',
-      patternPos: 'center top, center top', patternRep: 'no-repeat, repeat', patternOp: '1',
-      cardA: '#0f3d31', cardB: '#0a2b23', cardC: '#061d17', card: '#082820',
-      sheet: 'rgba(3,22,17,.97)', glass: 'rgba(5,33,26,.93)', line: 'rgba(227,190,106,.12)', line2: 'rgba(227,190,106,.26)',
-      text: '#fbf4e2', muted: '#c6c9a9', dim: '#7c8d74',
-      accent: '#e3be6a', accentRgb: '227,190,106', accentD: '#b0883a', accentL: '#ffe6a8', onAccent: '#1a1306',
-      chrome: 'linear-gradient(180deg,#fff7e0 0%,#ecd08a 38%,#a5813f 54%,#f5dfaa 100%)',
-      chromeH: 'linear-gradient(90deg,#9c7a3f 0%,#fff1c9 30%,#c9a35c 55%,#fff7e0 80%,#a8854a 100%)',
-      btnA: '#12473a', btnB: '#0b3229', dockA: '#0f3d31', dockB: '#072820', actA: '#1b5c49', actB: '#103e32',
-      field: '#0a2b23', chip: '#134537', seg: '#0c3329', tabOn: '#18594a', off: '#1e4d40', press: '#12473a',
-      navcA: '#1d7a5e', navcB: '#0f4a3a', priA: '#ecc778', priB: '#c39a46',
-      gaugeA: '#c9a24f', gaugeB: '#fff1c4', halo: '#e3be6a', faceA: '#0f3f32', faceB: '#072219', faceC: '#03120d',
-      route: '#ffd37a', routeCase: '#0b4a39'
-    }, { bezel: GOLD, occasion: 'friday', prevPat: PAT.islamic, prevSize: '36px 36px' }),
-    black: T('أسود ليلي', 'مريح للعين في القيادة الليلية', {
-      bg0: '#0a0a0a', bg1: '#030303', bg2: '#000000', pattern: 'none',
-      cardA: '#0d0d0d', cardB: '#080808', cardC: '#050505', card: '#0a0a0a',
-      sheet: 'rgba(0,0,0,.97)', glass: 'rgba(10,10,10,.92)', line: 'rgba(255,255,255,.06)', line2: 'rgba(255,255,255,.12)',
-      text: '#e6e6e6', muted: '#8a8a8a', dim: '#555555',
-      accent: '#ffad42', accentRgb: '255,173,66', accentD: '#d97a00', accentL: '#ffd59a',
-      btnA: '#161616', btnB: '#0d0d0d', dockA: '#111111', dockB: '#070707', actA: '#2a1a05', actB: '#160d02',
-      field: '#0d0d0d', chip: '#161616', seg: '#111111', tabOn: '#222222', off: '#2a2a2a', press: '#1c1c1c',
-      navcA: '#8a4f00', navcB: '#4d2c00', priA: '#e08a1a', priB: '#b56a0a',
-      gaugeA: '#d97a00', gaugeB: '#ffd59a', halo: '#ff9a1f', faceA: '#121212', faceB: '#070707', faceC: '#000000',
-      route: '#ffad42', routeCase: '#5c3300'
-    }),
-    custom: T('مخصص', 'اختر لونك المفضّل', {})
+  // ---------- the skins ----------
+  // layout: how the home grid is arranged (CSS), viz: how home.js draws the prayer day, metal: the logo bezel
+  var SKINS = {
+    orbit: { name: 'مدار', sub: 'حلقة يومك حول الساعة تحت أضواء الشفق', layout: 'orbit', viz: 'ring', metal: 'silver',
+      font: '"Readex Pro"', bg: '#050817', fg: '#eef2ff' },
+    dune: { name: 'كثبان', sub: 'سماء تتلوّن مع الشمس فوق الرمال', layout: 'dune', viz: 'sun', metal: 'gold',
+      font: '"Alexandria"', bg: '#f3d9ac', fg: '#3a2414' },
+    neon: { name: 'نيون', sub: 'طريق الليل بأضواء الثمانينات', layout: 'neon', viz: 'line', metal: 'silver',
+      font: '"Changa"', bg: '#0b0221', fg: '#ffe6f6' },
+    luxe: { name: 'فخامة', sub: 'ساعة ذهبية على ألياف الكربون', layout: 'luxe', viz: 'watch', metal: 'gold',
+      font: '"El Messiri"', bg: '#0d0b09', fg: '#f2e2b6' },
+    pure: { name: 'صافي', sub: 'فاتح بألوان زاهية، واضح تحت الشمس', layout: 'pure', viz: 'none', metal: 'silver',
+      font: '"IBM Plex Sans Arabic"', bg: '#eef1f7', fg: '#11142a' },
+    girls: { name: 'بناتي', sub: 'وردي ناعم بالغيوم والنجوم وصوركم', layout: 'girls', viz: 'rainbow', metal: 'rose',
+      font: '"Baloo Bhaijaan 2"', bg: '#ffe4ea', fg: '#7a3d52' },
+    glass: { name: 'زجاج', sub: 'زجاج مغبّش بصورة بناتك — وألوانه من ألوانها', layout: 'glass', viz: 'halo', metal: 'silver',
+      font: '"Alexandria"', bg: '#1b0f2e', fg: '#fff0f7' },
+    friday: { name: 'الجمعة', sub: 'محراب وزخارف ذهبية — تلقائي كل جمعة', layout: 'friday', viz: 'arch', metal: 'gold', occasion: 'friday',
+      font: '"Amiri"', bg: '#0b3d2e', fg: '#fbf4e2' },
+    national: { name: 'اليوم الوطني', sub: 'أخضر وأبيض بنقوش نجدية — في موسمه', layout: 'orbit', viz: 'ring', metal: 'silver', occasion: 'national',
+      font: '"Cairo"', bg: '#00361b', fg: '#ffffff' },
+    founding: { name: 'يوم التأسيس', sub: 'طين نجدي ونقش السدو — في موسمه', layout: 'dune', viz: 'sun', metal: 'gold', occasion: 'founding',
+      font: '"Aref Ruqaa"', bg: '#3b2414', fg: '#fbf1dc' }
   };
-  var ORDER = ['silver', 'royal', 'match', 'friday', 'national', 'founding', 'black', 'custom'];
-  var CUSTOM_COLORS = ['#56c8f5', '#2d6cf0', '#7c5cff', '#d64bff', '#ff4fa3', '#ff4b4f', '#ff8a2b', '#ffc93c',
-    '#d4af37', '#5dfc8d', '#16b8a6', '#c0c7cd'];
+  var ORDER = ['orbit', 'dune', 'neon', 'luxe', 'pure', 'girls', 'glass', 'friday', 'national', 'founding'];
+  var LEGACY = { silver: 'orbit', royal: 'orbit', match: 'pure', black: 'luxe', custom: 'orbit' };   // skins of v2.x
+  var METAL = {
+    silver: ['#ffffff', '#d3d9de', '#7f8891', '#e2e6e9', '#8a939b'],
+    gold: ['#fff7e0', '#ead08c', '#8a6a33', '#f3dca6', '#9c7a3f'],
+    rose: ['#fff4f6', '#f6c9d2', '#a8636b', '#fadde3', '#b9737c']
+  };
 
   // ---------- colour helpers ----------
   function hex2rgb(h) { h = h.replace('#', ''); return [parseInt(h.substr(0, 2), 16), parseInt(h.substr(2, 2), 16), parseInt(h.substr(4, 2), 16)]; }
@@ -154,20 +64,6 @@
   function mix(a, b, t) { var x = hex2rgb(a), y = hex2rgb(b); return rgb2hex([0, 1, 2].map(function (i) { return x[i] + (y[i] - x[i]) * t; })); }
   function lum(h) { var c = hex2rgb(h); return (0.299 * c[0] + 0.587 * c[1] + 0.114 * c[2]) / 255; }
   App.color = { mix: mix, lum: lum, hex2rgb: hex2rgb };
-
-  function customTheme(acc) {
-    var t = T('مخصص', 'لونك المفضّل', {}), v = t.v, dark = '#0b0f13';
-    v.accent = acc; v.accentRgb = hex2rgb(acc).join(','); v.accentD = mix(acc, '#000000', 0.35); v.accentL = mix(acc, '#ffffff', 0.45);
-    v.onAccent = lum(acc) > 0.62 ? '#111111' : '#ffffff';
-    v.bg0 = mix(acc, dark, 0.78); v.bg1 = mix(acc, '#07090c', 0.93);
-    v.cardA = mix(acc, '#18202a', 0.86); v.card = mix(acc, '#121820', 0.92);
-    v.actA = mix(acc, '#10151c', 0.68); v.actB = mix(acc, '#0b0f13', 0.82);
-    v.tabOn = mix(acc, '#1b232c', 0.72); v.chip = mix(acc, '#1d2630', 0.85);
-    v.navcA = mix(acc, '#000000', 0.25); v.navcB = mix(acc, '#000000', 0.55);
-    v.priA = mix(acc, '#000000', 0.05); v.priB = mix(acc, '#000000', 0.3);
-    v.gaugeA = v.accentD; v.gaugeB = v.accentL; v.halo = acc; v.route = acc; v.routeCase = mix(acc, '#000000', 0.6);
-    return t;
-  }
 
   // ---------- car profile ----------
   var BRANDS = ['تويوتا', 'لكزس', 'هيونداي', 'كيا', 'نيسان', 'إنفينيتي', 'شيفروليه', 'جي إم سي', 'كاديلاك', 'فورد',
@@ -336,48 +232,64 @@
   function occKey(occ) { return occ ? (occ.key || occ.theme + new Date().getFullYear()) : false; }
   function lockIfOccasion() { App.settings.themeLocked = occKey(App.occasion()); }
 
+  function occKey(occ) { return occ ? (occ.key || occ.theme + new Date().getFullYear()) : false; }
+  function lockIfOccasion() { App.settings.themeLocked = occKey(App.occasion()); }
+
   // ---------- apply ----------
-  var TH = App.theme = { cur: null, key: null };
-  function kebab(k) { return '--' + k.replace(/[A-Z]/g, function (c) { return '-' + c.toLowerCase(); }); }
+  var TH = App.theme = { cur: null, key: null, SKINS: SKINS, ORDER: ORDER };
   TH.effectiveKey = function () {
     var s = App.settings, occ = App.occasion();
     if (occ && occ.weekly && s.autoFriday === false) occ = App.occasion(null, true);
     if (occ && (occ.weekly || s.autoOccasion !== false) && s.themeLocked !== occKey(occ)) return occ.theme;
-    return THEMES[s.theme] ? s.theme : 'silver';
+    var k = LEGACY[s.theme] || s.theme;
+    return SKINS[k] ? k : 'orbit';
   };
-  TH.get = function (key) {
-    if (key === 'custom') return customTheme(App.settings.customAccent || '#56c8f5');
-    return THEMES[key] || THEMES.silver;
-  };
-  TH.apply = function () {
-    var key = TH.effectiveKey(), t = TH.get(key), st = document.documentElement.style, k;
-    for (k in t.v) st.setProperty(kebab(k), t.v[k]);
-    t.bezel.forEach(function (c, i) { st.setProperty('--bezel-' + i, c); });
-    TH.cur = t; TH.key = key;
-    document.body.setAttribute('data-theme', key);
-    if (App.map && App.map.invalidate) App.map.invalidate();
+  TH.get = function (key) { return SKINS[key] || SKINS.orbit; };
+  function swap(key) {
+    var s = SKINS[key], b = document.body, st = document.documentElement.style;
+    b.setAttribute('data-skin', key);
+    b.setAttribute('data-layout', s.layout);
+    METAL[s.metal].forEach(function (c, i) { st.setProperty('--bezel-' + i, c); });
+    TH.cur = s; TH.key = key;
     var occ = App.occasion(), chip = App.$('occChip');
     if (chip) {
       chip.classList.toggle('hidden', !occ);
       if (occ) chip.textContent = occ.label;
     }
+    App.emit('skin', key);
+  }
+  // a short title card in the new skin's own type and colours, then the swap underneath it
+  function curtain(key, done) {
+    var s = SKINS[key], el = document.createElement('div');
+    el.className = 'curtain';
+    el.style.background = s.bg;
+    el.style.color = s.fg;
+    el.innerHTML = '<b style="font-family:' + s.font.replace(/"/g, "'") + '">' + s.name + '</b><small>' + s.sub + '</small>';
+    document.body.appendChild(el);
+    void el.offsetWidth;
+    el.classList.add('on');
+    setTimeout(function () {
+      done();
+      setTimeout(function () {
+        el.classList.remove('on');
+        setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 400);
+      }, 520);
+    }, 330);
+  }
+  TH.apply = function (fade) {
+    var key = TH.effectiveKey();
+    if (fade && TH.key && TH.key !== key && !window.__noCurtain) curtain(key, function () { swap(key); });
+    else swap(key);
   };
-  TH.list = function () { return ORDER.map(function (k) { return { key: k, t: TH.get(k) }; }); };
+  TH.list = function () { return ORDER.map(function (k) { return { key: k, t: SKINS[k] }; }); };
 
-  // theme cards: a miniature of the dashboard in each theme
+  // skin cards: a miniature of each world, its name set in its own typeface
   TH.cards = function (sel) {
-    return '<div class="theme-grid">' + TH.list().map(function (x) {
-      var v = x.t.v;
-      var pat = x.t.prevPat || v.pattern, psz = x.t.prevSize || v.patternSize;
-      return '<button class="theme-card' + (x.key === sel ? ' on' : '') + '" data-theme="' + x.key + '">' +
-        '<span class="tc-prev" style="background:radial-gradient(120% 90% at 85% -10%,' + v.bg0 + ' 0%,' + v.bg1 + ' 55%,' + v.bg2 + ' 100%)">' +
-        '<span class="tc-pat" style="background-image:' + pat.replace(/"/g, "'") + ';background-size:' + psz + '"></span>' +
-        '<span class="tc-gauge" style="border-color:' + v.gaugeA + ';box-shadow:0 0 10px ' + v.halo + '"></span>' +
-        '<span class="tc-map" style="background:' + v.cardB + ';border-color:' + v.line2 + '"><i style="background:' + v.route + '"></i></span>' +
-        '<span class="tc-dock">' + [0, 1, 2, 3].map(function (i) {
-          return '<i style="background:' + (i === 1 ? v.actA : v.dockA) + ';border-color:' + (i === 1 ? v.accent : v.line) + '"></i>';
-        }).join('') + '</span></span>' +
-        '<b>' + x.t.name + '</b><small>' + x.t.sub + '</small></button>';
+    return '<div class="skin-grid">' + ORDER.map(function (k) {
+      var s = SKINS[k];
+      return '<button class="skin-card' + (k === sel ? ' on' : '') + '" data-theme="' + k + '">' +
+        '<span class="sk-prev p-' + k + '"><i></i><i></i><i></i></span>' +
+        '<b style="font-family:' + s.font.replace(/"/g, "'") + '">' + s.name + '</b><small>' + s.sub + '</small></button>';
     }).join('') + '</div>';
   };
   TH.bindCards = function (root, onPick) {
@@ -386,30 +298,9 @@
         App.settings.theme = b.dataset.theme;
         lockIfOccasion();                                   // a manual pick during an occasion wins (that year)
         App.saveSettings();
-        TH.apply();
+        TH.apply(true);
         root.querySelectorAll('[data-theme]').forEach(function (x) { x.classList.toggle('on', x === b); });
         if (onPick) onPick(b.dataset.theme);
-      };
-    });
-  };
-  TH.customRow = function () {
-    var cur = App.settings.customAccent || '#56c8f5';
-    return '<div class="swatches" id="tCustom">' + CUSTOM_COLORS.map(function (c) {
-      return '<button class="sw' + (c === cur ? ' on' : '') + '" data-c="' + c + '" style="background:' + c + '"></button>';
-    }).join('') + '</div>';
-  };
-  TH.bindCustom = function (root, after) {
-    var box = root.querySelector('#tCustom');
-    if (!box) return;
-    box.querySelectorAll('[data-c]').forEach(function (b) {
-      b.onclick = function () {
-        App.settings.customAccent = b.dataset.c;
-        App.settings.theme = 'custom';
-        lockIfOccasion();
-        App.saveSettings();
-        TH.apply();
-        box.querySelectorAll('.sw').forEach(function (x) { x.classList.toggle('on', x === b); });
-        if (after) after();
       };
     });
   };
@@ -427,7 +318,7 @@
         [['chrome', 'معدني'], ['orig', 'الأصلي'], ['white', 'أبيض'], ['accent', 'لون الثيم']].map(function (o) {
           return '<button data-m="' + o[0] + '"' + (o[0] === m ? ' class="on"' : '') + (!l.a && o[0] !== 'orig' ? ' disabled' : '') + '>' + o[1] + '</button>';
         }).join('') + '</div></div>' : '') +
-      '<div class="sec-title">لون السيارة <small class="note">— يتلوّن به سهم موقعك على الخريطة</small></div><div class="swatches" id="cColor">' + COLORS.map(function (x) {
+      '<div class="sec-title">لون السيارة</div><div class="swatches" id="cColor">' + COLORS.map(function (x) {
         return '<button class="sw car' + (x[0] === c.color ? ' on' : '') + '" data-c="' + x[0] + '" style="background:linear-gradient(160deg,' +
           mix(x[2], '#ffffff', 0.35) + ',' + x[2] + ' 55%,' + mix(x[2], '#000000', 0.35) + ')"><span' +
           (lum(x[2]) > 0.6 ? ' style="color:#1a1d21;text-shadow:none"' : '') + '>' + x[1] + '</span></button>';
@@ -450,7 +341,6 @@
       App.settings.car = c;
       App.saveSettings();
       C.renderChip();
-      if (App.map) App.map.invalidate();
     }
     function redraw() {
       var sc = root.scrollTop;
@@ -514,7 +404,7 @@
     document.body.appendChild(w);
     function step1() {
       w.innerHTML = '<div class="wl-card"><div class="wl-head"><span class="wl-logo">' + App.icon('wheel') + '</span>' +
-        '<div><h1>أهلاً بك في <span class="silver-text">رحلة</span></h1><p>واجهة قيادة ذكية تناسب أي سيارة — اختر سيارتك وثيمك المفضّل' +
+        '<div><h1>أهلاً بك في <span class="silver-text">رحلة</span></h1><p>واجهة قيادة تناسب أي سيارة — اختر سيارتك ثم العالم اللي يعجبك' +
         '<span class="wl-dev">' + App.icon('cube') + App.esc(App.android.name) + (App.android.model ? ' • ' + App.esc(App.android.model) : '') + '</span></p></div></div>' +
         '<div class="wl-body" id="wlEd">' + C.editor() + '</div>' +
         '<div class="wl-foot"><span class="wl-dots"><i class="on"></i><i></i></span><span class="wl-copy">' + App.brand() + '<small>© ' + App.d('2026') + '</small></span>' +
@@ -524,14 +414,13 @@
     }
     function step2() {
       w.innerHTML = '<div class="wl-card"><div class="wl-head"><span class="wl-logo">' + App.icon('palette') + '</span>' +
-        '<div><h1>اختر الثيم</h1><p>تقدر تغيّره أي وقت من الإعدادات. ثيمات اليوم الوطني ويوم التأسيس تتفعّل تلقائياً في موسمها.</p></div></div>' +
-        '<div class="wl-body">' + TH.cards(TH.effectiveKey()) + '<div class="sec-title" style="margin-top:1.4vmin">لون الثيم المخصص</div>' + TH.customRow() + '</div>' +
+        '<div><h1>اختر عالمك</h1><p>كل ثيم شكل مختلف بالكامل: الترتيب والخط والخلفية والحركة. ثيم الجمعة والمناسبات الوطنية تتفعّل تلقائياً في وقتها.</p></div></div>' +
+        '<div class="wl-body">' + TH.cards(TH.effectiveKey()) + '</div>' +
         '<div class="wl-foot"><span class="wl-dots"><i></i><i class="on"></i></span><span class="wl-copy">' + App.brand() + '<small>© ' + App.d('2026') + '</small></span>' +
         '<button class="btn primary" id="wDone">ابدأ القيادة ' + App.icon('car') + '</button></div></div>';
       TH.bindCards(w);
-      TH.bindCustom(w, function () { w.querySelectorAll('[data-theme]').forEach(function (x) { x.classList.toggle('on', x.dataset.theme === 'custom'); }); });
       App.$('wDone').onclick = function () {
-        App.settings.onboarded = 2;
+        App.settings.onboarded = 3;
         App.saveSettings();
         w.classList.add('out');
         setTimeout(function () { if (w.parentNode) w.parentNode.removeChild(w); App.emit('welcomeDone'); }, 350);
@@ -586,14 +475,14 @@
   TH.intro = function () { if (App.intro) App.intro.play(); };
 
   TH.init = function () {
-    TH.apply();
+    TH.apply(false);
     C.applyLogo();
     C.renderChip();
     App.$('carChip').onclick = function () { App.panels.open('car'); };
     App.on('settings', function () { C.renderChip(); });
-    // re-check occasions at midnight-ish
-    setInterval(function () { if (TH.effectiveKey() !== TH.key) { TH.apply(); TH.celebrate(false); } }, 60000);
-    if ((App.settings.onboarded || 0) < 2) setTimeout(TH.welcome, 400);
+    // occasions start and end on their own (Thursday's Maghrib, midnight, the season)
+    setInterval(function () { if (TH.effectiveKey() !== TH.key) { TH.apply(true); TH.celebrate(false); } }, 60000);
+    if ((App.settings.onboarded || 0) < 3) setTimeout(TH.welcome, 400);
     else {
       if (!window.__noIntro) TH.intro();
       setTimeout(function () { TH.celebrate(false); }, 2500);

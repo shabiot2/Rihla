@@ -74,7 +74,7 @@ def build_classes():
         invoke-virtual {v1}, Landroid/webkit/WebSettings;->getUserAgentString()Ljava/lang/String;
         move-result-object v4
         invoke-virtual {v3, v4}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
-        const-string v4, " CamryNav/2.3 (Android head unit; SDK "
+        const-string v4, " CamryNav/3.0 (Android head unit; SDK "
         invoke-virtual {v3, v4}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
         sget v4, Landroid/os/Build$VERSION;->SDK_INT:I
         invoke-virtual {v3, v4}, Ljava/lang/StringBuilder;->append(I)Ljava/lang/StringBuilder;
@@ -103,9 +103,16 @@ def build_classes():
         const-string v1, "android.permission.ACCESS_FINE_LOCATION"
         invoke-virtual {p0, v1}, Landroid/app/Activity;->checkSelfPermission(Ljava/lang/String;)I
         move-result v2
+        const-string v3, "android.permission.READ_EXTERNAL_STORAGE"
+        if-nez v2, :ask
+        invoke-virtual {p0, v3}, Landroid/app/Activity;->checkSelfPermission(Ljava/lang/String;)I
+        move-result v2
         if-eqz v2, :done
-        const/4 v2, 3
+        :ask
+        const/4 v2, 4
         new-array v2, v2, [Ljava/lang/String;
+        const/4 v4, 3
+        aput-object v3, v2, v4
         const/4 v3, 0
         aput-object v1, v2, v3
         const-string v1, "android.permission.BLUETOOTH_CONNECT"
@@ -271,7 +278,7 @@ def build_classes():
     cmds = [('launch', True), ('intent', True), ('view', True), ('apps', False), ('icon', True),
             ('wifi', True), ('bt', True), ('tts', True), ('vol', True), ('key', True), ('full', True),
             ('home', True), ('temp', True), ('sys', True), ('net', True), ('cache', True),
-            ('radios', False), ('start', True)]
+            ('radios', False), ('start', True), ('ls', True), ('perm', True)]
     h = ['const-string v0, "ping"', S_EQ % ('v0', 'p1'), 'move-result v1', 'if-eqz v1, :c0',
          'const-string v0, "pong"', 'return-object v0']
     for k, (c, has_arg) in enumerate(cmds):
@@ -732,6 +739,39 @@ def build_classes():
         return-object v0
     ''')
 
+    # one directory of the storage / USB drive, for the stories library: [{n: name, d: isDir, s: size}] or "" if unreadable
+    main.method('ls', [STR], STR, 3, '''
+        invoke-static {p1}, Lcom/carnav/camry/Sys;->ls(Ljava/lang/String;)Ljava/lang/String;
+        move-result-object v0
+        return-object v0
+    ''')
+    # storage permission: "1" granted, "0" not ("ask" also shows the system prompt; the answer arrives as onPerm())
+    main.method('perm', [STR], STR, 5, '''
+        sget v0, Landroid/os/Build$VERSION;->SDK_INT:I
+        const/16 v1, 23
+        if-lt v0, v1, :yes
+        const-string v1, "android.permission.READ_EXTERNAL_STORAGE"
+        invoke-virtual {p0, v1}, Landroid/app/Activity;->checkSelfPermission(Ljava/lang/String;)I
+        move-result v0
+        if-eqz v0, :yes
+        const-string v0, "ask"
+        invoke-virtual {v0, p1}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
+        move-result v0
+        if-eqz v0, :no
+        const/4 v0, 1
+        new-array v0, v0, [Ljava/lang/String;
+        const/4 v2, 0
+        aput-object v1, v0, v2
+        const/4 v2, 2
+        invoke-virtual {p0, v0, v2}, Landroid/app/Activity;->requestPermissions([Ljava/lang/String;I)V
+        :no
+        const-string v0, "0"
+        return-object v0
+        :yes
+        const-string v0, "1"
+        return-object v0
+    ''')
+
     # device temperature for the fan/cooling panel (see Sys)
     main.method('temp', [STR], STR, 3, '''
         invoke-static {p0}, Lcom/carnav/camry/Sys;->temp(Landroid/app/Activity;)Ljava/lang/String;
@@ -1143,6 +1183,52 @@ def build_classes():
         invoke-virtual {v0}, Lorg/json/JSONObject;->toString()Ljava/lang/String;
         move-result-object v0
         return-object v0
+    ''', flags=ACC_PUBLIC | ACC_STATIC)
+
+    sys_.method('ls', [STR], STR, 12, '''
+        :try_start
+        new-instance v0, Ljava/io/File;
+        invoke-direct {v0, p0}, Ljava/io/File;-><init>(Ljava/lang/String;)V
+        invoke-virtual {v0}, Ljava/io/File;->listFiles()[Ljava/io/File;
+        move-result-object v1
+        if-eqz v1, :none
+        new-instance v2, Lorg/json/JSONArray;
+        invoke-direct {v2}, Lorg/json/JSONArray;-><init>()V
+        array-length v3, v1
+        const/4 v4, 0
+        :loop
+        if-ge v4, v3, :out
+        aget-object v5, v1, v4
+        new-instance v6, Lorg/json/JSONObject;
+        invoke-direct {v6}, Lorg/json/JSONObject;-><init>()V
+        const-string v7, "n"
+        invoke-virtual {v5}, Ljava/io/File;->getName()Ljava/lang/String;
+        move-result-object v8
+        invoke-virtual {v6, v7, v8}, Lorg/json/JSONObject;->put(Ljava/lang/String;Ljava/lang/Object;)Lorg/json/JSONObject;
+        const-string v7, "d"
+        invoke-virtual {v5}, Ljava/io/File;->isDirectory()Z
+        move-result v8
+        invoke-virtual {v6, v7, v8}, Lorg/json/JSONObject;->put(Ljava/lang/String;Z)Lorg/json/JSONObject;
+        const-string v7, "s"
+        invoke-virtual {v5}, Ljava/io/File;->length()J
+        move-result-wide v8
+        invoke-virtual {v6, v7, v8, v9}, Lorg/json/JSONObject;->put(Ljava/lang/String;J)Lorg/json/JSONObject;
+        invoke-virtual {v2, v6}, Lorg/json/JSONArray;->put(Ljava/lang/Object;)Lorg/json/JSONArray;
+        add-int/lit8 v4, v4, 1
+        goto :loop
+        :out
+        invoke-virtual {v2}, Lorg/json/JSONArray;->toString()Ljava/lang/String;
+        move-result-object v0
+        return-object v0
+        :none
+        const-string v0, ""
+        return-object v0
+        :try_end
+        :handler
+        move-exception v0
+        const-string v0, ""
+        return-object v0
+        .catchall {:try_start .. :try_end} :handler
     ''', flags=ACC_PUBLIC | ACC_STATIC)
 
     sys_.method('net', ['Landroid/app/Activity;'], STR, 3, '''

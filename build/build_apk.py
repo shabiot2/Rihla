@@ -32,13 +32,13 @@ KEYSTORE = os.path.join(HERE, 'release.p12')
 STOREPASS = 'camrynav2026'
 ALIAS = 'camry'
 APP_NAME = 'رحلة'
-VERSION_CODE, VERSION_NAME = 8, '2.6'
+VERSION_CODE, VERSION_NAME = 9, '3.0'
 ICON_PATH = 'res/drawable-xxxhdpi-v4/icon.png'
 
 PERMS = ['INTERNET', 'ACCESS_NETWORK_STATE', 'ACCESS_WIFI_STATE', 'CHANGE_WIFI_STATE',
          'ACCESS_FINE_LOCATION', 'ACCESS_COARSE_LOCATION', 'BLUETOOTH', 'BLUETOOTH_ADMIN',
          'BLUETOOTH_CONNECT', 'BLUETOOTH_SCAN', 'NEARBY_WIFI_DEVICES', 'POST_NOTIFICATIONS',
-         'ACCESS_LOCATION_EXTRA_COMMANDS']
+         'ACCESS_LOCATION_EXTRA_COMMANDS', 'READ_EXTERNAL_STORAGE']
 # every config change handled in-place so the WebView (and an active route) never reloads,
 # e.g. when the head unit flips night mode with the headlights
 CONFIG_CHANGES = 0x0000FFFF | 0x10000000 | 0x40000000

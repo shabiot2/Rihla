@@ -1,0 +1,256 @@
+/* shell.css — the frame every skin shares: fonts, default tokens, the home grid, the widgets' inner parts,
+   the dock and the modal sheet. Skins (skins.css) re-dress all of it: colours, type, shapes and the layout
+   itself (grid areas). Sizes are rem, and the root size follows the short side of the screen, so 1280×720,
+   1024×600 and 800×480 head units — and portrait screens — scale the same design. */
+
+@font-face { font-family: "Tajawal"; src: url("../fonts/Tajawal-Regular.ttf"); font-weight: 400; }
+@font-face { font-family: "Tajawal"; src: url("../fonts/Tajawal-Bold.ttf"); font-weight: 700; }
+@font-face { font-family: "Tajawal"; src: url("../fonts/Tajawal-ExtraBold.ttf"); font-weight: 800; }
+@font-face { font-family: "Cairo"; src: url("../fonts/Cairo.ttf"); font-weight: 200 1000; }
+@font-face { font-family: "Amiri"; src: url("../fonts/Amiri-Regular.ttf"); font-weight: 400; }
+@font-face { font-family: "Readex Pro"; src: url("../fonts/ReadexPro.ttf"); font-weight: 160 700; }
+@font-face { font-family: "Alexandria"; src: url("../fonts/Alexandria.ttf"); font-weight: 100 900; }
+@font-face { font-family: "Changa"; src: url("../fonts/Changa.ttf"); font-weight: 200 800; }
+@font-face { font-family: "Orbitron"; src: url("../fonts/Orbitron.ttf"); font-weight: 400 900; }
+@font-face { font-family: "El Messiri"; src: url("../fonts/ElMessiri.ttf"); font-weight: 400 700; }
+@font-face { font-family: "Aref Ruqaa"; src: url("../fonts/ArefRuqaa-Regular.ttf"); font-weight: 400; }
+@font-face { font-family: "Aref Ruqaa"; src: url("../fonts/ArefRuqaa-Bold.ttf"); font-weight: 700; }
+@font-face { font-family: "IBM Plex Sans Arabic"; src: url("../fonts/IBMPlexSansArabic-Light.ttf"); font-weight: 300; }
+@font-face { font-family: "IBM Plex Sans Arabic"; src: url("../fonts/IBMPlexSansArabic-Regular.ttf"); font-weight: 400; }
+@font-face { font-family: "IBM Plex Sans Arabic"; src: url("../fonts/IBMPlexSansArabic-SemiBold.ttf"); font-weight: 600; }
+@font-face { font-family: "Baloo Bhaijaan 2"; src: url("../fonts/BalooBhaijaan2.ttf"); font-weight: 400 800; }
+
+:root {
+  --f-ui: "Tajawal", "Noto Sans Arabic", sans-serif;
+  --f-disp: "Cairo", "Tajawal", sans-serif;
+  --f-naskh: "Amiri", "Noto Naskh Arabic", serif;
+  --f-clock: var(--f-disp);
+  --f-latin: var(--f-disp);
+  --bg0: #141a4a; --bg1: #0a0e2a; --bg2: #050817;
+  --card-a: #141a3c; --card-b: #0e1330; --card-c: #0a0e26; --card: #10153a;
+  --sheet: rgba(10, 13, 36, .97); --glass: rgba(16, 20, 48, .92);
+  --line: rgba(170, 185, 255, .1); --line2: rgba(170, 185, 255, .2);
+  --text: #eef2ff; --muted: #9aa6cf; --dim: #5d688f;
+  --accent: #46e3d0; --accent-rgb: 70, 227, 208; --accent-d: #1fa596; --accent-l: #a6fff2; --on-accent: #04201c;
+  --ok: #3ddc84; --ok-rgb: 61, 220, 132; --warn: #ffb547; --danger: #ff4b5f;
+  --chrome: linear-gradient(180deg, #ffffff 0%, #dfe4e8 35%, #9ba4ac 52%, #e6eaed 100%);
+  --chrome-h: linear-gradient(90deg, #8e979f 0%, #eef1f3 30%, #b9c0c6 55%, #f7f9fa 80%, #9aa3ab 100%);
+  --bezel-0: #ffffff; --bezel-1: #d3d9de; --bezel-2: #7f8891; --bezel-3: #e2e6e9; --bezel-4: #8a939b;
+  --btn-a: #1d2450; --btn-b: #151b3e; --dock-a: #161c44; --dock-b: #0f1433; --act-a: #19384a; --act-b: #10252f;
+  --field: #11173a; --chip: #1b2250; --seg: #151b40; --tab-on: #232c62; --off: #2a3260; --press: #1c2456;
+  --navc-a: #2c4fb8; --navc-b: #1b2f73; --pri-a: #46e3d0; --pri-b: #23b3a2;
+  --r: 18px;
+  --top-h: 3.7rem; --dock-h: 5.4rem;
+  --gap: .9rem; --pad: 1.1rem;
+  --w-bg: rgba(255, 255, 255, .05); --w-border: 1px solid rgba(255, 255, 255, .09); --w-r: 1.5rem;
+  --w-shadow: none; --w-pad: 1rem 1.15rem;
+  --clock-size: 7.4rem; --clock-w: 300; --clock-c: var(--text);
+}
+
+html { font-size: 1.9vmin; }
+@media (min-aspect-ratio: 1/1) and (max-height: 520px) { html { font-size: 2.2vmin; } }
+* { box-sizing: border-box; }
+html, body {
+  margin: 0; height: 100%; overflow: hidden; background: var(--bg2); color: var(--text);
+  font-family: var(--f-ui); -webkit-font-smoothing: antialiased;
+  -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent;
+}
+button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; outline: none; }
+input, select, textarea { font: inherit; }
+.hidden { display: none !important; }
+.num { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
+h1, h2, h3 { font-family: var(--f-disp); }
+.ic { width: 1.4em; height: 1.4em; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.ic .fill, .ic.fill { fill: currentColor; }
+.ic .red { fill: var(--danger); stroke: var(--danger); }
+.silver-text { background: var(--chrome); -webkit-background-clip: text; background-clip: text; color: transparent; }
+@keyframes blink { 50% { opacity: .25; } }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+/* ---------- frame ---------- */
+#app {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0; overflow: hidden;
+  display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-areas: "bar" "home" "dock";
+  background: var(--bg2);
+}
+#fx { position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+#fx > * { position: absolute; }
+#bar { grid-area: bar; } #home { grid-area: home; } #dock { grid-area: dock; }
+#bar, #home, #dock { position: relative; z-index: 1; min-width: 0; min-height: 0; }
+
+/* ---------- top bar ---------- */
+#bar { display: flex; align-items: center; gap: .8rem; height: var(--top-h); padding: 0 1.2rem; }
+.bar-fill { flex: 1; }
+.car-chip { display: flex; align-items: center; gap: .6rem; min-width: 0; max-width: 30vw; padding: .2rem .3rem .2rem .9rem; border-radius: 99px; }
+.car-chip .cc-txt { line-height: 1.25; text-align: right; min-width: 0; }
+.car-chip b { display: block; font-size: .98rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.car-chip small { display: block; font-size: .76rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.badge-logo.bl-chip { width: 2.7rem; height: 2.7rem; }
+.occ-chip { padding: .3rem .95rem; border-radius: 99px; font-size: .88rem; font-weight: 700; white-space: nowrap;
+  background: rgba(var(--accent-rgb), .14); border: 1px solid rgba(var(--accent-rgb), .45); }
+#bar .net-chip { margin: 0; font-size: .85rem; padding: .3rem .8rem; }
+#bar .net-chip .ic { width: 1.1rem; height: 1.1rem; }
+.weather { font-size: .95rem; white-space: nowrap; color: var(--text); }
+.weather b { font-size: 1.15rem; }
+body.is-offline .weather { opacity: .45; }
+.st-icons { display: flex; align-items: center; gap: .15rem; }
+.st-b { display: flex; align-items: center; gap: .2rem; padding: .35rem .45rem; border-radius: .9rem; }
+.st-b:active { background: rgba(var(--accent-rgb), .16); }
+.st { width: 1.35rem; height: 1.35rem; color: var(--dim); transition: color .3s; }
+.st.on { color: var(--text); } .st.ok { color: var(--ok); } .st.acc { color: var(--accent); } .st.hot { color: var(--danger); }
+.st.blink { animation: blink 1.4s infinite; }
+#fanLbl { font-size: .82rem; color: var(--muted); font-weight: 700; }
+#fanLbl:empty { display: none; }
+
+/* ---------- home grid: every skin places these areas its own way ---------- */
+#home { display: grid; gap: var(--gap); padding: .1rem var(--pad) var(--pad); }
+#wClock { grid-area: clock; } #wViz { grid-area: viz; } #prayerCard { grid-area: prayer; } #wCarplay { grid-area: carplay; }
+#mediaCard { grid-area: media; } #appsCard { grid-area: apps; } #wSmart { grid-area: smart; } #wPhoto { grid-area: photo; display: none; }
+
+.w {
+  position: relative; min-width: 0; min-height: 0; overflow: hidden; color: var(--text);
+  background: var(--w-bg); border: var(--w-border); border-radius: var(--w-r); box-shadow: var(--w-shadow); padding: var(--w-pad);
+}
+button.w { display: flex; text-align: right; }
+.w-head { display: flex; align-items: center; justify-content: space-between; gap: .5rem; margin-bottom: .55rem; font-size: .9rem; }
+.w-title { display: flex; align-items: center; gap: .4rem; font-weight: 700; color: var(--muted); white-space: nowrap; overflow: hidden; }
+.w-title .ic { width: 1.15rem; height: 1.15rem; color: var(--accent); }
+.w-tag { font-size: .75rem; font-weight: 700; padding: .18rem .65rem; border-radius: 99px; white-space: nowrap;
+  border: 1px solid var(--line2); color: var(--muted); }
+.w-tag.ok { color: var(--ok); border-color: rgba(var(--ok-rgb), .5); background: rgba(var(--ok-rgb), .1); }
+.w-tag.warn { color: var(--warn); border-color: rgba(255, 181, 71, .55); background: rgba(255, 181, 71, .1); }
+button.w-tag:active { filter: brightness(1.3); }
+
+/* clock */
+.w-clock { display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
+.greet { font-family: var(--f-greet, var(--f-ui)); font-size: 1.05rem; color: var(--muted); line-height: 1.5; }
+.clock { font-family: var(--f-clock); font-size: var(--clock-size); font-weight: var(--clock-w); color: var(--clock-c);
+  line-height: 1.02; letter-spacing: -.02em; white-space: nowrap; }
+.clock small { font-family: var(--f-ui); font-size: .26em; font-weight: 700; letter-spacing: 0; color: var(--muted); margin-right: .25em; }
+.dates { display: flex; flex-direction: column; gap: .05rem; line-height: 1.5; }
+#dateHijri { font-family: var(--f-hijri, var(--f-ui)); font-size: 1.12rem; font-weight: 600; }
+#dateGreg { font-size: .92rem; color: var(--muted); }
+
+/* prayer visualisation (drawn by home.js per skin) */
+.w-viz { padding: 0; background: none; border: 0; box-shadow: none; overflow: visible; display: flex; align-items: center; justify-content: center; }
+.w-viz > svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.w-viz text { font-family: var(--f-ui); }
+
+/* prayer card */
+.w-prayer { display: flex; flex-direction: column; cursor: pointer; }
+.pc-city { display: flex; align-items: center; gap: .4rem; font-size: .88rem; color: var(--muted); font-weight: 600; max-width: 100%; }
+.pc-city .ic { width: 1.1rem; height: 1.1rem; color: var(--accent); }
+.pc-city span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pc-next { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 .6rem; margin: .35rem 0 .6rem; }
+.pc-lbl { width: 100%; font-size: .8rem; color: var(--muted); }
+#pcName { font-family: var(--f-disp); font-size: 2.1rem; font-weight: 700; line-height: 1.45; }
+#pcTime { font-size: 1.2rem; font-weight: 600; }
+#pcCountdown { width: 100%; font-size: 1rem; font-weight: 700; color: var(--accent); }
+.pc-bar { display: none; }
+.prayer-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .2rem; flex: 1; min-height: 0; justify-content: space-evenly; }
+.prayer-list li { display: flex; align-items: center; justify-content: space-between; padding: .3rem .7rem; border-radius: .8rem; font-size: 1rem; line-height: 1.5; }
+.prayer-list li b { font-weight: 600; }
+.prayer-list li.past { color: var(--dim); }
+.prayer-list li.sun { font-size: .88rem; color: var(--muted); }
+.prayer-list li.next { background: rgba(var(--accent-rgb), .16); color: var(--text); box-shadow: inset 0 0 0 1px rgba(var(--accent-rgb), .45); }
+.prayer-list li.next span { color: var(--accent); font-weight: 700; }
+
+/* CarPlay launcher */
+.w-carplay { flex-direction: column; justify-content: space-between; align-items: flex-start; gap: .6rem;
+  background: var(--cp-bg, var(--w-bg)); color: var(--cp-c, var(--text)); transition: transform .12s; }
+.w-carplay:active { transform: scale(.985); }
+.cp-glyph { display: flex; align-items: center; justify-content: center; width: 3.7rem; height: 3.7rem; border-radius: 1.15rem;
+  background: var(--cp-glyph-bg, rgba(var(--accent-rgb), .18)); color: var(--cp-glyph-c, var(--accent)); }
+.cp-glyph .ic { width: 2.3rem; height: 2.3rem; stroke-width: 1.7; }
+.cp-txt { display: block; width: 100%; min-width: 0; }
+.cp-txt b { display: block; font-family: var(--f-latin); font-size: 2.1rem; font-weight: 700; line-height: 1.15; letter-spacing: -.01em; }
+.cp-txt small { display: block; font-size: .9rem; color: var(--cp-sub, var(--muted)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.6; }
+.cp-go { position: absolute; top: 1rem; left: 1rem; opacity: .55; }
+.cp-go .ic { width: 1.4rem; height: 1.4rem; transform: scaleX(-1); }
+
+/* audio */
+.w-media { display: flex; flex-direction: column; }
+.mc-main { display: flex; align-items: center; gap: .6rem; min-width: 0; flex: 1; }
+.mc-info { flex: 1; min-width: 0; text-align: right; line-height: 1.55; }
+.mc-info b { display: block; font-size: 1.1rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mc-info small { display: flex; align-items: center; font-size: .82rem; color: var(--muted); white-space: nowrap; overflow: hidden; }
+.mc-info small .eq { height: .9rem; margin: 0 0 0 .4rem; }
+.w-media .mc-go { flex: none; min-height: 2.7rem; padding: 0 1rem; font-size: .95rem; border-radius: 99px; }
+.w-media .mc-go .ic { width: 1.2rem; height: 1.2rem; margin-left: .35rem; }
+.mc-prog { height: .3rem; border-radius: 99px; background: var(--off); overflow: hidden; margin: .1rem 0 .5rem; }
+.mc-prog i { display: block; height: 100%; width: 0; background: var(--accent); border-radius: 99px; transition: width .9s linear; }
+.mc-ctl { display: flex; align-items: center; justify-content: space-between; direction: ltr; margin-top: .4rem; }   /* media keys keep the universal order */
+.w-media .round { width: 3.1rem; height: 3.1rem; min-width: 0; min-height: 0; box-shadow: none; }
+.w-media .round .ic { width: 1.35rem; height: 1.35rem; }
+.w-media .round.big { width: 3.8rem; height: 3.8rem; color: var(--on-accent); background: linear-gradient(180deg, var(--pri-a), var(--pri-b)); border-color: transparent; }
+.w-media .round.big .ic { width: 1.6rem; height: 1.6rem; }
+.w-media.live .mc-info b { color: var(--ok); }
+
+/* shortcuts */
+.w-apps { display: flex; flex-direction: column; }
+.ac-grid { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-auto-rows: minmax(0, 1fr); gap: .3rem .4rem; }
+.ac-tile { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .2rem; min-width: 0; min-height: 0;
+  border-radius: 1rem; font-size: .74rem; font-weight: 600; line-height: 1.35; padding: .1rem; }
+.ac-tile:active { transform: scale(.95); background: rgba(var(--accent-rgb), .12); }
+.ac-tile img, .ac-tile .ph, .ac-tile > .ic { width: 2.55rem; height: 2.55rem; border-radius: .8rem; object-fit: contain; flex: none; }
+.ac-tile > .ic { padding: .5rem; background: rgba(var(--accent-rgb), .15); color: var(--accent); }
+.ac-tile .ph { display: flex; align-items: center; justify-content: center; font-size: 1.3rem; background: rgba(127, 127, 127, .18); }
+.ac-tile > span:last-child { max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* smart card */
+.w-smart { display: flex; flex-direction: column; justify-content: center; gap: .3rem; }
+.sm-k { display: flex; align-items: center; gap: .4rem; font-size: .8rem; font-weight: 700; color: var(--accent); }
+.sm-k .ic { width: 1.05rem; height: 1.05rem; }
+.sm-t { font-size: 1.12rem; font-weight: 700; line-height: 1.6; }
+.sm-t.q { font-family: var(--f-naskh); font-weight: 400; font-size: 1.25rem; line-height: 1.85; }
+.sm-s { font-size: .85rem; color: var(--muted); line-height: 1.55; }
+.sm-act { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .3rem; }
+.sm-act button { display: inline-flex; align-items: center; gap: .3rem; padding: .35rem .85rem; border-radius: 99px; font-size: .85rem; font-weight: 700;
+  background: rgba(var(--accent-rgb), .16); color: var(--text); border: 1px solid rgba(var(--accent-rgb), .4); }
+.sm-act button .ic { width: 1rem; height: 1rem; }
+
+/* ---------- dock ---------- */
+#dock { display: flex; align-items: stretch; justify-content: center; gap: .45rem; height: var(--dock-h); padding: .25rem var(--pad) .75rem; }
+.dk { position: relative; flex: 1 1 0; max-width: 9.6rem; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .25rem;
+  border-radius: 1.1rem; color: var(--text); font-size: .84rem; font-weight: 700; white-space: nowrap; transition: transform .12s, background .2s, color .2s; }
+.dk span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.dk .ic { width: 1.75rem; height: 1.75rem; }
+.dk:active { transform: scale(.94); }
+.dk.active { color: var(--accent); }
+.dk.live .ic { color: var(--ok); }
+.dk .badge { position: absolute; top: .3rem; left: 24%; min-width: 1.25rem; height: 1.25rem; padding: 0 .3rem; border-radius: 99px;
+  background: var(--danger); color: #fff; font-size: .72rem; font-weight: 800; line-height: 1.25rem; text-align: center; }
+.dk.hot .ic { color: var(--danger); animation: blink 1.2s infinite; }
+
+/* ---------- modal sheet (panels) ---------- */
+.scrim { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 40; background: var(--scrim, rgba(0, 0, 0, .55)); animation: fadeIn .2s ease-out; }
+.sheet {
+  position: fixed; z-index: 41; left: 3.5vw; right: 3.5vw; top: 4.5vh; bottom: 3vh;
+  display: flex; flex-direction: column; overflow: hidden; color: var(--text);
+  background: var(--sheet); border: 1px solid var(--line2); border-radius: var(--sheet-r, 1.6rem);
+  box-shadow: 0 2.4rem 6rem rgba(0, 0, 0, .55); animation: sheetUp .3s cubic-bezier(.2, .8, .2, 1);
+}
+@keyframes sheetUp { from { opacity: 0; transform: translateY(5vh) scale(.985); } to { opacity: 1; transform: none; } }
+
+/* ---------- skin change: a short title card in the new skin's own type ---------- */
+.curtain { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 150; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  opacity: 0; transition: opacity .3s ease; pointer-events: none; }
+.curtain.on { opacity: 1; pointer-events: auto; }
+.curtain b { font-size: 5.4rem; line-height: 1.35; transform: translateY(1rem); transition: transform .6s cubic-bezier(.2, .8, .2, 1); }
+.curtain small { font-size: 1.1rem; opacity: .75; }
+.curtain.on b { transform: none; }
+
+/* ---------- motion: off for reduced-motion users and for the «calm» setting ---------- */
+body.calm #fx *, body.calm #fx *::before, body.calm #fx *::after { animation: none !important; }
+@media (prefers-reduced-motion: reduce) {
+  #fx *, #fx *::before, #fx *::after, .w-viz * { animation: none !important; }
+}
+
+/* ---------- portrait: one column of the core, then two columns of widgets ---------- */
+@media (max-aspect-ratio: 1/1) {
+  :root { --clock-size: 6.4rem; }
+  .car-chip .cc-txt, .weather span { display: none; }
+  #dock { flex-wrap: wrap; height: auto; gap: .35rem; }
+  .dk { flex: 1 0 22%; max-width: none; height: 4.4rem; }
+}

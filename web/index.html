@@ -4,11 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>رحلة</title>
-<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/shell.css">
+<link rel="stylesheet" href="css/skins.css">
 <link rel="stylesheet" href="css/panels.css">
 <link rel="stylesheet" href="css/features.css">
+<link rel="stylesheet" href="css/stories.css">
 </head>
-<body>
+<body data-skin="orbit">
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <symbol id="i-map" viewBox="0 0 24 24"><path d="M9 4 3 6.5v14L9 18l6 2.5 6-2.5v-14L15 6.5 9 4zM9 4v14M15 6.5v14"/></symbol>
   <symbol id="i-radio" viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="12" rx="2"/><path d="M7 8 17 3"/><circle cx="15.5" cy="14" r="2.6"/><path d="M6.5 12.5h4M6.5 15.5h4"/></symbol>
@@ -85,165 +87,132 @@
   <symbol id="i-doc" viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 12h6M9 16h6"/></symbol>
   <symbol id="i-book" viewBox="0 0 24 24"><path d="M12 6.5C10 5 7 4.5 3.5 5v13.5c3.5-.5 6.5 0 8.5 1.5 2-1.5 5-2 8.5-1.5V5C17 4.5 14 5 12 6.5zM12 6.5V20"/><path d="M6.5 9h3M14.5 9h3M6.5 12h3M14.5 12h3"/></symbol>
   <symbol id="i-gauge" viewBox="0 0 24 24"><path d="M4.5 17a8.5 8.5 0 1 1 15 0"/><path d="m12 13 4-4.5"/><circle cx="12" cy="13" r="1.4" class="fill"/></symbol>
+  <symbol id="i-carplay" viewBox="0 0 24 24"><rect x="2" y="7" width="13" height="10" rx="2.2"/><path d="M5 14.5h7"/><rect x="17.5" y="5" width="4.5" height="14" rx="1.3"/><path d="M15 12h2.5" stroke-dasharray="1 1.4"/></symbol>
+  <symbol id="i-heart" viewBox="0 0 24 24"><path d="M12 20s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7.3a4.3 4.3 0 0 1 7.5 2.5C19.5 15.4 12 20 12 20z"/></symbol>
+  <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="15" rx="2.5"/><circle cx="9" cy="10" r="1.8"/><path d="m4 18 5.2-5 3.6 3.4 2.6-2.4L20 18"/></symbol>
+  <symbol id="i-ask" viewBox="0 0 24 24"><path d="M4 5.5h16v10H10l-4.5 3.8V15.5H4z"/><path d="M10 9a2 2 0 1 1 3 1.7c-.7.4-1 .8-1 1.5M12 13.8v.2"/></symbol>
+  <symbol id="i-quiz" viewBox="0 0 24 24"><path d="M12 3.5 14.2 8l5 .7-3.6 3.5.8 5L12 14.9l-4.4 2.3.8-5L4.8 8.7l5-.7z"/><path d="M8 20.5h8"/></symbol>
+  <symbol id="i-stories" viewBox="0 0 24 24"><path d="M12 6.5C10 5 7 4.5 3.5 5v13.5c3.5-.5 6.5 0 8.5 1.5 2-1.5 5-2 8.5-1.5V5C17 4.5 14 5 12 6.5zM12 6.5V20"/><path d="m16.2 8.3.6 1.3 1.4.2-1 1 .2 1.4-1.2-.7-1.2.7.2-1.4-1-1 1.4-.2z" class="fill"/></symbol>
+  <symbol id="i-timer" viewBox="0 0 24 24"><path d="M7 3.5h10M7 20.5h10M8 3.5c0 4 8 5 8 8.5s-8 4.5-8 8.5M16 3.5c0 4-8 5-8 8.5"/></symbol>
+  <symbol id="i-rew" viewBox="0 0 24 24"><path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3L4.5 9M4.5 4.5V9H9"/><text x="12" y="15.2" font-size="7" font-weight="800" text-anchor="middle" fill="currentColor" stroke="none">30</text></symbol>
+  <symbol id="i-fwd" viewBox="0 0 24 24"><path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3L19.5 9M19.5 4.5V9H15"/><text x="12" y="15.2" font-size="7" font-weight="800" text-anchor="middle" fill="currentColor" stroke="none">30</text></symbol>
+  <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2.2h8a2 2 0 0 1 2 2V18a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
+  <symbol id="i-usb" viewBox="0 0 24 24"><path d="M12 21V5M12 5 9.5 7.5M12 5l2.5 2.5M12 16l-4-2.5V11M12 13.5l4-2.5V9"/><circle cx="12" cy="20" r="1.4" class="fill"/><rect x="6.8" y="9.4" width="2.4" height="2.4"/><circle cx="16" cy="8" r="1.2"/></symbol>
+  <symbol id="i-speak" viewBox="0 0 24 24"><path d="M4 10v4h4l5 4V6L8 10z"/><path d="M16 9.5c.8.7 1.2 1.6 1.2 2.5s-.4 1.8-1.2 2.5"/></symbol>
 </svg>
 
 <div id="app">
-  <header id="topbar">
-    <div class="tb-clock">
-      <div id="clock" class="clock num">--:--</div>
-      <div class="dates"><div id="dateHijri">&nbsp;</div><div id="dateGreg">&nbsp;</div></div>
-      <button id="carChip" class="car-chip"><span id="carSil"></span><span class="cc-txt"><b id="carName"></b><small id="carSub"></small></span></button>
-    </div>
-    <div class="tb-mid">
-      <div id="nextPill" class="next-pill"><span class="np-name">الصلاة القادمة</span><b class="np-time num">--:--</b><span class="np-left num"></span></div>
-      <div id="occChip" class="occ-chip hidden"></div>
-    </div>
-    <div class="tb-status">
-      <button id="netChip" class="net-chip hidden"><svg class="ic"><use href="#i-nonet"/></svg><span>بدون نت</span></button>
-      <div id="weather" class="weather"></div>
-      <div class="st-icons">
-        <svg class="ic st" id="stGps"><use href="#i-gps"/></svg>
-        <svg class="ic st" id="stNet"><use href="#i-globe"/></svg>
-        <svg class="ic st" id="stWifi"><use href="#i-wifi"/></svg>
-        <svg class="ic st" id="stBt"><use href="#i-bt"/></svg>
-        <svg class="ic st" id="stFan"><use href="#i-thermo"/></svg>
-      </div>
+  <div id="fx" aria-hidden="true"></div>
+
+  <header id="bar">
+    <button id="carChip" class="car-chip"><span id="carSil"></span><span class="cc-txt"><b id="carName"></b><small id="carSub"></small></span></button>
+    <div id="occChip" class="occ-chip hidden"></div>
+    <span class="bar-fill"></span>
+    <button id="netChip" class="net-chip hidden"><svg class="ic"><use href="#i-nonet"/></svg><span>بدون نت</span></button>
+    <div id="weather" class="weather"></div>
+    <div class="st-icons">
+      <svg class="ic st" id="stNet"><use href="#i-globe"/></svg>
+      <button class="st-b" data-panel="wifi" aria-label="الواي فاي"><svg class="ic st" id="stWifi"><use href="#i-wifi"/></svg></button>
+      <button class="st-b" data-panel="bt" aria-label="البلوتوث"><svg class="ic st" id="stBt"><use href="#i-bt"/></svg></button>
+      <button class="st-b" data-panel="fan" aria-label="حرارة الشاشة"><svg class="ic st" id="stFan"><use href="#i-thermo"/></svg><span id="fanLbl" class="num"></span></button>
     </div>
   </header>
 
-  <main id="main">
-      <section class="card gauge-card" id="gaugeCard">
-        <div class="w-head g-head"><span class="w-title"><svg class="ic"><use href="#i-gauge"/></svg>السرعة</span><button class="w-tag" id="gLim"></button></div>
-        <div id="gauge" class="gauge"></div>
-        <div class="trip">
-          <div><small>المسافة</small><b id="tripDist" class="num">0.0</b><i>كم</i></div>
-          <div><small>المتوسط</small><b id="tripAvg" class="num">0</b><i>كم/س</i></div>
-          <div><small>الأقصى</small><b id="tripMax" class="num">0</b><i>كم/س</i></div>
-          <div><small>المدة</small><b id="tripTime" class="num">0:00</b><i>&nbsp;</i></div>
-        </div>
-      </section>
-      <section class="card prayer-card" id="prayerCard">
-        <div class="pc-head">
-          <span class="pc-city"><svg class="ic"><use href="#i-mosque"/></svg><span id="pcCity">مواقيت الصلاة</span></span>
-          <span id="pcCountdown" class="pc-count num"></span>
-        </div>
-        <ul id="prayerList" class="prayer-list"></ul>
-      </section>
+  <main id="home">
+    <section id="wClock" class="w w-clock">
+      <div id="hGreet" class="greet"></div>
+      <div id="clock" class="clock num">--:--</div>
+      <div class="dates"><span id="dateHijri">&nbsp;</span><span id="dateGreg">&nbsp;</span></div>
+    </section>
 
-      <section class="card media-card" id="mediaCard">
-        <div class="w-head"><span class="w-title"><svg class="ic"><use href="#i-radio"/></svg>الراديو والصوت</span><span class="w-tag ok" id="mcTag">FM بدون نت</span></div>
-        <div class="mc-main">
-          <button id="mcInfo" class="mc-info"><b id="mcName">راديو السيارة FM / AM</b><small id="mcSub">يشتغل من موجات الراديو — بدون إنترنت</small></button>
-          <button id="mcGo" class="btn primary mc-go"><svg class="ic"><use href="#i-radio"/></svg><span>شغّل</span></button>
-        </div>
-        <div class="mc-ctl">
-          <button class="round" id="mcVolDn"><svg class="ic"><use href="#i-vol-down"/></svg></button>
-          <button class="round" id="mcPrev"><svg class="ic"><use href="#i-prev"/></svg></button>
-          <button class="round big" id="mcPlay"><svg class="ic"><use href="#i-playpause"/></svg></button>
-          <button class="round" id="mcNext"><svg class="ic"><use href="#i-next"/></svg></button>
-          <button class="round" id="mcVolUp"><svg class="ic"><use href="#i-vol-up"/></svg></button>
-        </div>
-      </section>
+    <section id="wViz" class="w w-viz" aria-hidden="true"></section>
 
-      <section class="card info-card" id="infoCard">
-        <div class="w-head"><span class="w-title"><svg class="ic"><use href="#i-pin"/></svg>موقعك</span><span class="w-tag" id="icNet">متصل</span></div>
-        <div class="ic-top">
-          <div class="ic-place"><b id="icPlace">جارٍ تحديد الموقع…</b><small id="icSub">&nbsp;</small><small id="icLL" class="num ic-ll">&nbsp;</small></div>
-          <svg class="ic-compass" viewBox="0 0 64 64"><circle cx="32" cy="32" r="29.5" class="cp-ring"/><circle cx="32" cy="32" r="22" class="cp-in"/>
-            <g id="icNeedle"><path d="M32 9 38.5 32h-13z" class="cp-n"/><path d="M32 55 25.5 32h13z" class="cp-s"/><circle cx="32" cy="32" r="3.2" class="cp-c"/></g>
-            <path d="M32 1.5v5M62.5 32h-5M32 62.5v-5M1.5 32h5" class="cp-tick"/></svg>
-        </div>
-        <div class="ic-grid">
-          <div><small>الاتجاه</small><b id="icDir">—</b></div>
-          <div><small>الارتفاع</small><b id="icAlt" class="num">—</b></div>
-          <div><small>الأقمار</small><b id="icSat" class="num">—</b></div>
-          <div><small>الدقة</small><b id="icAcc" class="num">—</b></div>
-        </div>
-      </section>
+    <section id="prayerCard" class="w w-prayer">
+      <button class="pc-city" id="pcCityB"><svg class="ic"><use href="#i-mosque"/></svg><span id="pcCity">مواقيت الصلاة</span></button>
+      <div class="pc-next">
+        <span class="pc-lbl" id="pcLbl">الصلاة القادمة</span>
+        <b id="pcName">&nbsp;</b>
+        <span id="pcTime" class="num"></span>
+        <span id="pcCountdown" class="num"></span>
+      </div>
+      <div class="pc-bar" id="pcBar"></div>
+      <ul id="prayerList" class="prayer-list"></ul>
+    </section>
 
-    <section class="card apps-card" id="appsCard">
+    <button id="wCarplay" class="w w-carplay">
+      <span class="cp-glyph"><svg class="ic"><use href="#i-carplay"/></svg></span>
+      <span class="cp-txt"><b>CarPlay</b><small id="cpSub">شغّل آيفونك على الشاشة</small></span>
+      <span class="cp-go"><svg class="ic"><use href="#i-back"/></svg></span>
+    </button>
+
+    <section id="mediaCard" class="w w-media">
+      <div class="w-head"><span class="w-title"><svg class="ic"><use href="#i-radio"/></svg><span id="mcHead">الصوت</span></span><span class="w-tag ok" id="mcTag">FM بدون نت</span></div>
+      <div class="mc-main">
+        <button id="mcInfo" class="mc-info"><b id="mcName">راديو السيارة FM / AM</b><small id="mcSub">يشتغل من موجات الراديو — بدون إنترنت</small></button>
+        <button id="mcGo" class="btn primary mc-go"><svg class="ic"><use href="#i-radio"/></svg><span>شغّل</span></button>
+      </div>
+      <div class="mc-prog hidden" id="mcProg"><i id="mcProgBar"></i></div>
+      <div class="mc-ctl">
+        <button class="round" id="mcVolDn" aria-label="خفض الصوت"><svg class="ic"><use href="#i-vol-down"/></svg></button>
+        <button class="round" id="mcPrev" aria-label="السابق"><svg class="ic"><use href="#i-prev"/></svg></button>
+        <button class="round big" id="mcPlay" aria-label="تشغيل"><svg class="ic"><use href="#i-playpause"/></svg></button>
+        <button class="round" id="mcNext" aria-label="التالي"><svg class="ic"><use href="#i-next"/></svg></button>
+        <button class="round" id="mcVolUp" aria-label="رفع الصوت"><svg class="ic"><use href="#i-vol-up"/></svg></button>
+      </div>
+    </section>
+
+    <section id="appsCard" class="w w-apps">
       <div class="w-head"><span class="w-title"><svg class="ic"><use href="#i-apps"/></svg>اختصاراتك</span><button class="w-tag" id="acEdit">تعديل</button></div>
       <div class="ac-grid" id="acGrid"></div>
     </section>
 
-    <section id="mapWrap">
-      <canvas id="map"></canvas>
-      <button id="whereChip" class="where-chip hidden"><svg class="ic"><use href="#i-pin"/></svg><span></span></button>
-      <button id="searchBar" class="search-bar"><svg class="ic"><use href="#i-search"/></svg><span>إلى أين؟</span></button>
-      <div id="navCard" class="nav-card hidden">
-        <div class="nc-icon" id="ncIcon"></div>
-        <div class="nc-text"><b id="ncDist" class="num"></b><span id="ncInstr"></span></div>
-      </div>
-      <div id="mapCtl" class="map-ctl">
-        <button id="btnBig" class="round"><svg class="ic"><use href="#i-expand"/></svg></button>
-        <button id="btnZoomIn" class="round"><svg class="ic"><use href="#i-plus"/></svg></button>
-        <button id="btnZoomOut" class="round"><svg class="ic"><use href="#i-minus"/></svg></button>
-        <button id="btnCompass" class="round"><svg class="ic" id="compassIc"><use href="#i-compass"/></svg></button>
-        <button id="btnLayers" class="round"><svg class="ic"><use href="#i-layers"/></svg></button>
-      </div>
-      <button id="btnLocate" class="round locate hidden"><svg class="ic"><use href="#i-locate"/></svg><span>توسيط</span></button>
-      <div id="navBottom" class="nav-bottom hidden">
-        <div><small>الوصول</small><b id="nbEta" class="num">--:--</b></div>
-        <div><small>المتبقي</small><b id="nbLeft" class="num">--</b></div>
-        <div><small>الوقت</small><b id="nbTime" class="num">--</b></div>
-        <button id="nbVoice" class="chip"></button>
-        <button id="nbStop" class="chip danger"><svg class="ic"><use href="#i-stop"/></svg>إنهاء</button>
-      </div>
-      <div id="speedWarn" class="speed-warn hidden"></div>
-      <div id="attrib" class="attrib"></div>
-      <div id="ctxMenu" class="ctx-menu hidden"></div>
-    </section>
+    <section id="wSmart" class="w w-smart"></section>
 
-    <div id="sheet" class="sheet hidden">
-      <div class="sheet-head">
-        <button id="sheetBack" class="round small hidden"><svg class="ic"><use href="#i-back"/></svg></button>
-        <h2 id="sheetTitle"></h2>
-        <button id="sheetClose" class="round small"><svg class="ic"><use href="#i-close"/></svg></button>
-      </div>
-      <div id="sheetBody" class="sheet-body"></div>
-    </div>
+    <section id="wPhoto" class="w w-photo"></section>
   </main>
 
   <nav id="dock">
-    <button class="dk" data-panel="nav"><svg class="ic"><use href="#i-map"/></svg><span>الخرائط</span></button>
     <button class="dk" data-panel="radio"><svg class="ic"><use href="#i-radio"/></svg><span>المذياع</span></button>
-    <button class="dk" data-panel="tasks"><svg class="ic"><use href="#i-tasks"/></svg><span>المهام</span><b class="badge hidden" id="taskBadge"></b></button>
+    <button class="dk" data-panel="stories"><svg class="ic"><use href="#i-stories"/></svg><span>القصص</span></button>
+    <button class="dk" data-panel="prayer"><svg class="ic"><use href="#i-mosque"/></svg><span>الصلاة</span></button>
     <button class="dk" data-panel="adhkar"><svg class="ic"><use href="#i-book"/></svg><span>الأذكار</span></button>
-    <button class="dk" data-panel="bt"><svg class="ic"><use href="#i-bt"/></svg><span>البلوتوث</span></button>
-    <button class="dk" data-panel="wifi"><svg class="ic"><use href="#i-wifi"/></svg><span>الواي فاي</span></button>
-    <button class="dk" data-panel="fan"><svg class="ic" id="fanIc"><use href="#i-fan"/></svg><span id="fanLbl">المروحة</span></button>
-    <div id="favs" class="favs"></div>
+    <button class="dk" data-panel="tasks"><svg class="ic"><use href="#i-tasks"/></svg><span>المهام</span><b class="badge hidden" id="taskBadge"></b></button>
+    <button class="dk" data-panel="nav"><svg class="ic"><use href="#i-route"/></svg><span>وجهة</span></button>
     <button class="dk" data-panel="apps"><svg class="ic"><use href="#i-apps"/></svg><span>التطبيقات</span></button>
     <button class="dk" data-panel="settings"><svg class="ic"><use href="#i-settings"/></svg><span>الإعدادات</span></button>
   </nav>
-
-  <div id="miniPlayer" class="mini-player hidden">
-    <button id="mpPrev" class="round small hidden"><svg class="ic"><use href="#i-prev"/></svg></button>
-    <button id="mpToggle" class="round small"><svg class="ic"><use href="#i-pause"/></svg></button>
-    <button id="mpNext" class="round small hidden"><svg class="ic"><use href="#i-next"/></svg></button>
-    <span id="mpName"></span>
-    <button id="mpClose" class="round small hidden"><svg class="ic"><use href="#i-close"/></svg></button>
-  </div>
-  <div id="prayerAlert" class="prayer-alert hidden"></div>
-  <div id="reminder" class="reminder hidden"></div>
-  <div id="briefing" class="briefing hidden"></div>
-  <div id="toast" class="toast"></div>
-  <audio id="radioAudio" preload="none"></audio>
 </div>
+
+<div id="scrim" class="scrim hidden"></div>
+<div id="sheet" class="sheet hidden" role="dialog">
+  <div class="sheet-head">
+    <button id="sheetBack" class="round small hidden" aria-label="رجوع"><svg class="ic"><use href="#i-back"/></svg></button>
+    <h2 id="sheetTitle"></h2>
+    <button id="sheetClose" class="round small" aria-label="إغلاق"><svg class="ic"><use href="#i-close"/></svg></button>
+  </div>
+  <div id="sheetBody" class="sheet-body"></div>
+</div>
+
+<div id="prayerAlert" class="prayer-alert hidden"></div>
+<div id="reminder" class="reminder hidden"></div>
+<div id="briefing" class="briefing hidden"></div>
+<div id="toast" class="toast"></div>
+<audio id="radioAudio" preload="none"></audio>
+<audio id="storyAudio" preload="metadata"></audio>
 
 <script src="js/core.js"></script>
 <script src="js/base.js"></script>
 <script src="js/theme.js"></script>
 <script src="js/intro.js"></script>
 <script src="js/prayer.js"></script>
-<script src="js/gauge.js"></script>
 <script src="js/gps.js"></script>
-<script src="js/map.js"></script>
 <script src="js/nav.js"></script>
 <script src="js/radio.js"></script>
 <script src="js/system.js"></script>
 <script src="js/offline.js"></script>
-<script src="js/dash.js"></script>
+<script src="js/home.js"></script>
+<script src="data/kb.js"></script>
+<script src="js/stories.js"></script>
 <script src="js/adhkar.js"></script>
 <script src="js/tasks.js"></script>
 <script src="js/fan.js"></script>

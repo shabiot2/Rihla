@@ -113,6 +113,7 @@
     render(now);
   };
   P.setLocation = function (lat, lon, force) {
+    if (App.settings.prayManual && !force) return;          // a city picked by hand stays until «تلقائي»
     var moved = App.geo.dist(lat, lon, P.loc.lat, P.loc.lon);
     if (!force && moved < 5000) return;
     P.loc = { lat: lat, lon: lon, city: moved > 15000 ? '' : P.loc.city };
@@ -173,11 +174,67 @@
     if (!m) return;
     App.nav.start({ lat: m.lat, lon: m.lon, name: m.name, sub: m.sub });
   };
-  P.showMosquesOnMap = function (list) {
+  // no map inside the app any more: the list of mosques, or the navigation app's own search
+  P.showMosquesOnMap = function () {
     App.panels.close();
-    App.map.setPois(list.slice(0, 12).map(function (m) { return { lat: m.lat, lon: m.lon, name: m.name, sub: m.sub }; }));
-    App.map.showAll(list.slice(0, 4));
-    App.toast('اضغط على أي مسجد لعرضه أو التوجّه إليه', 3500);
+    App.nav.listPanel('المساجد القريبة', 'mosque');
+  };
+  P.mosquesInMaps = function () {
+    var f = App.loc.fix || P.loc, q = encodeURIComponent('مسجد');
+    if (!App.Native.has || App.Native.call('view', 'geo:' + f.lat.toFixed(5) + ',' + f.lon.toFixed(5) + '?q=' + q) !== '1') App.toast('لا يوجد تطبيق خرائط مثبت');
+  };
+
+  // ---------- the city, by hand (works offline; GPS can take over again) ----------
+  var CITIES = [['الرياض', 24.7136, 46.6753], ['جدة', 21.5433, 39.1728], ['مكة المكرمة', 21.4225, 39.8262], ['المدينة المنورة', 24.4686, 39.6142],
+    ['الدمام', 26.4207, 50.0888], ['الخبر', 26.2172, 50.1971], ['الأحساء', 25.3833, 49.5864], ['الطائف', 21.2703, 40.4158],
+    ['تبوك', 28.3835, 36.5662], ['بريدة', 26.326, 43.975], ['عنيزة', 26.084, 43.994], ['حائل', 27.5114, 41.7208],
+    ['أبها', 18.2164, 42.5053], ['خميس مشيط', 18.3, 42.7333], ['جازان', 16.8892, 42.5511], ['نجران', 17.5656, 44.2289],
+    ['الباحة', 20.0129, 41.4677], ['ينبع', 24.0895, 38.0618], ['الجبيل', 27.0174, 49.6225], ['القطيف', 26.5196, 50.0115],
+    ['الخرج', 24.1556, 47.312], ['حفر الباطن', 28.4328, 45.9708], ['عرعر', 30.9753, 41.0381], ['سكاكا', 29.9697, 40.2064]];
+  P.CITIES = CITIES;
+  P.setCity = function (name, lat, lon) {
+    App.settings.prayManual = true;
+    App.saveSettings();
+    P.loc = { lat: lat, lon: lon, city: name };
+    App.store.set('prayLoc', P.loc);
+    P.recalc();
+    App.toast('المواقيت الحين حسب ' + name);
+  };
+  P.auto = function () {
+    App.settings.prayManual = false;
+    App.saveSettings();
+    var f = App.loc.fix;
+    if (f) P.setLocation(f.lat, f.lon, true);
+    App.toast(f ? 'رجعت المواقيت تلقائية من GPS' : 'بتصير تلقائية أول ما تلقط إشارة GPS');
+  };
+  P.cityPanel = function () {
+    App.panels.push('مدينة مواقيت الصلاة', function (body) {
+      var man = !!App.settings.prayManual;
+      body.innerHTML = '<div class="big-status on">' + App.icon('mosque') + '<div class="txt"><b>' + App.esc(P.loc.city || 'موقعك') + '</b><small>' +
+        (man ? 'مختارة يدوياً — ما تتغير مع الـGPS' : 'تلقائية من الـGPS — تتحدّث إذا انتقلت لمدينة ثانية') + '</small></div>' +
+        (man ? '<button class="btn" id="pcAuto">' + App.icon('gps') + 'تلقائي</button>' : '') + '</div>' +
+        '<div class="search-input">' + App.icon('search') + '<input id="pcQ" placeholder="ابحث عن أي مدينة أو قرية بالمملكة…"></div>' +
+        '<div id="pcRes"></div><div class="sec-title">المدن الرئيسية</div><div class="city-grid">' + CITIES.map(function (c, i) {
+          return '<button class="chip' + (man && P.loc.city === c[0] ? ' on' : '') + '" data-c="' + i + '">' + c[0] + '</button>';
+        }).join('') + '</div>';
+      body.querySelectorAll('[data-c]').forEach(function (b) {
+        b.onclick = function () { var c = CITIES[+b.dataset.c]; P.setCity(c[0], c[1], c[2]); App.panels.back(); };
+      });
+      if (App.$('pcAuto')) App.$('pcAuto').onclick = function () { P.auto(); App.panels.refresh(); };
+      if (App.base && !App.base.ready) App.base.load();
+      App.$('pcQ').oninput = function () {
+        var q = this.value.trim(), box = App.$('pcRes');
+        if (!q) { box.innerHTML = ''; return; }
+        if (!App.base || !App.base.ready) { box.innerHTML = '<div class="empty">جارٍ تجهيز بيانات المدن…</div>'; return; }
+        var r = App.base.search(q).filter(function (x) { return x.kind !== 'dis'; }).slice(0, 8);
+        box.innerHTML = r.length ? r.map(function (x, i) {
+          return '<button class="row" data-r="' + i + '">' + App.icon('pin', 'lead') + '<span class="txt"><b>' + App.esc(x.name) + '</b><small>' + App.esc(x.sub || '') + '</small></span></button>';
+        }).join('') : '<div class="empty">ما لقيت «' + App.esc(q) + '»</div>';
+        box.querySelectorAll('[data-r]').forEach(function (b) {
+          b.onclick = function () { var x = r[+b.dataset.r]; P.setCity(x.name, x.lat, x.lon); App.panels.back(); };
+        });
+      };
+    });
   };
   function mosqueLine(m) {
     return '<b>' + App.esc(m.name) + '</b> — <span class="num">' + App.fmtDist(m.d) + '</span>' +
@@ -193,7 +250,7 @@
       '<div class="pa-time num">' + App.hmFull(P.today[i]) + '</div>' +
       (isPrayer ? '<div class="pa-mosque" id="paMosque"><span class="spinner small"></span> جارٍ البحث عن أقرب مسجد…</div>' +
         '<div class="btn-row"><button class="btn primary" id="paGo" disabled>' + App.icon('route') + 'انطلق لأقرب مسجد</button>' +
-        '<button class="btn" id="paMap">' + App.icon('map') + 'المساجد على الخريطة</button>' +
+        '<button class="btn" id="paMap">' + App.icon('mosque') + 'المساجد القريبة</button>' +
         '<button class="btn" id="paClose">' + App.icon('close') + 'إغلاق</button></div>' : '');
     box.classList.remove('hidden');
     clearTimeout(box._h);
@@ -205,7 +262,7 @@
     var found = [];
     App.$('paClose').onclick = function () { box.classList.add('hidden'); };
     App.$('paGo').onclick = function () { box.classList.add('hidden'); P.goMosque(found[0]); };
-    App.$('paMap').onclick = function () { box.classList.add('hidden'); if (found.length) P.showMosquesOnMap(found); else App.panels.open('prayer'); };
+    App.$('paMap').onclick = function () { box.classList.add('hidden'); P.showMosquesOnMap(); };
     var spoken = 'حان الآن موعد صلاة ' + nm(i, P.today[i]);
     P.nearestMosques().then(function (list) {
       found = list;
@@ -231,7 +288,7 @@
       buttons: [['go', 'انطلق لأقرب مسجد', 'route', true], ['list', 'المساجد القريبة', 'mosque'], ['close', 'إغلاق', 'close']],
       onButton: function (b, ctx) {
         if (b === 'go' && ctx.m) P.goMosque(ctx.m[0]);
-        if (b === 'list') { if (ctx.m && ctx.m.length) P.showMosquesOnMap(ctx.m); else App.panels.open('prayer'); }
+        if (b === 'list') P.showMosquesOnMap();
       },
       onShow: function (ctx, setSub, enable) {
         P.nearestMosques().then(function (list) {
@@ -286,12 +343,14 @@
         var t = nx.tomorrow && i === 0 ? P.tomorrow[0] : P.today[i];
         return '<div class="' + (i === nx.i ? 'next' : (!nx.tomorrow && t < now ? 'past' : '')) + '"><span>' + nm(i, t) + '</span><b class="num">' + App.hm(t) + '</b></div>';
       }).join('') + '</div>' +
-      '<div class="sec"><div class="sec-title"><span>أقرب المساجد</span><button class="chip" id="ppMap">' + App.icon('map') + 'على الخريطة</button></div>' +
+      '<div class="sec"><div class="sec-title"><span>أقرب المساجد</span><span><button class="chip" id="ppCity">' + App.icon('pin') + App.esc(P.loc.city || 'المدينة') + '</button>' +
+      '<button class="chip" id="ppMap">' + App.icon('route') + 'في تطبيق الخرائط</button></span></div>' +
       '<div id="ppList"><div class="spinner"></div></div></div>';
     App.$('ppMorning').onclick = function () { App.adhkar.open('m'); };
     App.$('ppEvening').onclick = function () { App.adhkar.open('e'); };
     var list = [];
-    App.$('ppMap').onclick = function () { if (list.length) P.showMosquesOnMap(list); else App.toast('بانتظار نتائج البحث…'); };
+    App.$('ppMap').onclick = P.mosquesInMaps;
+    App.$('ppCity').onclick = P.cityPanel;
     P.nearestMosques().then(function (r) {
       list = r;
       var el = App.$('ppList');
@@ -307,6 +366,7 @@
   App.panelDefs = App.panelDefs || {};
   App.panelDefs.prayer = { title: 'الصلاة والقبلة والمساجد', render: renderPanel };
 
+  function setTxt(id, v) { var el = App.$(id); if (el && el._v !== v) { el._v = v; el.textContent = v; } }
   P.tick = function (now) {
     if (!P.today || now.toDateString() !== P.dayKey) P.recalc();
     var pre = App.settings.prePrayer || 0;
@@ -322,14 +382,13 @@
     var cd = App.$('ppCd');
     if (cd) { var nn = P.next(now); cd.textContent = 'بعد ' + App.countdown(nn.t - now); }
     var nx = P.next(now), left = nx.t - now;
-    var pill = App.$('nextPill');
-    pill.querySelector('.np-name').textContent = nm(nx.i, nx.t);
-    pill.querySelector('.np-time').textContent = App.hmFull(nx.t);
-    pill.querySelector('.np-left').textContent = 'بعد ' + App.countdown(left);
     var justNow = -1;
     for (var k = 0; k < 6; k++) if (now - P.today[k] >= 0 && now - P.today[k] < 10 * 60000 && k !== 1) justNow = k;
-    pill.classList.toggle('now', justNow >= 0);
-    App.$('pcCountdown').textContent = nm(nx.i, nx.t) + ' بعد ' + App.countdown(left);
+    App.$('prayerCard').classList.toggle('now', justNow >= 0);
+    setTxt('pcLbl', justNow >= 0 ? 'حان الآن وقت صلاة ' + nm(justNow, P.today[justNow]) : nx.i === 1 ? 'الشروق' : 'الصلاة القادمة');
+    setTxt('pcName', nm(nx.i, nx.t));
+    setTxt('pcTime', App.hmFull(nx.t));
+    setTxt('pcCountdown', 'بعد ' + App.countdown(left));
     if (Math.abs(left) < 1000 || now.getSeconds() === 0) render(now);
   };
 
@@ -339,8 +398,9 @@
     function retryCity() { if (!P.loc.city && P.loc.lat != null) cityLookup(P.loc.lat, P.loc.lon); }
     App.on('baseReady', retryCity);
     App.on('net', function (on) { if (on) retryCity(); });
-    App.$('prayerCard').onclick = function () { App.panels.open('prayer'); };
-    App.$('nextPill').onclick = function () { App.panels.open('prayer'); };
-    App.map.onPoiTap = function (p) { App.nav.showPlace({ lat: p.lat, lon: p.lon, name: p.name, sub: p.sub }); };
+    App.$('prayerCard').onclick = function (e) {
+      App.panels.open('prayer');
+      if (e.target.closest('#pcCityB')) P.cityPanel();
+    };
   };
 })();

@@ -80,6 +80,7 @@
     R.cur = st;
     R.car = false;
     retry = 0;
+    if (App.stories) App.stories.pause(true);
     audio.src = st.u;
     var p = audio.play();
     if (p && p.catch) p.catch(function () { });
@@ -95,15 +96,7 @@
   R.stop = function () { audio.pause(); audio.removeAttribute('src'); audio.load(); R.cur = null; R.playing = false; ui(); };
 
   function ui() {
-    var mp = App.$('miniPlayer');
-    var sheetOpen = App.panels && App.panels.current === 'radio';
     var car = R.car && !R.cur;
-    mp.classList.toggle('hidden', !(R.cur || car) || sheetOpen);
-    document.body.classList.toggle('has-mini', !mp.classList.contains('hidden'));
-    mp.classList.toggle('car', car);
-    App.$('mpName').textContent = R.cur ? R.cur.n : car ? 'راديو السيارة' : '';
-    App.$('mpToggle').innerHTML = App.icon(car ? 'playpause' : R.playing ? 'pause' : 'play');
-    ['mpPrev', 'mpNext', 'mpClose'].forEach(function (id) { App.$(id).classList.toggle('hidden', !car); });
     var dk = document.querySelector('.dk[data-panel="radio"]');
     if (dk) dk.classList.toggle('live', R.playing || car);
     dashCard();
@@ -127,6 +120,9 @@
   function dashCard() {
     var mc = App.$('mediaCard');
     if (!mc) return;
+    if (App.stories && App.stories.ownsCard()) { App.stories.card(); return; }
+    setHtml('mcHead', 'الصوت');
+    App.$('mcProg').classList.add('hidden');
     var name, sub, tag, ok = true, go, goIc;
     if (R.cur) {
       name = R.cur.n;
@@ -380,18 +376,14 @@
       } else if (R.cur) { App.toast('تعذّر تشغيل الإذاعة'); }
       ui();
     });
-    App.$('mpToggle').onclick = function () { if (R.car && !R.cur) mediaKey('85'); else R.toggle(); };
-    App.$('mpPrev').onclick = function () { mediaKey('88'); };
-    App.$('mpNext').onclick = function () { mediaKey('87'); };
-    App.$('mpClose').onclick = function () { R.car = false; ui(); };
-    App.$('mcGo').onclick = function () { if (R.cur) R.stop(); else R.openCarRadio(false); };
-    App.$('mcPlay').onclick = function () { if (R.cur) R.toggle(); else mediaKey('85'); };
-    App.$('mcPrev').onclick = function () { if (R.cur) R.step(-1); else mediaKey('88'); };
-    App.$('mcNext').onclick = function () { if (R.cur) R.step(1); else mediaKey('87'); };
+    function st() { return App.stories && App.stories.ownsCard() ? App.stories : null; }
+    App.$('mcGo').onclick = function () { var S = st(); if (S) return S.cardGo(); if (R.cur) R.stop(); else R.openCarRadio(false); };
+    App.$('mcPlay').onclick = function () { var S = st(); if (S) return S.toggle(); if (R.cur) R.toggle(); else mediaKey('85'); };
+    App.$('mcPrev').onclick = function () { var S = st(); if (S) return S.seek(-30); if (R.cur) R.step(-1); else mediaKey('88'); };
+    App.$('mcNext').onclick = function () { var S = st(); if (S) return S.seek(30); if (R.cur) R.step(1); else mediaKey('87'); };
     App.$('mcVolDn').onclick = function () { vol('down'); };
     App.$('mcVolUp').onclick = function () { vol('up'); };
-    App.$('mcInfo').onclick = function () { App.panels.open('radio'); };
-    App.$('mpName').onclick = function () { App.panels.open('radio'); };
+    App.$('mcInfo').onclick = function () { App.panels.open(st() ? 'stories' : 'radio'); };
     App.on('net', function () { if (App.panels.current === 'radio') App.panels.refresh(); });
     ui();
   };

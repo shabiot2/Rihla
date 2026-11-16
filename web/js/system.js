@@ -6,6 +6,7 @@
   // ---------- panel manager ----------
   var P = App.panels = { current: null, stack: [] };
   function show(title, render, sub) {
+    App.$('scrim').classList.remove('hidden');
     App.$('sheet').classList.remove('hidden');
     App.$('sheetTitle').textContent = title;
     App.$('sheetBack').classList.toggle('hidden', !sub);
@@ -21,16 +22,14 @@
     var def = App.panelDefs[name];
     if (!def) return;
     if (P.current === name && !P.stack.length) { P.close(); return; }
-    App.$('ctxMenu').classList.add('hidden');
     P.current = name;
     P.stack = [];
-    App.map.paused = true;
     show(def.title, def.render, false);
     markDock();
-    App.radio.ui();
+    App.emit('panel', name);
   };
   P.push = function (title, render) {
-    if (!P.current) { P.current = 'sub'; App.map.paused = true; markDock(); }
+    if (!P.current) { P.current = 'sub'; markDock(); }
     P.stack.push({ title: title, render: render });
     show(title, render, true);
   };
@@ -47,13 +46,12 @@
   };
   P.close = function () {
     App.$('sheet').classList.add('hidden');
+    App.$('scrim').classList.add('hidden');
     App.$('sheetBody').innerHTML = '';
     P.current = null;
     P.stack = [];
-    App.map.paused = false;
-    App.map.invalidate();
     markDock();
-    App.radio.ui();
+    App.emit('panel', null);
   };
 
   // ---------- apps ----------
@@ -109,22 +107,13 @@
       if (q.length && document.body.contains(root)) setTimeout(step, 16);
     })();
   }
-  S.renderFavs = function () {
-    var box = App.$('favs'), favs = (App.settings.favs || []).slice(0, 3);
-    box.innerHTML = favs.map(function (p) {
-      return '<button class="fav" data-p="' + App.esc(p) + '"><span data-icon="' + App.esc(p) + '">' + placeholder(S.label(p)) +
-        '</span><span>' + App.esc(S.label(p)) + '</span></button>';
-    }).join('');
-    box.querySelectorAll('.fav').forEach(function (b) { b.onclick = function () { S.launch(b.dataset.p, S.label(b.dataset.p)); }; });
-    lazyIcons(box);
-  };
   function renderApps(body) {
     if (!N.has) { body.innerHTML = '<div class="empty">قائمة التطبيقات تظهر عند تشغيل الواجهة على شاشة السيارة</div>'; return; }
     var list = S.apps(true);
     body.innerHTML = '<div class="search-input">' + App.icon('search') + '<input id="aFilter" placeholder="بحث في التطبيقات…"></div>' +
-      '<div class="note" style="margin-bottom:1.2vmin">اضغط ★ لإضافة التطبيق إلى الشريط السفلي (حتى ٣ تطبيقات).</div>' +
+      '<div class="note" style="margin-bottom:1rem">اضغط ★ لإضافة التطبيق إلى اختصاراتك في الصفحة الرئيسية (حتى ' + App.d(8) + ').</div>' +
       '<div class="apps-grid" id="aGrid">' + list.map(function (a) {
-        var on = App.settings.favs.indexOf(a.p) >= 0;
+        var on = App.home.shortcuts().indexOf(a.p) >= 0;
         return '<button class="app" data-p="' + App.esc(a.p) + '" data-l="' + App.esc(String(a.l).toLowerCase()) + '">' +
           '<svg class="ic pin' + (on ? ' on' : '') + '" data-pin="1"><use href="#i-star"/></svg>' +
           '<span data-icon="' + App.esc(a.p) + '">' + placeholder(a.l) + '</span><span>' + App.esc(a.l) + '</span></button>';
@@ -134,10 +123,8 @@
       var b = e.target.closest('.app');
       if (!b) return;
       if (e.target.closest('[data-pin]')) {
-        var f = App.settings.favs, i = f.indexOf(b.dataset.p);
-        if (i >= 0) f.splice(i, 1); else { f.unshift(b.dataset.p); if (f.length > 3) f.pop(); }
-        App.saveSettings();
-        S.renderFavs();
+        App.home.toggleShortcut(b.dataset.p);
+        var f = App.home.shortcuts();
         grid.querySelectorAll('.app').forEach(function (x) {
           x.querySelector('.pin').setAttribute('class', 'ic pin' + (f.indexOf(x.dataset.p) >= 0 ? ' on' : ''));
         });
@@ -168,7 +155,7 @@
       '<div class="btn-row"><button class="btn primary" id="wNets">' + App.icon('wifi') + 'اختيار شبكة واي فاي</button>' +
       '<button class="btn" id="wMore">' + App.icon('settings') + 'إعدادات الشبكة</button></div>' +
       '<div class="note" style="margin-top:1.6vmin">💡 لتشغيل الإنترنت في السيارة: فعّل «نقطة الاتصال الشخصية» في جوالك، ثم اختر شبكتها من «اختيار شبكة واي فاي». ' +
-      'الخرائط والبحث والإذاعات تحتاج إنترنت؛ أما السرعة ومواقيت الصلاة فتعمل بدونه.</div>';
+      'البحث عن الأماكن والإذاعات تحتاج إنترنت؛ أما مواقيت الصلاة والراديو والقصص المحفوظة فتعمل بدونه.</div>';
     if (App.$('wSw')) App.$('wSw').onclick = function () {
       var want = !this.classList.contains('on');
       this.classList.toggle('on', want);
@@ -253,34 +240,34 @@
   }
   var PN = ['الفجر', 'الشروق', 'الظهر', 'العصر', 'المغرب', 'العشاء'];
   function renderSettings(body) {
-    var s = App.settings;
+    var s = App.settings, cp = s.carplayApp ? S.label(s.carplayApp) : '';
+    var sd = App.stories ? App.stories.dirText() : '';
     body.innerHTML =
-      '<div class="sec"><div class="sec-title">المظهر والثيمات</div>' + App.theme.cards(App.theme.key) +
-      '<div class="sec-title" style="margin-top:.6vmin">لون الثيم «مخصص»</div>' + App.theme.customRow() +
+      '<div class="sec"><div class="sec-title">الثيمات — كل ثيم عالم مختلف</div>' + App.theme.cards(App.theme.key) + '</div>' +
+      '<div class="sec"><div class="sec-title">المظهر</div>' +
+      row('حركة الخلفية', 'الغيوم والنجوم والأضواء المتحركة — أطفها إذا تبي هدوء أكثر', sw('sMotion', !s.calm)) +
+      row('ثيم الجمعة تلقائياً', 'أخضر وذهبي بالمحراب والفوانيس — من مغرب الخميس إلى آخر يوم الجمعة', sw('sFri', s.autoFriday)) +
       row('ثيمات المناسبات تلقائياً', 'اليوم الوطني في سبتمبر ويوم التأسيس في فبراير', sw('sOcc', s.autoOccasion)) +
-      row('ثيم الجمعة تلقائياً', 'أخضر وذهبي بزخارف إسلامية — من مغرب الخميس إلى آخر يوم الجمعة', sw('sFri', s.autoFriday)) +
+      row('صور بناتي', 'الصور اللي تظهر في ثيمي «بناتي» و«زجاج» — محفوظة على الشاشة فقط', '<button class="btn" id="sPhotos">' + App.icon('image') + 'الصور</button>') +
       row('سيارتي', App.esc(App.car.title() + (App.car.subtitle() ? ' — ' + App.car.subtitle() : '')),
         '<button class="btn" id="sCar">' + App.icon('car') + 'تعديل</button>') +
       row('شاشة الترحيب', 'إعادة خطوات اختيار السيارة والثيم', '<button class="btn" id="sWelcome">' + App.icon('sparkle') + 'عرض</button>') + '</div>' +
-      '<div class="sec"><div class="sec-title">السرعة</div>' +
-      row('تنبيه تجاوز السرعة', 'تنبيه صوتي ومرئي عند تجاوز الحد', sw('sAlert', s.speedAlert)) +
-      row('حد السرعة', 'كم/س', '<div class="stepper"><button class="round small" data-lim="-10">' + App.icon('minus') +
-        '</button><b class="num" id="sLim">' + App.d(s.speedLimit) + '</b><button class="round small" data-lim="10">' + App.icon('plus') + '</button></div>') +
-      row('عداد الرحلة', 'أو اضغط مطولاً على العدّاد', '<button class="btn" id="sTrip">تصفير</button>') + '</div>' +
-      '<div class="sec"><div class="sec-title">الملاحة</div>' +
-      row('الخريطة داخل التطبيق', s.maps ? 'تظهر في الداش بورد' : 'مطفأة — مكانها اختصاراتك، والمسارات تفتح في تطبيق الملاحة', sw('sMaps', s.maps)) +
+      '<div class="sec"><div class="sec-title">CarPlay</div>' +
+      row('تطبيق CarPlay', cp ? 'بطاقة CarPlay تفتح «' + App.esc(cp) + '»' : 'اختر تطبيق الشاشة اللي يشغّل CarPlay (ZLink أو AutoKit أو TLink…)',
+        '<button class="btn" id="sCarplay">' + App.icon('carplay') + (cp ? 'تغيير' : 'اختيار') + '</button>') + '</div>' +
+      '<div class="sec"><div class="sec-title">القصص والمحاضرات</div>' +
+      row('مكان ملفات القصص', sd || 'ضع ملفات الصوت في فلاش USB أو ذاكرة الشاشة — داخل مجلد اسمه «قصص»',
+        '<button class="btn" id="sStories">' + App.icon('folder') + 'المكتبة</button>') + '</div>' +
+      '<div class="sec"><div class="sec-title">الوجهات</div>' +
       row('تطبيق الملاحة', 'للمساجد والأماكن والمهام', seg('sNavApp', [['auto', 'تلقائي'], ['google', 'خرائط قوقل'], ['waze', 'ويز'], ['geo', 'أسأل كل مرة']], s.navApp || 'auto')) +
-      (s.maps ? row('نمط الخريطة', '', seg('sStyle', [['auto', 'تلقائي'], ['light', 'نهاري'], ['dark', 'ليلي'], ['sat', 'قمر صناعي'], ['ksa', 'بدون نت']], s.mapStyle)) +
-      row('الخرائط بدون نت', 'خريطة المملكة المدمجة والشوارع المحفوظة', '<button class="btn" id="sOffline">' + App.icon('map') + 'فتح</button>') +
-      row('الخريطة باتجاه السير', 'عند الإيقاف يكون الشمال للأعلى', sw('sHead', s.headingUp)) : '') +
-      row('التنبيهات الصوتية', 'الصلاة والجمعة والملاحة — يتطلب محرك نطق عربي في الشاشة', sw('sVoice', s.voice)) + '</div>' +
+      row('التنبيهات الصوتية', 'الصلاة والجمعة والقصص — يتطلب محرك نطق عربي في الشاشة', sw('sVoice', s.voice)) + '</div>' +
       '<div class="sec"><div class="sec-title">مواقيت الصلاة — تقويم أم القرى</div>' +
+      row('المدينة', App.esc(App.prayer.loc.city || '—') + ' • ' + (s.prayManual ? 'مختارة يدوياً' : 'تلقائية من الـGPS'),
+        '<button class="btn" id="sCity">' + App.icon('pin') + 'اختيار المدينة</button>') +
       row('تنبيه دخول الوقت', 'نغمة قصيرة مع أقرب مسجد', sw('sChime', s.adhanChime)) +
       row('تذكير قبل الصلاة', 'مع اقتراح أقرب مسجد', seg('sPre', [['0', 'إيقاف'], ['5', '٥ د'], ['10', '١٠ د'], ['15', '١٥ د'], ['20', '٢٠ د']], s.prePrayer || 0)) +
       row('تذكير الأذكار', 'أذكار الصباح بعد الفجر والمساء بعد العصر', sw('sAdh', s.adhkarRemind)) +
       row('تذكيرات يوم الجمعة', 'سورة الكهف، التبكير للجمعة، ساعة الإجابة، والصلاة على النبي ﷺ', sw('sFriRem', s.fridayRemind)) +
-      row('الموقع', App.esc(App.prayer.loc.city || '') + ' ' + App.ll(App.prayer.loc.lat, App.prayer.loc.lon, 3),
-        '<button class="btn" id="sLoc">تحديث من GPS</button>') +
       '<div class="grid3">' + PN.map(function (n, i) {
         return '<div class="set-row" style="margin:0"><div class="txt"><b>' + n + '</b><small>تعديل بالدقائق</small></div>' +
           '<div class="stepper"><button class="round small" data-off="' + i + '" data-d="-1">' + App.icon('minus') + '</button><b class="num" id="sOff' + i + '">' +
@@ -291,11 +278,12 @@
       row('نظام الساعة', '', seg('sClk', [['12', '١٢ ساعة'], ['24', '٢٤ ساعة']], s.clock24 ? 24 : 12)) +
       row('ملء الشاشة', 'إخفاء شريط النظام', sw('sFull', s.full)) +
       row('الملخص اليومي', 'بطاقة المساعد عند أول تشغيل في اليوم', sw('sBrief', s.briefing)) +
-      row('نغمة الترحيب', 'مع شعار أبو دانة عند تشغيل التطبيق', sw('sIntroS', s.introSound) + '<button class="btn" id="sIntro" style="margin-right:.8vw">' + App.icon('play') + 'شاهد</button>') + '</div>' +
-      '<div class="sec"><div class="sec-title">النظام</div><div class="btn-row">' +
+      row('نغمة الترحيب', 'مع شعار أبو دانة عند تشغيل التطبيق', sw('sIntroS', s.introSound) + '<button class="btn" id="sIntro" style="margin-right:.8rem">' + App.icon('play') + 'شاهد</button>') + '</div>' +
+      '<div class="sec"><div class="sec-title">النظام</div>' +
+      row('الـGPS', App.esc(App.loc.status()), '<button class="btn" id="sGps">' + App.icon('gps') + 'إعدادات الموقع</button>') +
+      '<div class="btn-row">' +
       '<button class="btn" id="sRadioApp">' + App.icon('radio') + 'تطبيق الراديو</button>' +
       '<button class="btn" id="sBtApp">' + App.icon('bt') + 'تطبيق البلوتوث</button>' +
-      '<button class="btn" id="sGps">' + App.icon('gps') + 'إعدادات الموقع</button>' +
       '<button class="btn" id="sAndroid">' + App.icon('settings') + 'إعدادات أندرويد</button>' +
       '<button class="btn" id="sFanApp">' + App.icon('fan') + 'تطبيق المروحة</button></div></div>' +
       '<div class="sec"><div class="sec-title">الجهاز</div><div class="set-row"><div class="txt"><b>' + App.esc(App.android.name) +
@@ -305,8 +293,9 @@
       '<span class="chip ' + (App.android.supported ? 'on' : 'danger') + '">' + App.icon(App.android.supported ? 'check' : 'close') +
       (App.android.supported ? 'متوافق' : 'نسخة قديمة') + '</span></div></div>' +
       '<div class="sec"><div class="sec-title">حول التطبيق</div><div class="about">' + App.brand('lg') +
-      '<div class="ab-txt"><b>رحلة — الإصدار ' + App.d('2.6') + '</b><span>جميع الحقوق محفوظة © ' + App.d('2026') + ' أبو دانة للبرمجة</span>' +
-      '<small>تصميم وتطوير أبو دانة للبرمجة • بيانات الخرائط © OpenStreetMap • خريطة المملكة المدمجة: Natural Earth وبيانات الأحياء من homaily/Saudi-Arabia-Regions-Cities-and-Districts (GPL-2.0) • الملاحة OSRM • الإذاعات mp3quran.net و radio-browser.info • الطقس Open-Meteo</small></div></div></div>';
+      '<div class="ab-txt"><b>رحلة — الإصدار ' + App.d('3.0') + '</b><span>جميع الحقوق محفوظة © ' + App.d('2026') + ' أبو دانة للبرمجة</span>' +
+      '<small>تصميم وتطوير أبو دانة للبرمجة • بيانات المدن والأحياء: Natural Earth و homaily/Saudi-Arabia-Regions-Cities-and-Districts (GPL-2.0) • الأماكن © OpenStreetMap • ' +
+      'الإذاعات mp3quran.net و radio-browser.info • الطقس Open-Meteo • الخطوط: Readex Pro و Alexandria و Changa و Orbitron و El Messiri و IBM Plex Sans Arabic و Baloo Bhaijaan 2 و Aref Ruqaa و Amiri (SIL OFL)</small></div></div></div>';
 
     function bindSw(id, key, after) {
       App.$(id).onclick = function () {
@@ -316,30 +305,25 @@
         if (after) after();
       };
     }
-    bindSw('sAlert', 'speedAlert');
-    if (s.maps) bindSw('sHead', 'headingUp');
+    App.$('sMotion').onclick = function () { s.calm = !s.calm; this.classList.toggle('on', !s.calm); App.saveSettings(); };
     bindSw('sVoice', 'voice', function () { if (s.voice) N.call('tts', ''); });
     bindSw('sChime', 'adhanChime');
     bindSw('sFull', 'full', function () { N.call('full', s.full ? '1' : '0'); });
-    bindSw('sOcc', 'autoOccasion', function () { s.themeLocked = false; App.saveSettings(); App.theme.apply(); P.refresh(); });
+    bindSw('sOcc', 'autoOccasion', function () { s.themeLocked = false; App.saveSettings(); App.theme.apply(true); P.refresh(); });
     bindSw('sAdh', 'adhkarRemind');
-    bindSw('sFri', 'autoFriday', function () { s.themeLocked = false; App.saveSettings(); App.theme.apply(); P.refresh(); });
+    bindSw('sFri', 'autoFriday', function () { s.themeLocked = false; App.saveSettings(); App.theme.apply(true); P.refresh(); });
     bindSw('sFriRem', 'fridayRemind');
     bindSw('sBrief', 'briefing');
     bindSw('sIntroS', 'introSound');
     App.$('sIntro').onclick = function () { App.panels.close(); App.intro.play(); };
     App.theme.bindCards(body);
-    App.theme.bindCustom(body, function () { body.querySelectorAll('[data-theme]').forEach(function (x) { x.classList.toggle('on', x.dataset.theme === 'custom'); }); });
     App.$('sCar').onclick = function () { App.panels.open('car'); };
+    App.$('sPhotos').onclick = function () { App.home.managePhotos(); };
     App.$('sWelcome').onclick = function () { P.close(); App.theme.welcome(); };
+    App.$('sCarplay').onclick = function () { App.home.openCarplay(true); };
+    App.$('sStories').onclick = function () { App.panels.open('stories'); };
+    App.$('sCity').onclick = function () { App.prayer.cityPanel(); };
     App.$('sFanApp').onclick = function () { App.fan.openApp(true); };
-    body.querySelectorAll('[data-lim]').forEach(function (b) {
-      b.onclick = function () {
-        s.speedLimit = Math.max(40, Math.min(220, s.speedLimit + (+b.dataset.lim)));
-        App.$('sLim').textContent = App.d(s.speedLimit);
-        App.saveSettings();
-      };
-    });
     body.querySelectorAll('[data-off]').forEach(function (b) {
       b.onclick = function () {
         var i = +b.dataset.off, v = Math.max(-30, Math.min(30, (s.offsets[i] || 0) + (+b.dataset.d)));
@@ -353,23 +337,10 @@
         b.onclick = function () { fn(b.dataset.v); App.saveSettings(); P.refresh(); };
       });
     }
-    if (s.maps) {
-      bindSeg('sStyle', function (v) { s.mapStyle = v; });
-      App.$('sOffline').onclick = App.net.open;
-    }
     bindSeg('sNavApp', function (v) { s.navApp = v; });
-    bindSw('sMaps', 'maps', function () { App.dash.applyMaps(); P.refresh(); });
     bindSeg('sDig', function (v) { s.digits = v; });
     bindSeg('sClk', function (v) { s.clock24 = v === '24'; });
     bindSeg('sPre', function (v) { s.prePrayer = +v; });
-    App.$('sTrip').onclick = function () { App.loc.resetTrip(); };
-    App.$('sLoc').onclick = function () {
-      var f = App.loc.fix;
-      if (!f) { App.toast('لا توجد إشارة GPS بعد'); return; }
-      App.prayer.setLocation(f.lat, f.lon, true);
-      App.toast('تم تحديث موقع حساب المواقيت');
-      setTimeout(P.refresh, 300);
-    };
     App.$('sRadioApp').onclick = function () { App.radio.pick(); };
     App.$('sBtApp').onclick = function () { S.openBtApp(true); };
     App.$('sGps').onclick = function () { S.intent('android.settings.LOCATION_SOURCE_SETTINGS'); };
@@ -386,7 +357,8 @@
     App.$('sheetClose').onclick = P.close;
     App.$('sheetBack').onclick = P.back;
     document.querySelectorAll('.dk').forEach(function (b) { b.onclick = function () { P.open(b.dataset.panel); }; });
-    if (N.has) { S.apps(); S.renderFavs(); }
+    if (N.has) S.apps();
+    App.$('scrim').onclick = P.close;
     S.status();
     setInterval(S.status, 15000);
     window.addEventListener('online', S.status);

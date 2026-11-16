@@ -1,7 +1,5 @@
-/* panels.css — map overlays, sheets and shared controls (all colours themeable) */
-:root { --pri-a: #2a9be0; --pri-b: #1b72b3; }
-
-/* ---------- map overlays ---------- */
+/* panels.css — the inside of the panels (sheet) and shared controls; every colour comes from the skin */
+/* ---------- round buttons ---------- */
 .round {
   width: 6.4vmin; height: 6.4vmin; min-width: 40px; min-height: 40px; border-radius: 50%;
   display: inline-flex; align-items: center; justify-content: center;
@@ -11,69 +9,7 @@
 .round .ic { width: 3vmin; height: 3vmin; }
 .round.small { width: 5vmin; height: 5vmin; min-width: 34px; min-height: 34px; }
 .round:active { background: var(--press); }
-.search-bar {
-  position: absolute; top: 1.4vmin; right: 1.2vw; z-index: 5;
-  display: flex; align-items: center; height: 6.4vmin; min-height: 40px; padding: 0 1.4vw 0 2.4vw;
-  border-radius: 99px; background: var(--glass); border: 1px solid var(--line2);
-  box-shadow: 0 4px 14px rgba(0,0,0,.5); font-size: 2.2vmin; color: var(--muted);
-}
-.search-bar .ic { width: 2.8vmin; height: 2.8vmin; margin-left: .8vw; color: var(--accent); }
-.map-ctl { position: absolute; left: 1vw; top: 50%; transform: translateY(-50%); z-index: 5; display: flex; flex-direction: column; }
-.map-ctl .round { margin: .6vmin 0; }
-#compassIc { transition: transform .3s; }
-.locate {
-  position: absolute; left: 1vw; bottom: 2vmin; z-index: 6; width: auto; border-radius: 99px; padding: 0 1.4vw;
-  font-size: 2vmin; font-weight: 600; background: var(--pri-b); color: var(--on-accent); border-color: rgba(255,255,255,.25);
-}
-.locate .ic { margin-left: .5vw; }
-.attrib { position: absolute; left: .5vw; bottom: .3vmin; font-size: 1.15vmin; color: rgba(255,255,255,.45); direction: ltr; z-index: 4; pointer-events: none; }
-.nav-card {
-  position: absolute; top: 1.4vmin; left: 50%; transform: translateX(-50%); z-index: 6;
-  display: flex; align-items: center; min-width: 42%; max-width: 74%;
-  padding: 1vmin 1.4vw; border-radius: 18px; color: #fff;
-  background: linear-gradient(160deg, var(--navc-a), var(--navc-b)); border: 1px solid rgba(255,255,255,.22);
-  box-shadow: 0 8px 22px rgba(0,0,0,.5);
-}
-.nc-icon { width: 8vmin; height: 8vmin; flex: none; margin-left: 1.2vw; }
-.nc-icon svg { width: 100%; height: 100%; fill: none; stroke: #fff; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
-.nc-text { display: flex; flex-direction: column; min-width: 0; }
-.nc-text b { font-size: 4.2vmin; line-height: 1.05; }
-.nc-text span { font-size: 2.3vmin; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.nav-bottom {
-  position: absolute; bottom: 1.4vmin; right: 1.2vw; left: 9vw; z-index: 6;
-  display: flex; align-items: center; padding: .8vmin 1.2vw; border-radius: 16px;
-  background: var(--glass); border: 1px solid var(--line2); box-shadow: 0 6px 18px rgba(0,0,0,.5);
-}
-.nav-bottom > div { flex: 1; text-align: center; line-height: 1.2; }
-.nav-bottom small { display: block; font-size: 1.6vmin; color: var(--muted); }
-.nav-bottom b { font-size: 2.8vmin; }
-.speed-warn {
-  position: absolute; top: 9.5vmin; right: 1.2vw; z-index: 6; width: 9vmin; height: 9vmin; border-radius: 50%;
-  background: #fff; border: .9vmin solid var(--danger); color: #111; font-weight: 800; font-size: 3.4vmin;
-  display: flex; align-items: center; justify-content: center; box-shadow: 0 0 18px rgba(255,75,79,.6);
-  animation: pulse 1s infinite;
-}
-@keyframes pulse { 50% { transform: scale(1.08); } }
-.ctx-menu {
-  position: absolute; z-index: 9; min-width: 210px; padding: .6vmin 0; border-radius: 14px;
-  background: var(--sheet); border: 1px solid var(--line2); box-shadow: 0 10px 28px rgba(0,0,0,.6);
-}
-.ctx-menu button { display: flex; align-items: center; width: 100%; padding: 1.3vmin 1.4vw; font-size: 2.1vmin; text-align: right; }
-.ctx-menu button .ic { width: 2.6vmin; height: 2.6vmin; margin-left: .8vw; color: var(--accent); }
-.ctx-menu button:active { background: rgba(var(--accent-rgb), .14); }
-
 /* ---------- sheet ---------- */
-/* panels cover the widgets + map columns (an absolutely positioned grid child sizes to its grid area) */
-.sheet {
-  position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 20;
-  grid-column: 2 / -1; grid-row: 1 / -1;
-  display: flex; flex-direction: column; overflow: hidden;
-  background: var(--sheet); border: 1px solid var(--line2); border-radius: var(--r);
-  box-shadow: 0 12px 34px rgba(0,0,0,.55);
-  animation: sheetIn .22s ease-out;
-}
-@media (max-aspect-ratio: 1/1) { .sheet { grid-column: 1 / -1; grid-row: 2 / -1; } }
-@keyframes sheetIn { from { opacity: 0; transform: translateY(3vmin); } to { opacity: 1; transform: none; } }
 .sheet-head { display: flex; align-items: center; padding: 1.2vmin 1.4vw; border-bottom: 1px solid var(--line); flex: none; }
 .sheet-head h2 { flex: 1; margin: 0 1vw; font-size: 2.7vmin; font-weight: 700; }
 .sheet-body { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 1.4vmin 1.4vw 2vmin; touch-action: pan-y; }
@@ -190,38 +126,19 @@
 select.field { -webkit-appearance: none; appearance: none; }
 
 /* misc overlays */
-.mini-player {
-  position: fixed; bottom: calc(var(--dock-h) + 1vmin); left: 1.4vw; z-index: 30;
-  display: flex; align-items: center; padding: .5vmin 1vw .5vmin 1.4vw; border-radius: 99px;
-  background: var(--glass); border: 1px solid rgba(var(--ok-rgb), .45); font-size: 1.9vmin; max-width: 34vw;
-}
-.mini-player { direction: ltr; }   /* media keys keep the universal ⏮ ⏯ ⏭ order */
-.mini-player span { margin: 0 .8vw; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; direction: rtl; line-height: 1.6; }
 .toast {
   position: fixed; bottom: calc(var(--dock-h) + 2vmin); left: 50%; transform: translateX(-50%) translateY(20px);
   z-index: 60; padding: 1.2vmin 2.2vw; border-radius: 14px; background: var(--sheet); border: 1px solid var(--line2);
   font-size: 2vmin; opacity: 0; pointer-events: none; transition: opacity .25s, transform .25s; max-width: 70vw; text-align: center;
 }
 .toast.show { opacity: 1; transform: translateX(-50%); }
-.clock small { font-size: 2.2vmin; font-weight: 600; margin-right: .4vw; }
 
-/* ---------- offline: "where am I" chip on the map + no-internet chip in the top bar ---------- */
-.where-chip {
-  position: absolute; top: 1.4vmin; left: 1vw; z-index: 5; max-width: 44%;
-  display: flex; align-items: center; height: 5.4vmin; min-height: 34px; padding: 0 1.3vw 0 1.1vw;
-  border-radius: 99px; background: var(--glass); border: 1px solid var(--line2); box-shadow: 0 4px 14px rgba(0,0,0,.45);
-  font-size: 1.95vmin; font-weight: 600; color: var(--text);
-}
-.where-chip .ic { width: 2.5vmin; height: 2.5vmin; flex: none; margin-left: .6vw; color: var(--accent); }
-.where-chip span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .net-chip {
   display: flex; align-items: center; margin-left: 1vw; padding: .45vmin 1vw; border-radius: 99px; white-space: nowrap;
   font-size: 1.85vmin; font-weight: 700; color: var(--text);
   background: rgba(255,176,32,.16); border: 1px solid rgba(255,176,32,.6);
 }
 .net-chip .ic { width: 2.4vmin; height: 2.4vmin; margin-left: .5vw; color: #ffb020; }
-body.is-offline .weather { opacity: .45; }
-@media (max-aspect-ratio: 1/1) { .where-chip { top: 9vmin; right: 1.2vw; left: auto; max-width: 70%; } }
 
 /* car FM/AM radio card */
 .car-radio {
@@ -242,11 +159,6 @@ body.is-offline .weather { opacity: .45; }
 .cr-ctl .btn.primary .ic { width: 3.4vmin; height: 3.4vmin; }
 .sec-title small { font-weight: 500; font-size: 1.65vmin; color: var(--muted); }
 .sec-title small .ic { width: 2vmin; height: 2vmin; vertical-align: middle; margin-left: .3vw; }
-.mini-player.car { border-color: rgba(var(--accent-rgb), .55); }
-.mini-player .round.small { margin-left: .4vw; }
-/* keep the mini player clear of the recenter button and the navigation bar */
-body.map-big.has-mini .locate { bottom: 9.5vmin; }
-body.navigating .mini-player { bottom: calc(var(--dock-h) + 11vmin); }
 /* app icons inside list rows (radio picker) */
 .row > img { width: 5.6vmin; height: 5.6vmin; min-width: 34px; min-height: 34px; margin-left: 1.2vw; border-radius: 12px; flex: none; object-fit: contain; }
 .row.on { border-color: rgba(var(--accent-rgb), .6); background: rgba(var(--accent-rgb), .08); }

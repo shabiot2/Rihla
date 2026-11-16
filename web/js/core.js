@@ -64,10 +64,11 @@ var App = window.App = {};
     digits: 'latn', clock24: false, mapStyle: 'auto', headingUp: true,
     speedLimit: 120, speedAlert: true, voice: true, adhanChime: true,
     offsets: [0, 0, 0, 0, 0, 0], radioApp: '', btApp: '', fanApp: '', favs: [],
-    theme: 'silver', customAccent: '#56c8f5', autoOccasion: true, themeLocked: false, car: null, onboarded: 0,
+    theme: 'orbit', customAccent: '#56c8f5', autoOccasion: true, themeLocked: false, car: null, onboarded: 0,
     prePrayer: 10, adhkarRemind: true, autoFriday: true, fridayRemind: true, introSound: true, adhkarScale: 1, briefing: true, fanAlert: true, fanLimit: 75, maint: {}, odo: null,
     home: null, work: null, recents: [], full: false, stations: [], lastStation: null, mapBig: false,
-    maps: false, navApp: 'auto', shortcuts: null, radioBack: false
+    maps: false, navApp: 'auto', shortcuts: null, radioBack: false,
+    carplayApp: '', calm: false, prayManual: false, photoCap: 'بناتي', storyDirs: null, sleepMin: 0
   };
   App.settings = Object.assign({}, DEFAULTS, App.store.get('settings', {}));
   App.saveSettings = function () { App.store.set('settings', App.settings); App.emit('settings'); };

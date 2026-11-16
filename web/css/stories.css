@@ -1,0 +1,83 @@
+/* stories.css — the stories library, the ask-Rihla chat and the girls' quiz. Everything is drawn from the skin's
+   tokens (--card, --line, --accent …), so each theme restyles it by itself. */
+.st-now { padding: 1.1rem 1.3rem; margin-bottom: 1rem; border-radius: 1.3rem; border: 1px solid var(--line2);
+  background: linear-gradient(160deg, rgba(var(--accent-rgb), .16), var(--card) 70%); }
+.st-now-t b { display: block; font-size: 1.35rem; line-height: 1.5; }
+.st-now-t small { display: block; color: var(--muted); font-size: .95rem; line-height: 1.6; }
+.st-bar { height: .9rem; margin: .8rem 0 .2rem; border-radius: 99px; background: var(--line); overflow: hidden; direction: ltr; cursor: pointer; position: relative; }
+.st-bar i { display: block; height: 100%; width: 0; border-radius: 99px; background: linear-gradient(90deg, var(--pri-b), var(--pri-a)); }
+.st-time { display: flex; justify-content: space-between; direction: ltr; font-size: .85rem; color: var(--muted); font-family: var(--f-clock); }
+.st-ctl { display: flex; align-items: center; justify-content: center; gap: .9rem; margin: .5rem 0; }
+.st-ctl .round { width: 3.4rem; height: 3.4rem; }
+.st-ctl .round.big { width: 4.4rem; height: 4.4rem; color: var(--on-accent); background: linear-gradient(180deg, var(--pri-a), var(--pri-b)); border-color: transparent; }
+.st-ctl .round .ic { width: 1.5rem; height: 1.5rem; }
+.st-opt { display: flex; flex-wrap: wrap; gap: .5rem; justify-content: center; }
+.st-opt .chip { height: 2.6rem; font-size: .95rem; margin: 0; gap: .4rem; }
+.st-opt .chip .ic { width: 1.1rem; height: 1.1rem; }
+.st-opt .chip.on { background: rgba(var(--accent-rgb), .2); border-color: var(--accent); }
+
+.st-acts { display: flex; flex-wrap: wrap; gap: .7rem; margin: 0 0 1rem; }
+.st-acts .btn { height: 3.2rem; font-size: 1.05rem; gap: .5rem; }
+.st-acts .btn .ic { width: 1.35rem; height: 1.35rem; }
+.st-seg { margin-bottom: 1rem; }
+.st-seg button { flex: 1; height: 3rem; font-size: 1.05rem; }
+.st-seg button.on { background: var(--accent); color: var(--on-accent); font-weight: 700; }
+#stNote .note { margin-bottom: 1rem; line-height: 1.8; }
+.st-warn { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+
+.st-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .8rem; }
+.st-card { position: relative; display: flex; flex-direction: column; justify-content: center; gap: .15rem; min-height: 5.6rem; padding: .8rem 1rem; text-align: right;
+  border-radius: 1.1rem; border: 1px solid var(--line2); background: var(--card); color: var(--text); transition: transform .12s; }
+.st-card:active { transform: scale(.97); }
+.st-card .st-n { font-family: var(--f-disp); font-size: 1.15rem; font-weight: 700; line-height: 1.5; }
+.st-card small { font-size: .82rem; color: var(--muted); line-height: 1.5; }
+.st-card em { position: absolute; top: .55rem; left: .6rem; display: flex; align-items: center; gap: .2rem; font-style: normal; font-size: .85rem; font-weight: 700; color: var(--on-accent);
+  background: var(--accent); padding: .1rem .55rem .1rem .45rem; border-radius: 99px; }
+.st-card em .ic { width: .85rem; height: .85rem; }
+.st-card.has { border-color: var(--accent); box-shadow: 0 0 0 1px rgba(var(--accent-rgb), .35) inset; }
+.st-card.c .st-n { color: var(--accent); }
+
+.st-ent-h b { display: block; font-family: var(--f-disp); font-size: 1.9rem; line-height: 1.5; }
+.st-ent-h small { display: block; color: var(--accent); font-size: 1.05rem; margin-bottom: .5rem; }
+.st-sum { font-size: 1.3rem; line-height: 2.05; margin: .6rem 0 1.1rem; max-width: 62rem; }
+.st-facts { margin: 0 0 1rem; padding: 0 1.2rem 0 0; font-size: 1.1rem; line-height: 1.95; color: var(--text); }
+.st-facts li { margin-bottom: .2rem; }
+.st-eps { display: flex; flex-direction: column; gap: .5rem; margin-top: .5rem; }
+.st-ep { display: flex; align-items: center; gap: .9rem; padding: .7rem 1rem; text-align: right; border-radius: 1rem; border: 1px solid var(--line); background: var(--card); color: var(--text); font-size: 1.05rem; }
+.st-ep.on { border-color: var(--accent); background: rgba(var(--accent-rgb), .14); }
+.st-ep-i { flex: none; width: 2.2rem; height: 2.2rem; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: var(--chip); font-weight: 700; font-size: .95rem; }
+.st-ep-n { flex: 1; min-width: 0; line-height: 1.6; }
+.st-ep small { color: var(--muted); font-family: var(--f-clock); }
+.st-ep .ic { width: 1.3rem; height: 1.3rem; color: var(--accent); }
+
+.st-chat { display: flex; flex-direction: column; gap: .7rem; margin-bottom: 1rem; }
+.st-msg { max-width: 82%; padding: .8rem 1.1rem; border-radius: 1.3rem; font-size: 1.15rem; line-height: 1.95; }
+.st-msg.bot { align-self: flex-start; background: var(--card); border: 1px solid var(--line2); border-top-right-radius: .4rem; }
+.st-msg.me { align-self: flex-end; background: var(--accent); color: var(--on-accent); font-weight: 600; border-top-left-radius: .4rem; }
+.st-msg.miss { color: var(--muted); }
+.st-msg-b { display: flex; gap: .5rem; margin-top: .5rem; }
+.st-msg-b .chip { margin: 0; height: 2.5rem; font-size: .95rem; gap: .35rem; }
+.st-msg-b .chip .ic { width: 1.1rem; height: 1.1rem; }
+.st-askbar { display: flex; gap: .7rem; margin-bottom: .8rem; }
+.st-askbar .txt-in { flex: 1; width: auto; height: 3.4rem; font-size: 1.15rem; }
+.st-askbar .btn { height: 3.4rem; gap: .4rem; }
+.st-chips { display: flex; flex-wrap: wrap; gap: .5rem; }
+.st-chips .chip { margin: 0; height: 2.6rem; font-size: .95rem; }
+
+.st-quiz { text-align: center; padding: 1rem 0; }
+.st-qn { color: var(--muted); font-size: 1rem; margin-bottom: .6rem; }
+.st-quiz h3 { font-size: 2rem; line-height: 1.7; margin: 0 0 1.5rem; font-family: var(--f-disp); }
+.st-opts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
+.st-opt { display: flex; align-items: center; justify-content: center; min-height: 5.4rem; padding: .6rem 1rem; border-radius: 1.4rem; border: 2px solid var(--line2); background: var(--card); color: var(--text); font-size: 1.45rem; font-weight: 700; line-height: 1.5; transition: transform .12s; }
+.st-opt:active { transform: scale(.96); }
+.st-opt.ok { background: var(--ok, #2fbf84); border-color: var(--ok, #2fbf84); color: #fff; }
+.st-opt.bad { background: #e2566b; border-color: #e2566b; color: #fff; }
+.st-score { font-family: var(--f-clock); font-size: 4.5rem; font-weight: 700; color: var(--accent); line-height: 1.3; }
+.st-quiz.done p { font-size: 1.5rem; margin: .3rem 0 1.2rem; }
+.st-quiz.done .st-acts { justify-content: center; }
+
+@media (max-aspect-ratio: 1/1) {
+  .st-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .st-opts { grid-template-columns: 1fr; }
+}
+@media (max-width: 900px) { .st-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
