@@ -89,5 +89,3 @@
 .st-qtop .chip { margin: 0; height: 2.4rem; }
 .st-best { color: var(--muted); font-size: 1.05rem; }
 
-.inp { height: 3rem; padding: 0 1rem; border-radius: .8rem; border: 1px solid var(--line, rgba(255,255,255,.18)); background: rgba(255,255,255,.07); color: inherit; font: inherit; font-size: 1rem; outline: none; }
-.inp:focus { border-color: var(--accent); }

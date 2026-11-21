@@ -46,6 +46,7 @@
     App.adhkar.init();
     App.tasks.init();
     App.fan.init();
+    if (App.tires) App.tires.init();
     App.loc.start();
     weather();
     setInterval(weather, 20 * 60000);

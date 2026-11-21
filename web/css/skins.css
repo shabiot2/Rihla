@@ -548,11 +548,12 @@ body[data-skin="glass"] #app { background: radial-gradient(90% 80% at 15% 10%, #
 .gorb { border-radius: 50%; will-change: transform; border: 1px solid rgba(255, 255, 255, .26);
   background: radial-gradient(circle at 30% 24%, rgba(255, 255, 255, .5), rgba(255, 255, 255, .1) 38%, rgba(var(--accent-rgb), .16) 72%, rgba(var(--accent2-rgb), .22) 100%);
   box-shadow: inset 0 -1.4rem 2.4rem rgba(var(--accent2-rgb), .22), inset 0 .15rem .35rem rgba(255, 255, 255, .5); }
-.gorb.o1 { width: 22rem; height: 22rem; top: -9rem; right: 28%; animation: gfloat1 34s ease-in-out infinite alternate; }
-.gorb.o2 { width: 9rem; height: 9rem; top: 49%; left: 41%; animation: gfloat2 28s ease-in-out infinite alternate; opacity: .8; }
-.gorb.o3 { width: 6rem; height: 6rem; top: 3.5rem; left: 25%; animation: gfloat1 22s ease-in-out infinite alternate-reverse; opacity: .75; }
-@keyframes gfloat1 { to { transform: translate(-4rem, 3rem) scale(1.06); } }
-@keyframes gfloat2 { to { transform: translate(5rem, -3rem) scale(.94); } }
+/* the bubbles keep to the corners — never over the clock, the arc or any text */
+.gorb.o1 { width: 20rem; height: 20rem; top: -11rem; right: -7rem; animation: gfloat1 34s ease-in-out infinite alternate; opacity: .9; }
+.gorb.o2 { width: 11rem; height: 11rem; bottom: -4.5rem; left: -4rem; animation: gfloat2 28s ease-in-out infinite alternate; opacity: .75; }
+.gorb.o3 { width: 5rem; height: 5rem; top: -1.6rem; left: 17%; animation: gfloat1 22s ease-in-out infinite alternate-reverse; opacity: .6; }
+@keyframes gfloat1 { to { transform: translate(-1.5rem, 1.2rem) scale(1.04); } }
+@keyframes gfloat2 { to { transform: translate(1.5rem, -1rem) scale(.96); } }
 .gsheen { top: -20vh; bottom: -20vh; left: -40vw; width: 24vw; transform: rotate(14deg); animation: gsweep 15s ease-in-out infinite;
   background: linear-gradient(100deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, .09) 45%, rgba(255, 255, 255, .17) 52%, rgba(255, 255, 255, 0)); }
 @keyframes gsweep { 0%, 55% { transform: translateX(0) rotate(14deg); } 100% { transform: translateX(200vw) rotate(14deg); } }

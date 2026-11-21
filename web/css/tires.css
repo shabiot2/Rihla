@@ -1,0 +1,87 @@
+/* ضغط الإطارات — the car seen from above, a reading beside each wheel */
+.st.warn { color: var(--warn); }
+#tireLbl { font-size: .82rem; color: var(--muted); font-weight: 700; }
+#tireLbl:empty { display: none; }
+
+.ty { display: grid; grid-template-columns: 1.1fr 1fr; gap: 3vmin; align-items: start; }
+
+/* stage */
+.ty-stage { position: relative; height: 64vmin; direction: ltr; border-radius: 22px;
+  background: radial-gradient(52% 50% at 50% 52%, rgba(var(--accent-rgb), .11), transparent 72%); }
+.ty-car { position: absolute; left: 50%; top: 4vmin; height: 56vmin; transform: translateX(-50%); overflow: visible; }
+.ty-car .b { fill: rgba(var(--accent-rgb), .07); stroke: rgba(var(--accent-rgb), .55); stroke-width: 2; }
+.ty-car .g { fill: rgba(var(--accent-rgb), .22); stroke: rgba(var(--accent-rgb), .4); stroke-width: 1.5; }
+.ty-car .r { fill: rgba(var(--accent-rgb), .1); stroke: rgba(var(--accent-rgb), .3); stroke-width: 1.5; }
+.ty-car .l { fill: none; stroke: var(--accent); stroke-width: 3; stroke-linecap: round; opacity: .8; }
+.ty-car .w { fill: var(--muted); opacity: .45; transition: fill .3s; }
+.ty-car .w.lv-ok { fill: var(--ok); opacity: 1; }
+.ty-car .w.lv-low, .ty-car .w.lv-high { fill: var(--warn); opacity: 1; }
+.ty-car .w.lv-vlow { fill: var(--danger); opacity: 1; animation: blink 1.4s infinite; }
+.ty-front { position: absolute; top: 0; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: .5vmin;
+  font-size: 1.6vmin; font-weight: 600; color: var(--muted); direction: rtl; white-space: nowrap; }
+.ty-front .ic { width: 2.2vmin; height: 2.2vmin; }
+
+/* one reading per wheel — same width, same rhythm, front pair level with the front axle */
+.ty-t { position: absolute; width: 21vmin; padding: 1.3vmin 1vmin 1.2vmin; border-radius: 18px; background: var(--card); border: 1.5px solid var(--line2);
+  display: flex; flex-direction: column; align-items: center; gap: .2vmin; direction: rtl; text-align: center; }
+.ty-t.fl, .ty-t.rl { right: calc(50% + 18.5vmin); }
+.ty-t.fr, .ty-t.rr { left: calc(50% + 18.5vmin); }
+.ty-t.fl, .ty-t.fr { top: 11.2vmin; }
+.ty-t.rl, .ty-t.rr { top: 40.6vmin; }
+.ty-t small { display: flex; align-items: center; gap: .6vmin; font-size: 1.7vmin; font-weight: 600; color: var(--muted); }
+.ty-t small::before { content: ""; width: 1vmin; height: 1vmin; border-radius: 50%; background: var(--muted); opacity: .5; }
+.ty-t b { font-size: 5.4vmin; font-weight: 800; line-height: 1.1; color: var(--text); }
+.ty-t > span { font-size: 1.6vmin; color: var(--muted); }
+.ty-t.lv-ok { border-color: rgba(var(--ok-rgb), .6); }
+.ty-t.lv-ok small::before { background: var(--ok); opacity: 1; }
+.ty-t.lv-low, .ty-t.lv-high { border-color: var(--warn); }
+.ty-t.lv-low small::before, .ty-t.lv-high small::before { background: var(--warn); opacity: 1; }
+.ty-t.lv-vlow { border-color: var(--danger); background: rgba(255, 75, 79, .12); }
+.ty-t.lv-vlow small::before { background: var(--danger); opacity: 1; }
+.ty-t.lv-vlow b { color: var(--danger); }
+.ty-t.edit { width: 24vmin; }
+.ty-t.edit b { font-size: 4.4vmin; min-width: 7vmin; }
+
+.ty-step { display: flex; align-items: center; justify-content: center; gap: 1vmin; direction: ltr; }
+.ty-step button { width: 5.6vmin; height: 5.6vmin; min-width: 34px; min-height: 34px; border-radius: 50%; display: grid; place-items: center;
+  background: rgba(var(--accent-rgb), .16); border: 1px solid rgba(var(--accent-rgb), .35); color: var(--text); font-size: 3.2vmin; font-weight: 700; line-height: 1; }
+.ty-step button:active { background: rgba(var(--accent-rgb), .38); }
+.ty-step.big b { font-size: 3.6vmin; font-weight: 800; min-width: 8vmin; text-align: center; }
+
+/* side */
+.ty-side { display: flex; flex-direction: column; gap: 1.6vmin; min-width: 0; }
+.ty-sum { display: flex; align-items: center; gap: 1.6vmin; padding: 2vmin; border-radius: 18px; background: var(--card); border: 1px solid var(--line); }
+.ty-sum > .ic { width: 5.4vmin; height: 5.4vmin; flex: none; padding: 1.2vmin; border-radius: 50%; background: rgba(var(--accent-rgb), .14); color: var(--accent); }
+.ty-sum .txt { min-width: 0; }
+.ty-sum .txt b { display: block; font-size: 2.5vmin; line-height: 1.35; }
+.ty-sum .txt small { display: block; font-size: 1.75vmin; color: var(--muted); margin-top: .3vmin; }
+.ty-sum.lv-ok > .ic { background: rgba(var(--ok-rgb), .16); color: var(--ok); }
+.ty-sum.lv-low > .ic, .ty-sum.lv-high > .ic { background: rgba(255, 181, 71, .18); color: var(--warn); }
+.ty-sum.lv-vlow { border-color: var(--danger); }
+.ty-sum.lv-vlow > .ic { background: rgba(255, 75, 79, .16); color: var(--danger); }
+
+.ty-rec { display: flex; align-items: center; gap: 1vmin; padding: 1.3vmin 1.6vmin; border-radius: 18px; border: 1px dashed var(--line2); }
+.ty-rec .txt { flex: 1; min-width: 0; font-size: 1.9vmin; font-weight: 600; }
+.ty-rec .txt small { display: block; font-size: 1.55vmin; color: var(--muted); font-weight: 400; }
+.ty-rec b { font-size: 4vmin; font-weight: 800; color: var(--accent); line-height: 1; }
+.ty-rec .u { font-size: 1.7vmin; color: var(--muted); margin-left: .6vmin; }
+.ty-rec .chip { margin: 0; }
+.ty-side .btn-row { margin: 0; gap: 1.2vmin; flex-wrap: nowrap; }
+.ty-side .btn-row .btn { margin: 0; flex: 1 1 0; white-space: nowrap; }
+.ty-app { width: 100%; }
+.ty-app small { margin-right: .8vmin; color: var(--muted); font-weight: 400; font-size: 1.6vmin; }
+.ty-side .sec-title { margin: .4vmin .3vw 0; }
+
+.ty-hist { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1vmin; }
+.ty-h { padding: .9vmin .8vmin 1vmin; border-radius: 14px; background: var(--card); border: 1px solid var(--line); text-align: center; }
+.ty-h .d { display: block; font-size: 1.5vmin; color: var(--muted); margin-bottom: .6vmin; white-space: nowrap; }
+.ty-h .q { display: grid; grid-template-columns: 1fr 1fr; gap: .4vmin; direction: ltr; }
+.ty-h i { font-style: normal; font-size: 1.8vmin; font-weight: 700; border-radius: 8px; padding: .25vmin 0; background: rgba(var(--accent-rgb), .07); }
+.ty-h i.lv-low, .ty-h i.lv-high { box-shadow: inset 0 0 0 1.5px var(--warn); }
+.ty-h i.lv-vlow { color: var(--danger); box-shadow: inset 0 0 0 1.5px var(--danger); }
+.ty .note { margin: 0; font-size: 1.7vmin; }
+
+@media (max-aspect-ratio: 1/1) {
+  .ty { grid-template-columns: 1fr; }
+  .ty-hist { grid-template-columns: repeat(auto-fill, minmax(15vmin, 1fr)); }
+}

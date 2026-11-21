@@ -71,6 +71,29 @@ if __name__ == '__main__':
             p.click('.dk[data-panel="settings"]'); p.wait_for_timeout(500)
             p.evaluate("document.getElementById('sElKey').scrollIntoView()"); p.wait_for_timeout(300)
         shot('orbit', 1280, 720, 'settings_el', st)
+    elif which == 'tires':
+        def empty(p):
+            p.click('.st-b[data-panel="tires"]'); p.wait_for_timeout(600)
+        shot('orbit', 1280, 720, 'tires_empty', empty)
+
+        def seeded(p):
+            p.evaluate("App.tires.record([35, 34, 28.5, 36], true); App.store.set('tires', {log: [{t: Date.now()-40*864e5, v:[33,33,32,33]}, {t: Date.now()-12*864e5, v:[35,35,34,35]}].concat(App.store.get('tires').log)}); App.emit('tires')")
+            p.wait_for_timeout(300)
+        def view(p):
+            seeded(p); p.click('.st-b[data-panel="tires"]'); p.wait_for_timeout(600)
+        def editing(p):
+            seeded(p); p.click('.st-b[data-panel="tires"]'); p.wait_for_timeout(500)
+            p.click('#tyLog'); p.wait_for_timeout(300)
+            p.click('.ty-t.rl [data-d="1"]'); p.click('.ty-t.rl [data-d="1"]'); p.wait_for_timeout(300)
+        def home(p):
+            seeded(p); p.wait_for_timeout(600)
+        shot('orbit', 1280, 720, 'tires_view', view)
+        shot('orbit', 1280, 720, 'tires_edit', editing)
+        shot('pure', 1280, 720, 'tires_view_pure', view)
+        shot('girls', 1280, 720, 'tires_view_girls', view)
+        shot('luxe', 1024, 600, 'tires_view_1024', view)
+        shot('glass', 720, 1280, 'tires_view_portrait', view)
+        shot('orbit', 1280, 720, 'tires_home', home)
     elif which == 'one':
         w, h = [int(x) for x in sys.argv[4].split('x')] if len(sys.argv) > 4 else (1280, 720)
         shot(sys.argv[3], w, h)

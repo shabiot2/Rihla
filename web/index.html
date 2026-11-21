@@ -9,6 +9,7 @@
 <link rel="stylesheet" href="css/panels.css">
 <link rel="stylesheet" href="css/features.css">
 <link rel="stylesheet" href="css/stories.css">
+<link rel="stylesheet" href="css/tires.css">
 </head>
 <body data-skin="orbit">
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -114,6 +115,7 @@
       <svg class="ic st" id="stNet"><use href="#i-globe"/></svg>
       <button class="st-b" data-panel="wifi" aria-label="الواي فاي"><svg class="ic st" id="stWifi"><use href="#i-wifi"/></svg></button>
       <button class="st-b" data-panel="bt" aria-label="البلوتوث"><svg class="ic st" id="stBt"><use href="#i-bt"/></svg></button>
+      <button class="st-b" data-panel="tires" aria-label="ضغط الإطارات"><svg class="ic st" id="stTire"><use href="#i-tire"/></svg><span id="tireLbl" class="num"></span></button>
       <button class="st-b" data-panel="fan" aria-label="حرارة الشاشة"><svg class="ic st" id="stFan"><use href="#i-thermo"/></svg><span id="fanLbl" class="num"></span></button>
     </div>
   </header>
@@ -148,7 +150,7 @@
     <section id="mediaCard" class="w w-media">
       <div class="w-head"><span class="w-title"><svg class="ic"><use href="#i-radio"/></svg><span id="mcHead">الصوت</span></span><span class="w-tag ok" id="mcTag">FM بدون نت</span></div>
       <div class="mc-main">
-        <button id="mcInfo" class="mc-info"><b id="mcName">راديو السيارة FM / AM</b><small id="mcSub">يشتغل من موجات الراديو — بدون إنترنت</small></button>
+        <button id="mcInfo" class="mc-info"><b id="mcName">راديو السيارة FM / AM</b><small id="mcSub">موجات الراديو — بدون نت</small></button>
         <button id="mcGo" class="btn primary mc-go"><svg class="ic"><use href="#i-radio"/></svg><span>شغّل</span></button>
       </div>
       <div class="mc-prog hidden" id="mcProg"><i id="mcProgBar"></i></div>
@@ -216,6 +218,7 @@
 <script src="js/stories.js"></script>
 <script src="js/adhkar.js"></script>
 <script src="js/tasks.js"></script>
+<script src="js/tires.js"></script>
 <script src="js/fan.js"></script>
 <script src="js/main.js"></script>
 </body>

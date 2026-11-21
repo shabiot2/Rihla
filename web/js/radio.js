@@ -135,7 +135,7 @@
       tag = 'FM بدون نت'; go = 'افتح'; goIc = 'expand';
     } else {
       name = 'راديو السيارة FM / AM';
-      sub = 'يشتغل من موجات الراديو — بدون إنترنت';
+      sub = 'موجات الراديو — بدون نت';
       tag = 'FM بدون نت'; go = 'شغّل'; goIc = 'radio';
     }
     setHtml('mcName', App.esc(name));

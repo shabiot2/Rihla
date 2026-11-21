@@ -260,7 +260,7 @@
         '<button class="btn" id="sStories">' + App.icon('folder') + 'المكتبة</button>') + '</div>' +
       '<div class="sec"><div class="sec-title">الصوت — ElevenLabs</div>' +
       row('صوت ElevenLabs', 'صوت طبيعي بدل صوت الشاشة — يحتاج نت وقت أول مرة بس، وبعدها الجمل المتكررة تشتغل بدون نت', sw('sElOn', s.elOn !== false)) +
-      row('مفتاح API', 'يُحفظ داخل الشاشة فقط ولا يُرفع لأي مكان', '<input class="inp" id="sElKey" type="password" dir="ltr" placeholder="sk_…" value="' + App.esc(s.elKey || '') + '" style="width:22rem">') +
+      row('مفتاح API', 'يُحفظ داخل الشاشة فقط ولا يُرفع لأي مكان', '<input class="field" id="sElKey" type="password" dir="ltr" placeholder="sk_…" value="' + App.esc(s.elKey || '') + '">') +
       row('الصوت', '<span id="sElVoiceName">' + App.esc(s.elVoiceName || 'الافتراضي') + '</span>', '<button class="btn" id="sElVoices">' + App.icon('vol-up') + 'اختيار الصوت</button>') +
       row('تجربة', '<span id="sElMsg">اضغط للتجربة وتأكد إن المفتاح شغّال</span>', '<button class="btn" id="sElTest">' + App.icon('play') + 'تجربة الصوت</button>') +
       row('الأصوات المخزّنة', '<span id="sElCache">—</span>', '<button class="btn" id="sElClear">مسح</button>') + '</div>' +
@@ -299,7 +299,7 @@
       '<span class="chip ' + (App.android.supported ? 'on' : 'danger') + '">' + App.icon(App.android.supported ? 'check' : 'close') +
       (App.android.supported ? 'متوافق' : 'نسخة قديمة') + '</span></div></div>' +
       '<div class="sec"><div class="sec-title">حول التطبيق</div><div class="about">' + App.brand('lg') +
-      '<div class="ab-txt"><b>رحلة — الإصدار ' + App.d('3.1') + '</b><span>جميع الحقوق محفوظة © ' + App.d('2026') + ' أبو دانة للبرمجة</span>' +
+      '<div class="ab-txt"><b>رحلة — الإصدار ' + App.d('3.2') + '</b><span>جميع الحقوق محفوظة © ' + App.d('2026') + ' أبو دانة للبرمجة</span>' +
       '<small>تصميم وتطوير أبو دانة للبرمجة • بيانات المدن والأحياء: Natural Earth و homaily/Saudi-Arabia-Regions-Cities-and-Districts (GPL-2.0) • الأماكن © OpenStreetMap • ' +
       'الإذاعات mp3quran.net و radio-browser.info • الطقس Open-Meteo • الخطوط: Readex Pro و Alexandria و Changa و Orbitron و El Messiri و IBM Plex Sans Arabic و Baloo Bhaijaan 2 و Aref Ruqaa و Amiri (SIL OFL)</small></div></div></div>';
 
@@ -392,7 +392,7 @@
   S.init = function () {
     App.$('sheetClose').onclick = P.close;
     App.$('sheetBack').onclick = P.back;
-    document.querySelectorAll('.dk').forEach(function (b) { b.onclick = function () { P.open(b.dataset.panel); }; });
+    document.querySelectorAll('.dk, .st-b[data-panel]').forEach(function (b) { b.onclick = function () { P.open(b.dataset.panel); }; });
     if (N.has) S.apps();
     App.$('scrim').onclick = P.close;
     S.status();

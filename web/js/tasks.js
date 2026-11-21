@@ -161,6 +161,13 @@
     });
   }
 
+  function tireRow() {
+    var T = App.tires, s = T.state(), cls = { ok: 'ok', due: 'soon', high: 'soon', low: 'soon', vlow: 'due', none: 'unset' }[s.k];
+    return '<button class="maint ' + cls + '" id="cTires">' + App.icon('tire', 'lead') + '<span class="txt"><b>ضغط الإطارات</b><small>' +
+      App.esc(s.k === 'none' ? 'المطلوب ' + T.fmt(T.rec()) + ' — سجّل أول قراءة' : s.msg + ' • ' + T.ago(s.last.t)) + '</small></span><span class="st">' +
+      ({ ok: 'ممتاز', due: 'افحصها', high: 'زايد', low: 'ناقص', vlow: 'ناقص', none: '' })[s.k] + '</span></button>';
+  }
+
   // ---------- "My car" panel ----------
   function renderCar(body) {
     var C = App.car, odo = TK.odo();
@@ -169,8 +176,9 @@
       '<small style="margin-top:.6vmin">' + (odo != null ? 'العدّاد يتحدّث تلقائياً من GPS' : 'قطعت ' + App.d(TK.gpsKm().toFixed(1)) + ' كم منذ التثبيت — سجّل قراءة عدّاد سيارتك') + '</small></div></div>' +
       '<div class="btn-row" style="margin-bottom:1.4vmin"><button class="btn primary" id="cOdo">' + App.icon('gauge') + 'تسجيل قراءة العدّاد</button>' +
       '<button class="btn" id="cEdit">' + App.icon('edit') + 'تعديل بيانات السيارة</button></div>' +
-      '<div class="sec"><div class="sec-title">العناية بالسيارة</div>' + maintHtml() + '</div>';
+      '<div class="sec"><div class="sec-title">العناية بالسيارة</div>' + tireRow() + maintHtml() + '</div>';
     bindMaint(body);
+    App.$('cTires').onclick = function () { App.tires.open(); };
     App.$('cEdit').onclick = function () {
       App.panels.push('بيانات السيارة', function (b2) { b2.innerHTML = C.editor(); C.bindEditor(b2); });
     };

@@ -572,7 +572,7 @@
     'rihla:bt': { l: 'البلوتوث', ic: 'bt', go: function () { App.system.openBtApp(); } },
     'rihla:adhkar': { l: 'الأذكار', ic: 'book', go: function () { App.panels.open('adhkar'); } },
     'rihla:ask': { l: 'اسأل رحلة', ic: 'ask', go: function () { if (App.stories) App.stories.openAsk(); } },
-    'rihla:apps': { l: 'كل التطبيقات', ic: 'apps', go: function () { App.panels.open('apps'); } }
+    'rihla:apps': { l: 'الكل', ic: 'apps', go: function () { App.panels.open('apps'); } }
   };
   function installed() { return App.Native.has ? App.system.apps() : []; }
   function defaults() {
@@ -663,6 +663,11 @@
           b: [['أقرب مسجد', 'route', function () { App.panels.open('prayer'); }]] };
       }
     }
+    var TS = App.tires && App.tires.state();
+    if (TS && (TS.k === 'vlow' || TS.k === 'low') && TS.days < 10) {
+      return { ic: 'tire', k: 'ضغط الإطارات', t: TS.msg, s: 'آخر قراءة ' + App.tires.ago(TS.last.t) + ' — المطلوب ' + App.tires.fmt(App.tires.rec()) + ' والكفرات باردة',
+        b: [['التفاصيل', 'tire', function () { App.tires.open(); }], ['عبّيتها', 'check', function () { App.tires.fillAll(); smart(); }]] };
+    }
     if (!rideDone && Date.now() - BOOT < 10 * 60000) {
       return { ic: 'car', k: 'دعاء الركوب', t: RIDE, q: 1, b: [['اسمعه', 'speak', function () { App.nav.say(RIDE); }], ['تم', 'check', function () { rideDone = true; smart(); }]] };
     }
@@ -688,6 +693,10 @@
           s: 'وَاذْكُر رَّبَّكَ كَثِيرًا وَسَبِّحْ بِالْعَشِيِّ وَالْإِبْكَارِ', b: [['افتح الأذكار', 'book', function () { A.open(mode); }]] };
       }
     }
+    var TN = App.tires && App.tires.nag();
+    if (TN) return { ic: 'tire', k: 'ضغط الإطارات', t: TN.k === 'none' ? 'سجّل ضغط كفراتك' : TN.msg,
+      s: 'المطلوب للكامري ' + App.tires.fmt(App.tires.rec()) + ' — وأنبهك إذا كفر ناقص',
+      b: [['سجّل', 'edit', function () { App.tires.open(true); }], ['لاحقاً', 'clock', function () { App.tires.snooze(); smart(); }]] };
     if (App.theme.key === 'girls' && ST && ST.quiz) {
       return { ic: 'quiz', k: 'سؤال للبنات', t: 'مين النبي اللي ابتلعه الحوت؟', s: 'مسابقة صوتية عن الأنبياء والصحابة',
         b: [['العبوا', 'play', function () { ST.quiz(); }]] };
@@ -864,6 +873,7 @@
     App.on('skin', function (k) { if (k !== 'glass') glassClear(); scene(); renderPhoto(); setTimeout(function () { H.refresh(); }, 40); });
     App.on('settings', function () { document.body.classList.toggle('calm', !!App.settings.calm); H.refresh(); });
     App.on('stories', smart);
+    App.on('tires', smart);
     window.addEventListener('resize', debounce(function () { scene(); drawViz(); }, 250));
   };
 })();
