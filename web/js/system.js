@@ -258,6 +258,12 @@
       '<div class="sec"><div class="sec-title">القصص والمحاضرات</div>' +
       row('مكان ملفات القصص', sd || 'ضع ملفات الصوت في فلاش USB أو ذاكرة الشاشة — داخل مجلد اسمه «قصص»',
         '<button class="btn" id="sStories">' + App.icon('folder') + 'المكتبة</button>') + '</div>' +
+      '<div class="sec"><div class="sec-title">الصوت — ElevenLabs</div>' +
+      row('صوت ElevenLabs', 'صوت طبيعي بدل صوت الشاشة — يحتاج نت وقت أول مرة بس، وبعدها الجمل المتكررة تشتغل بدون نت', sw('sElOn', s.elOn !== false)) +
+      row('مفتاح API', 'يُحفظ داخل الشاشة فقط ولا يُرفع لأي مكان', '<input class="inp" id="sElKey" type="password" dir="ltr" placeholder="sk_…" value="' + App.esc(s.elKey || '') + '" style="width:22rem">') +
+      row('الصوت', '<span id="sElVoiceName">' + App.esc(s.elVoiceName || 'الافتراضي') + '</span>', '<button class="btn" id="sElVoices">' + App.icon('vol-up') + 'اختيار الصوت</button>') +
+      row('تجربة', '<span id="sElMsg">اضغط للتجربة وتأكد إن المفتاح شغّال</span>', '<button class="btn" id="sElTest">' + App.icon('play') + 'تجربة الصوت</button>') +
+      row('الأصوات المخزّنة', '<span id="sElCache">—</span>', '<button class="btn" id="sElClear">مسح</button>') + '</div>' +
       '<div class="sec"><div class="sec-title">الوجهات</div>' +
       row('تطبيق الملاحة', 'للمساجد والأماكن والمهام', seg('sNavApp', [['auto', 'تلقائي'], ['google', 'خرائط قوقل'], ['waze', 'ويز'], ['geo', 'أسأل كل مرة']], s.navApp || 'auto')) +
       row('التنبيهات الصوتية', 'الصلاة والجمعة والقصص — يتطلب محرك نطق عربي في الشاشة', sw('sVoice', s.voice)) + '</div>' +
@@ -293,7 +299,7 @@
       '<span class="chip ' + (App.android.supported ? 'on' : 'danger') + '">' + App.icon(App.android.supported ? 'check' : 'close') +
       (App.android.supported ? 'متوافق' : 'نسخة قديمة') + '</span></div></div>' +
       '<div class="sec"><div class="sec-title">حول التطبيق</div><div class="about">' + App.brand('lg') +
-      '<div class="ab-txt"><b>رحلة — الإصدار ' + App.d('3.0') + '</b><span>جميع الحقوق محفوظة © ' + App.d('2026') + ' أبو دانة للبرمجة</span>' +
+      '<div class="ab-txt"><b>رحلة — الإصدار ' + App.d('3.1') + '</b><span>جميع الحقوق محفوظة © ' + App.d('2026') + ' أبو دانة للبرمجة</span>' +
       '<small>تصميم وتطوير أبو دانة للبرمجة • بيانات المدن والأحياء: Natural Earth و homaily/Saudi-Arabia-Regions-Cities-and-Districts (GPL-2.0) • الأماكن © OpenStreetMap • ' +
       'الإذاعات mp3quran.net و radio-browser.info • الطقس Open-Meteo • الخطوط: Readex Pro و Alexandria و Changa و Orbitron و El Messiri و IBM Plex Sans Arabic و Baloo Bhaijaan 2 و Aref Ruqaa و Amiri (SIL OFL)</small></div></div></div>';
 
@@ -306,7 +312,37 @@
       };
     }
     App.$('sMotion').onclick = function () { s.calm = !s.calm; this.classList.toggle('on', !s.calm); App.saveSettings(); };
-    bindSw('sVoice', 'voice', function () { if (s.voice) N.call('tts', ''); });
+    bindSw('sVoice', 'voice', function () { if (s.voice) App.voice.stop(); });
+    bindSw('sElOn', 'elOn');
+    App.$('sElKey').onchange = function () { s.elKey = this.value.trim(); App.saveSettings(); App.$('sElMsg').textContent = 'تم الحفظ — اضغط «تجربة الصوت»'; };
+    function elCache() { App.voice.cacheCount(function (n) { var e = App.$('sElCache'); if (e) e.textContent = App.d(n) + ' مقطع'; }); }
+    elCache();
+    App.$('sElClear').onclick = function () { App.voice.clearCache(elCache); };
+    App.$('sElTest').onclick = function () {
+      s.elKey = App.$('sElKey').value.trim(); App.saveSettings();
+      App.$('sElMsg').textContent = 'جاري الاتصال…';
+      App.voice.test(function (m) { App.$('sElMsg').textContent = m; elCache(); });
+    };
+    App.$('sElVoices').onclick = function () {
+      s.elKey = App.$('sElKey').value.trim(); App.saveSettings();
+      App.$('sElMsg').textContent = 'جاري جلب الأصوات…';
+      App.voice.voices(function (list, err) {
+        if (!list) { App.$('sElMsg').textContent = err; return; }
+        App.$('sElMsg').textContent = 'اختر صوتاً — اضغط عليه لسماعه ثم «اعتماد»';
+        App.panels.push('اختيار الصوت', function (body) {
+          body.innerHTML = '<div class="st-grid">' + list.map(function (v, i) {
+            var lb = v.labels || {};
+            return '<div class="st-card" data-i="' + i + '"><b>' + App.esc(v.name) + '</b><small>' + App.esc([lb.gender, lb.accent, lb.descriptive].filter(Boolean).join(' • ')) + '</small>' +
+              '<div class="st-acts"><button class="btn" data-p="' + i + '">سماع</button><button class="btn primary" data-s="' + i + '">اعتماد</button></div></div>';
+          }).join('') + '</div>';
+          body.onclick = function (e) {
+            var t = e.target.closest('button'); if (!t) return;
+            if (t.dataset.p != null) { var u = list[+t.dataset.p].preview_url; if (u) App.voice.preview(u); else App.toast('ما فيه مقطع تجريبي لهذا الصوت'); }
+            if (t.dataset.s != null) { var v = list[+t.dataset.s]; s.elVoice = v.voice_id; s.elVoiceName = v.name; App.saveSettings(); App.toast('تم اعتماد ' + v.name); App.panels.back(); var n = App.$('sElVoiceName'); if (n) n.textContent = v.name; }
+          };
+        });
+      });
+    };
     bindSw('sChime', 'adhanChime');
     bindSw('sFull', 'full', function () { N.call('full', s.full ? '1' : '0'); });
     bindSw('sOcc', 'autoOccasion', function () { s.themeLocked = false; App.saveSettings(); App.theme.apply(true); P.refresh(); });

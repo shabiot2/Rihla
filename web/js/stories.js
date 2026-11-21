@@ -347,9 +347,9 @@
   }
   var speaking = false;
   function speak(text) {
-    if (!App.Native.has) { App.toast('القراءة بالصوت تعمل من الشاشة نفسها'); return; }
+    if (!App.Native.has && !App.voice.enabled()) { App.toast('القراءة بالصوت تعمل من الشاشة نفسها'); return; }
     if (audio && !audio.paused) audio.pause();
-    App.Native.call('tts', text);
+    App.voice.speak(text);
   }
   S.entity = function (id) {
     var e = entities().filter(function (x) { return x.id === id; })[0];
@@ -405,33 +405,41 @@
     });
   };
 
-  // ---------- مسابقة البنات ----------
+  // ---------- مسابقة البنات — بدون حد: تستمر لين تضغط «إنهاء»، وتعيد الخلط لما تخلص الأسئلة ----------
   function shuffle(a) { a = a.slice(); for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)), t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
   S.quiz = function () {
     var pool = [];
     entities().forEach(function (e) { (e.q || []).forEach(function (q) { pool.push(q); }); });
-    var qs = shuffle(pool).slice(0, 6), i = 0, score = 0, say = App.Native.has && App.settings.voice !== false;
+    var order = shuffle(pool), at = 0, asked = 0, score = 0, streak = 0, best = 0, say = App.settings.voice !== false && (App.Native.has || App.voice.enabled());
+    function nextQ() {
+      if (at >= order.length) { var last = order[order.length - 1]; order = shuffle(pool); if (order.length > 1 && order[0] === last) order.push(order.shift()); at = 0; }
+      return order[at++];
+    }
     App.panels.push('مسابقة البنات', function (body) {
+      function finish() {
+        App.voice.stop();
+        var pct = asked ? score / asked : 0, msg = !asked ? 'ما جاوبتوا على شي' : pct >= .8 ? 'ممتازات! ' : pct >= .5 ? 'أحسنتم! ' : 'حاولوا مرة ثانية. ';
+        body.innerHTML = '<div class="st-quiz done"><div class="st-score">' + App.d(score) + ' / ' + App.d(asked) + '</div><p>' + msg + 'جزاكم الله خيراً</p>' +
+          (best > 1 ? '<p class="st-best">أطول سلسلة إجابات صحيحة: ' + App.d(best) + '</p>' : '') +
+          '<div class="st-acts"><button class="btn primary" id="qAgain">' + App.icon('quiz') + 'جولة جديدة</button></div></div>';
+        if (say && asked) App.voice.speak(msg + 'جاوبتوا صح على ' + score + ' من ' + asked);
+        body.querySelector('#qAgain').onclick = function () { App.panels.back(); S.quiz(); };
+      }
       function show() {
-        if (i >= qs.length) {
-          var stars = score >= qs.length ? 'ممتازات! ' : score >= qs.length / 2 ? 'أحسنتم! ' : 'حاولوا مرة ثانية. ';
-          body.innerHTML = '<div class="st-quiz done"><div class="st-score">' + App.d(score) + ' / ' + App.d(qs.length) + '</div><p>' + stars + 'جزاكم الله خيراً</p>' +
-            '<div class="st-acts"><button class="btn primary" id="qAgain">' + App.icon('quiz') + 'جولة جديدة</button></div></div>';
-          if (say) App.Native.call('tts', stars + 'حصلتم على ' + score + ' من ' + qs.length);
-          body.querySelector('#qAgain').onclick = function () { App.panels.back(); S.quiz(); };
-          return;
-        }
-        var q = qs[i], opts = shuffle(q[2]);
-        body.innerHTML = '<div class="st-quiz"><div class="st-qn">سؤال ' + App.d(i + 1) + ' من ' + App.d(qs.length) + '</div><h3>' + esc(q[0]) + '</h3><div class="st-opts">' +
+        var q = nextQ(), opts = shuffle(q[2]);
+        body.innerHTML = '<div class="st-quiz"><div class="st-qtop"><span class="st-qn">سؤال ' + App.d(asked + 1) + '</span><span class="st-qs">' + App.icon('check') + App.d(score) + ' صح' +
+          (streak > 1 ? ' • ' + App.d(streak) + ' متتالية' : '') + '</span><button class="chip" id="qEnd">إنهاء</button></div><h3>' + esc(q[0]) + '</h3><div class="st-opts">' +
           opts.map(function (o) { return '<button class="st-opt" data-a="' + esc(o) + '">' + esc(o) + '</button>'; }).join('') + '</div></div>';
-        if (say) App.Native.call('tts', q[0] + ' ' + opts.join(' أو '));
+        if (say) App.voice.speak(q[0] + ' ' + opts.join('، أو '));
+        body.querySelector('#qEnd').onclick = finish;
         body.querySelectorAll('.st-opt').forEach(function (b) {
           b.onclick = function () {
             var ok = b.dataset.a === q[1];
             body.querySelectorAll('.st-opt').forEach(function (x) { x.disabled = true; if (x.dataset.a === q[1]) x.classList.add('ok'); });
-            if (ok) score++; else b.classList.add('bad');
-            if (say) App.Native.call('tts', ok ? 'أحسنتم!' : 'الجواب: ' + q[1]);
-            setTimeout(function () { i++; show(); }, ok ? 1100 : 2000);
+            asked++;
+            if (ok) { score++; streak++; best = Math.max(best, streak); } else { b.classList.add('bad'); streak = 0; }
+            if (say) App.voice.speak(ok ? (streak > 2 ? 'ما شاء الله! ' + streak + ' متتالية' : 'أحسنتم!') : 'الجواب: ' + q[1]);
+            setTimeout(function () { if (body.querySelector('.st-quiz:not(.done)')) show(); }, ok ? 1500 : 2600);
           };
         });
       }

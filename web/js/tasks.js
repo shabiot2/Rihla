@@ -460,9 +460,8 @@
   // ---------- daily briefing card ----------
   function speakBriefing() {
     var b = TK.briefing();
-    if (!App.Native.has) { App.toast('القراءة الصوتية تعمل على شاشة السيارة'); return; }
-    App.Native.call('tts', '');
-    setTimeout(function () { App.Native.call('tts', b.text); }, 600);
+    if (!App.Native.has && !App.voice.enabled()) { App.toast('القراءة الصوتية تعمل على شاشة السيارة'); return; }
+    App.voice.speak(b.text);
   }
   TK.showBriefing = function () {
     var b = TK.briefing(), el = App.$('briefing');

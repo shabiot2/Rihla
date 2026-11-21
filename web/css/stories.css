@@ -81,3 +81,13 @@
   .st-opts { grid-template-columns: 1fr; }
 }
 @media (max-width: 900px) { .st-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+
+.st-qtop { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: .8rem; }
+.st-qtop .st-qn { margin: 0; }
+.st-qs { display: inline-flex; align-items: center; gap: .35rem; color: var(--accent); font-weight: 700; font-size: 1.05rem; }
+.st-qs .ic { width: 1.1rem; height: 1.1rem; }
+.st-qtop .chip { margin: 0; height: 2.4rem; }
+.st-best { color: var(--muted); font-size: 1.05rem; }
+
+.inp { height: 3rem; padding: 0 1rem; border-radius: .8rem; border: 1px solid var(--line, rgba(255,255,255,.18)); background: rgba(255,255,255,.07); color: inherit; font: inherit; font-size: 1rem; outline: none; }
+.inp:focus { border-color: var(--accent); }

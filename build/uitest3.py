@@ -55,6 +55,22 @@ if __name__ == '__main__':
         shot('glass', 720, 1280, 'skin_glass_photo_portrait', with_photo)
         shot('glass', 1024, 600, 'skin_glass_photo_1024', with_photo)
         shot('girls', 1280, 720, 'skin_girls_photo', with_photo)
+    elif which == 'quiz':
+        def many(p):
+            p.evaluate("App.settings.voice=false")
+            p.click('.dk[data-panel="stories"]'); p.wait_for_timeout(500)
+            p.click('#stQuiz'); p.wait_for_timeout(400)
+            for i in range(14):
+                p.click('.st-opt >> nth=0'); p.wait_for_timeout(2700)
+            n = p.inner_text('.st-qn')
+            print('after 14 answers ->', n, '| end btn:', p.locator('#qEnd').count())
+            p.click('#qEnd'); p.wait_for_timeout(400)
+        shot('girls', 1280, 720, 'quiz_endless', many)
+    elif which == 'settings':
+        def st(p):
+            p.click('.dk[data-panel="settings"]'); p.wait_for_timeout(500)
+            p.evaluate("document.getElementById('sElKey').scrollIntoView()"); p.wait_for_timeout(300)
+        shot('orbit', 1280, 720, 'settings_el', st)
     elif which == 'one':
         w, h = [int(x) for x in sys.argv[4].split('x')] if len(sys.argv) > 4 else (1280, 720)
         shot(sys.argv[3], w, h)

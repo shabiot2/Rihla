@@ -41,7 +41,7 @@
     var km = m / 1000;
     return (km < 10 ? km.toFixed(1).replace('.0', '') : Math.round(km)) + ' كيلو';
   }
-  N.say = function (text) { if (App.settings.voice && App.Native.has) App.Native.call('tts', text); };
+  N.say = function (text) { if (App.settings.voice && (App.Native.has || App.voice.enabled())) App.voice.speak(text); };
   N.spoken = spoken;
 
   // ---------- the navigation app ----------

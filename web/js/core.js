@@ -68,7 +68,7 @@ var App = window.App = {};
     prePrayer: 10, adhkarRemind: true, autoFriday: true, fridayRemind: true, introSound: true, adhkarScale: 1, briefing: true, fanAlert: true, fanLimit: 75, maint: {}, odo: null,
     home: null, work: null, recents: [], full: false, stations: [], lastStation: null, mapBig: false,
     maps: false, navApp: 'auto', shortcuts: null, radioBack: false,
-    carplayApp: '', calm: false, prayManual: false, photoCap: 'بناتي', storyDirs: null, sleepMin: 0
+    elKey: '', elVoice: '', elModel: 'eleven_multilingual_v2', elOn: true, elVoiceName: '', carplayApp: '', calm: false, prayManual: false, photoCap: 'بناتي', storyDirs: null, sleepMin: 0
   };
   App.settings = Object.assign({}, DEFAULTS, App.store.get('settings', {}));
   App.saveSettings = function () { App.store.set('settings', App.settings); App.emit('settings'); };
