@@ -94,6 +94,12 @@ if __name__ == '__main__':
         shot('luxe', 1024, 600, 'tires_view_1024', view)
         shot('glass', 720, 1280, 'tires_view_portrait', view)
         shot('orbit', 1280, 720, 'tires_home', home)
+    elif which == 'tirebar':
+        def later(p):
+            p.evaluate("App.home && App.home.smart && 0"); p.wait_for_timeout(300)
+        shot('orbit', 1280, 720, 'tirebar_orbit')
+        shot('glass', 1280, 720, 'tirebar_glass')
+        shot('pure', 800, 480, 'tirebar_800')
     elif which == 'one':
         w, h = [int(x) for x in sys.argv[4].split('x')] if len(sys.argv) > 4 else (1280, 720)
         shot(sys.argv[3], w, h)

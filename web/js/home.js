@@ -671,6 +671,9 @@
     if (!rideDone && Date.now() - BOOT < 10 * 60000) {
       return { ic: 'car', k: 'دعاء الركوب', t: RIDE, q: 1, b: [['اسمعه', 'speak', function () { App.nav.say(RIDE); }], ['تم', 'check', function () { rideDone = true; smart(); }]] };
     }
+    var TF = App.tires && App.tires.nag();
+    if (TF && TF.k === 'none') return { ic: 'tire', k: 'ضغط الإطارات', t: 'سجّل ضغط كفراتك', s: 'المطلوب للكامري ' + App.tires.fmt(App.tires.rec()) + ' — وأنبهك إذا كفر ناقص',
+      b: [['سجّل', 'edit', function () { App.tires.open(true); }], ['لاحقاً', 'clock', function () { App.tires.snooze(); smart(); }]] };
     if (App.fridayPhase && App.fridayPhase() && App.fridayKey) {
       var fs = App.store.get('fri.' + App.fridayKey(), null) || {}, done = ['g', 'e', 'k', 's', 'd'].filter(function (x) { return fs[x]; }).length;
       if (!fs.k) return { ic: 'book', k: 'يوم الجمعة', t: 'سورة الكهف', s: 'من قرأها يوم الجمعة أضاء له من النور ما بين الجمعتين',

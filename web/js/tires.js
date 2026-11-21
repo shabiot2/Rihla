@@ -72,8 +72,8 @@
     var ic = App.$('stTire'), lb = App.$('tireLbl');
     if (!ic) return;
     var s = T.state();
-    ic.setAttribute('class', 'ic st' + ({ ok: ' ok', due: ' acc', high: ' warn', low: ' warn', vlow: ' hot blink', none: '' })[s.k]);
-    lb.textContent = s.k === 'none' ? '' : T.num(s.min);
+    ic.setAttribute('class', 'ic st' + ({ ok: ' ok', due: ' acc', high: ' warn', low: ' warn', vlow: ' hot blink', none: ' acc' })[s.k]);
+    lb.textContent = s.k === 'none' ? 'الإطارات' : 'الإطارات ' + T.num(s.min);
   }
   T.bar = bar;
 
