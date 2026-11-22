@@ -40,6 +40,7 @@ SUPER = {
     'Landroid/os/Build;': 'Ljava/lang/Object;',
     'Lcom/carnav/camry/Web;': 'Landroid/webkit/WebViewClient;',
     'Lcom/carnav/camry/Gnss;': 'Landroid/location/GnssStatus$Callback;',
+    'Lcom/carnav/camry/Rcv;': 'Landroid/content/BroadcastReceiver;',
     'Landroid/location/GnssStatus$Callback;': 'Ljava/lang/Object;',
     'Landroid/location/GnssStatus;': 'Ljava/lang/Object;',
     'Ljava/net/HttpURLConnection;': 'Ljava/net/URLConnection;',
@@ -75,6 +76,14 @@ SUPER = {
     'Landroid/hardware/usb/UsbInterface;': 'Ljava/lang/Object;',
     'Landroid/content/ContentResolver;': 'Ljava/lang/Object;',
     'Landroid/os/CancellationSignal;': 'Ljava/lang/Object;',
+    'Ljava/util/zip/ZipFile;': 'Ljava/lang/Object;',
+    'Ljava/util/zip/ZipEntry;': 'Ljava/lang/Object;',
+    'Ljava/io/BufferedInputStream;': 'Ljava/io/FilterInputStream;',
+    'Ljava/io/FilterInputStream;': 'Ljava/io/InputStream;',
+    'Ljava/util/LinkedHashSet;': 'Ljava/util/HashSet;',
+    'Ljava/util/HashSet;': 'Ljava/util/AbstractSet;',
+    'Ljava/util/AbstractSet;': 'Ljava/util/AbstractCollection;',
+    'Ljava/util/AbstractCollection;': 'Ljava/lang/Object;',
 }
 for _c in ['Landroid/content/Context;', 'Landroid/view/View;', 'Landroid/webkit/WebChromeClient;',
            'Landroid/webkit/WebViewClient;', 'Landroid/webkit/WebSettings;', 'Landroid/webkit/JsResult;',
@@ -93,11 +102,13 @@ IFACE = {'Landroid/location/LocationListener;', 'Landroid/speech/tts/TextToSpeec
          'Ljava/lang/CharSequence;', 'Ljava/util/List;', 'Ljava/util/Set;', 'Ljava/util/Iterator;',
          'Landroid/webkit/ValueCallback;', 'Landroid/webkit/GeolocationPermissions$Callback;',
          'Ljava/util/Map;', 'Landroid/webkit/WebResourceRequest;', 'Landroid/database/Cursor;',
-         'Ljava/util/Collection;'}
+         'Ljava/util/Collection;', 'Ljava/util/Enumeration;'}
 IMPLS = {'Lcom/carnav/camry/Main;': {'Landroid/location/LocationListener;',
                                      'Landroid/speech/tts/TextToSpeech$OnInitListener;'},
          'Ljava/lang/String;': {'Ljava/lang/CharSequence;'},
-         'Ljava/util/HashMap;': {'Ljava/util/Map;'}}
+         'Ljava/util/HashMap;': {'Ljava/util/Map;'},
+         'Ljava/util/LinkedHashSet;': {'Ljava/util/Set;', 'Ljava/util/Collection;'},
+         'Ljava/util/HashSet;': {'Ljava/util/Set;', 'Ljava/util/Collection;'}}
 
 U, X, K0, K, I, F = ('U',), ('X',), ('K0',), ('K',), ('I',), ('F',)
 INTS = set('ZBSCI')

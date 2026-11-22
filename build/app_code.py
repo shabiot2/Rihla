@@ -18,6 +18,7 @@ CHROME = 'Lcom/carnav/camry/Chrome;'
 SYS = 'Lcom/carnav/camry/Sys;'
 WEB = 'Lcom/carnav/camry/Web;'
 GNSS = 'Lcom/carnav/camry/Gnss;'
+RCV = 'Lcom/carnav/camry/Rcv;'
 ACT = 'Landroid/app/Activity;'
 STR = 'Ljava/lang/String;'
 SB = 'Ljava/lang/StringBuilder;'
@@ -36,6 +37,7 @@ def build_classes():
     main.field('tts', 'Landroid/speech/tts/TextToSpeech;')
     main.field('fc', 'Landroid/webkit/ValueCallback;')
     main.field('gn', 'Ljava/lang/Object;')
+    main.field('rcv', 'Lcom/carnav/camry/Rcv;')
 
     main.method('<init>', [], 'V', 1, '''
         invoke-direct {p0}, Landroid/app/Activity;-><init>()V
@@ -278,7 +280,8 @@ def build_classes():
     cmds = [('launch', True), ('intent', True), ('view', True), ('apps', False), ('icon', True),
             ('wifi', True), ('bt', True), ('tts', True), ('vol', True), ('key', True), ('full', True),
             ('home', True), ('temp', True), ('sys', True), ('net', True), ('cache', True),
-            ('radios', False), ('start', True), ('ls', True), ('perm', True), ('probe', True)]
+            ('radios', False), ('start', True), ('ls', True), ('perm', True), ('probe', True),
+            ('dexscan', True), ('listen', True)]
     h = ['const-string v0, "ping"', S_EQ % ('v0', 'p1'), 'move-result v1', 'if-eqz v1, :c0',
          'const-string v0, "pong"', 'return-object v0']
     for k, (c, has_arg) in enumerate(cmds):
@@ -779,6 +782,63 @@ def build_classes():
         return-object v0
     ''')
 
+    # strings inside another app's code (its broadcast actions, device paths, tyre keys) — for «فحص الحساس»
+    main.method('dexscan', [STR], STR, 3, '''
+        invoke-static {p1}, Lcom/carnav/camry/Sys;->dexscan(Ljava/lang/String;)Ljava/lang/String;
+        move-result-object v0
+        return-object v0
+    ''')
+
+    # listen for broadcasts: arg = JSON array of actions ("" stops); each one arrives as window.onBcast({a, x})
+    main.method('listen', [STR], STR, 8, '''
+        :try_start
+        iget-object v0, p0, Lcom/carnav/camry/Main;->rcv:Lcom/carnav/camry/Rcv;
+        if-eqz v0, :fresh
+        invoke-virtual {p0, v0}, Landroid/app/Activity;->unregisterReceiver(Landroid/content/BroadcastReceiver;)V
+        const/4 v0, 0
+        iput-object v0, p0, Lcom/carnav/camry/Main;->rcv:Lcom/carnav/camry/Rcv;
+        :fresh
+        invoke-virtual {p1}, Ljava/lang/String;->length()I
+        move-result v0
+        if-eqz v0, :stopped
+        new-instance v0, Lorg/json/JSONArray;
+        invoke-direct {v0, p1}, Lorg/json/JSONArray;-><init>(Ljava/lang/String;)V
+        new-instance v1, Landroid/content/IntentFilter;
+        invoke-direct {v1}, Landroid/content/IntentFilter;-><init>()V
+        invoke-virtual {v0}, Lorg/json/JSONArray;->length()I
+        move-result v2
+        const/4 v3, 0
+        :loop
+        if-ge v3, v2, :reg
+        invoke-virtual {v0, v3}, Lorg/json/JSONArray;->getString(I)Ljava/lang/String;
+        move-result-object v4
+        invoke-virtual {v1, v4}, Landroid/content/IntentFilter;->addAction(Ljava/lang/String;)V
+        add-int/lit8 v3, v3, 1
+        goto :loop
+        :reg
+        new-instance v4, Lcom/carnav/camry/Rcv;
+        invoke-direct {v4, p0}, Lcom/carnav/camry/Rcv;-><init>(Lcom/carnav/camry/Main;)V
+        iput-object v4, p0, Lcom/carnav/camry/Main;->rcv:Lcom/carnav/camry/Rcv;
+        invoke-virtual {p0, v4, v1}, Landroid/app/Activity;->registerReceiver(Landroid/content/BroadcastReceiver;Landroid/content/IntentFilter;)Landroid/content/Intent;
+        move-result-object v5
+        if-eqz v5, :ok
+        invoke-virtual {v4, p0, v5}, Lcom/carnav/camry/Rcv;->onReceive(Landroid/content/Context;Landroid/content/Intent;)V
+        :ok
+        invoke-static {v2}, Ljava/lang/String;->valueOf(I)Ljava/lang/String;
+        move-result-object v0
+        return-object v0
+        :stopped
+        const-string v0, "0"
+        return-object v0
+        :try_end
+        :handler
+        move-exception v0
+        invoke-virtual {v0}, Ljava/lang/Throwable;->toString()Ljava/lang/String;
+        move-result-object v0
+        return-object v0
+        .catchall {:try_start .. :try_end} :handler
+    ''')
+
     # tyre-sensor check: USB devices on the head unit, one app's components, and settings keys about tyres
     main.method('probe', [STR], STR, 3, '''
         invoke-static {p0, p1}, Lcom/carnav/camry/Sys;->probe(Landroid/app/Activity;Ljava/lang/String;)Ljava/lang/String;
@@ -1190,6 +1250,143 @@ def build_classes():
         invoke-virtual {v0}, Lorg/json/JSONObject;->toString()Ljava/lang/String;
         move-result-object v0
         return-object v0
+    ''', flags=ACC_PUBLIC | ACC_STATIC)
+
+    # printable runs (6..200 chars) inside every *.dex of an APK that mention tyres, actions, devices -> JSON array
+    sys_.method('dexscan', [STR], STR, 12, '''
+        new-instance v0, Ljava/util/LinkedHashSet;
+        invoke-direct {v0}, Ljava/util/LinkedHashSet;-><init>()V
+        :try_start
+        new-instance v1, Ljava/util/zip/ZipFile;
+        invoke-direct {v1, p0}, Ljava/util/zip/ZipFile;-><init>(Ljava/lang/String;)V
+        invoke-virtual {v1}, Ljava/util/zip/ZipFile;->entries()Ljava/util/Enumeration;
+        move-result-object v2
+        :ent
+        invoke-interface {v2}, Ljava/util/Enumeration;->hasMoreElements()Z
+        move-result v3
+        if-eqz v3, :fin
+        invoke-interface {v2}, Ljava/util/Enumeration;->nextElement()Ljava/lang/Object;
+        move-result-object v3
+        check-cast v3, Ljava/util/zip/ZipEntry;
+        invoke-virtual {v3}, Ljava/util/zip/ZipEntry;->getName()Ljava/lang/String;
+        move-result-object v4
+        const-string v5, ".dex"
+        invoke-virtual {v4, v5}, Ljava/lang/String;->endsWith(Ljava/lang/String;)Z
+        move-result v5
+        if-eqz v5, :ent
+        invoke-virtual {v1, v3}, Ljava/util/zip/ZipFile;->getInputStream(Ljava/util/zip/ZipEntry;)Ljava/io/InputStream;
+        move-result-object v4
+        new-instance v5, Ljava/io/BufferedInputStream;
+        const v6, 0x10000
+        invoke-direct {v5, v4, v6}, Ljava/io/BufferedInputStream;-><init>(Ljava/io/InputStream;I)V
+        new-instance v6, Ljava/lang/StringBuilder;
+        invoke-direct {v6}, Ljava/lang/StringBuilder;-><init>()V
+        :rd
+        invoke-virtual {v5}, Ljava/io/BufferedInputStream;->read()I
+        move-result v7
+        if-ltz v7, :eof
+        const/16 v8, 0x20
+        if-lt v7, v8, :brk
+        const/16 v8, 0x7e
+        if-gt v7, v8, :brk
+        invoke-virtual {v6, v7}, Ljava/lang/StringBuilder;->appendCodePoint(I)Ljava/lang/StringBuilder;
+        goto :rd
+        :brk
+        invoke-static {v6, v0}, Lcom/carnav/camry/Sys;->keep(Ljava/lang/StringBuilder;Ljava/util/Set;)V
+        goto :rd
+        :eof
+        invoke-static {v6, v0}, Lcom/carnav/camry/Sys;->keep(Ljava/lang/StringBuilder;Ljava/util/Set;)V
+        invoke-virtual {v5}, Ljava/io/BufferedInputStream;->close()V
+        goto :ent
+        :fin
+        invoke-virtual {v1}, Ljava/util/zip/ZipFile;->close()V
+        :try_end
+        goto :out
+        :handler
+        move-exception v1
+        :out
+        new-instance v1, Lorg/json/JSONArray;
+        invoke-direct {v1, v0}, Lorg/json/JSONArray;-><init>(Ljava/util/Collection;)V
+        invoke-virtual {v1}, Lorg/json/JSONArray;->toString()Ljava/lang/String;
+        move-result-object v1
+        return-object v1
+        .catchall {:try_start .. :try_end} :handler
+    ''', flags=ACC_PUBLIC | ACC_STATIC)
+
+    sys_.method('keep', ['Ljava/lang/StringBuilder;', 'Ljava/util/Set;'], 'V', 8, '''
+        invoke-virtual {p0}, Ljava/lang/StringBuilder;->length()I
+        move-result v0
+        const/4 v1, 6
+        if-lt v0, v1, :clear
+        const/16 v1, 200
+        if-gt v0, v1, :clear
+        invoke-interface {p1}, Ljava/util/Set;->size()I
+        move-result v1
+        const/16 v2, 3000
+        if-ge v1, v2, :clear
+        invoke-virtual {p0}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+        move-result-object v1
+        invoke-virtual {v1}, Ljava/lang/String;->toLowerCase()Ljava/lang/String;
+        move-result-object v2
+        const-string v3, "landroid"
+        invoke-virtual {v2, v3}, Ljava/lang/String;->startsWith(Ljava/lang/String;)Z
+        move-result v4
+        if-nez v4, :clear
+        const-string v3, "lkotlin"
+        invoke-virtual {v2, v3}, Ljava/lang/String;->startsWith(Ljava/lang/String;)Z
+        move-result v4
+        if-nez v4, :clear
+        const-string v3, "tpms"
+        invoke-virtual {v2, v3}, Ljava/lang/String;->contains(Ljava/lang/CharSequence;)Z
+        move-result v4
+        if-nez v4, :add
+        const-string v3, "tire"
+        invoke-virtual {v2, v3}, Ljava/lang/String;->contains(Ljava/lang/CharSequence;)Z
+        move-result v4
+        if-nez v4, :add
+        const-string v3, "tyre"
+        invoke-virtual {v2, v3}, Ljava/lang/String;->contains(Ljava/lang/CharSequence;)Z
+        move-result v4
+        if-nez v4, :add
+        const-string v3, "pressure"
+        invoke-virtual {v2, v3}, Ljava/lang/String;->contains(Ljava/lang/CharSequence;)Z
+        move-result v4
+        if-nez v4, :add
+        const-string v3, "/dev/"
+        invoke-virtual {v2, v3}, Ljava/lang/String;->contains(Ljava/lang/CharSequence;)Z
+        move-result v4
+        if-nez v4, :add
+        const-string v3, "action"
+        invoke-virtual {v2, v3}, Ljava/lang/String;->contains(Ljava/lang/CharSequence;)Z
+        move-result v4
+        if-nez v4, :add
+        const-string v3, "broadcast"
+        invoke-virtual {v2, v3}, Ljava/lang/String;->contains(Ljava/lang/CharSequence;)Z
+        move-result v4
+        if-nez v4, :add
+        const-string v3, "reglink"
+        invoke-virtual {v2, v3}, Ljava/lang/String;->contains(Ljava/lang/CharSequence;)Z
+        move-result v4
+        if-nez v4, :add
+        const-string v3, "serial"
+        invoke-virtual {v2, v3}, Ljava/lang/String;->contains(Ljava/lang/CharSequence;)Z
+        move-result v4
+        if-nez v4, :add
+        const-string v3, "canbus"
+        invoke-virtual {v2, v3}, Ljava/lang/String;->contains(Ljava/lang/CharSequence;)Z
+        move-result v4
+        if-nez v4, :add
+        const-string v3, "content://"
+        invoke-virtual {v2, v3}, Ljava/lang/String;->contains(Ljava/lang/CharSequence;)Z
+        move-result v4
+        if-nez v4, :add
+        goto :clear
+        :add
+        invoke-interface {p1, v1}, Ljava/util/Set;->add(Ljava/lang/Object;)Z
+        :clear
+        const/4 v0, 0
+        invoke-virtual {p0, v0}, Ljava/lang/StringBuilder;->setLength(I)V
+        return-void
     ''', flags=ACC_PUBLIC | ACC_STATIC)
 
     # ComponentInfo[] -> ["name [exported] @authority", ...]
@@ -1638,4 +1835,77 @@ def build_classes():
         invoke-virtual {p1, v0}, Landroid/location/LocationManager;->registerGnssStatusCallback(Landroid/location/GnssStatus$Callback;)Z
         return-object v0
     ''', flags=ACC_PUBLIC | ACC_STATIC)
-    return [main, chrome, sys_, web, gnss]
+    rcv = ClassDef(RCV, 'Landroid/content/BroadcastReceiver;')
+    rcv.field('m', MAIN)
+    rcv.method('<init>', [MAIN], 'V', 2, '''
+        invoke-direct {p0}, Landroid/content/BroadcastReceiver;-><init>()V
+        iput-object p1, p0, Lcom/carnav/camry/Rcv;->m:Lcom/carnav/camry/Main;
+        return-void
+    ''')
+    rcv.method('onReceive', ['Landroid/content/Context;', 'Landroid/content/Intent;'], 'V', 12, '''
+        new-instance v0, Lorg/json/JSONObject;
+        invoke-direct {v0}, Lorg/json/JSONObject;-><init>()V
+        :try_start
+        const-string v1, "a"
+        invoke-virtual {p2}, Landroid/content/Intent;->getAction()Ljava/lang/String;
+        move-result-object v2
+        invoke-virtual {v0, v1, v2}, Lorg/json/JSONObject;->put(Ljava/lang/String;Ljava/lang/Object;)Lorg/json/JSONObject;
+        new-instance v1, Lorg/json/JSONObject;
+        invoke-direct {v1}, Lorg/json/JSONObject;-><init>()V
+        const-string v2, "x"
+        invoke-virtual {v0, v2, v1}, Lorg/json/JSONObject;->put(Ljava/lang/String;Ljava/lang/Object;)Lorg/json/JSONObject;
+        invoke-virtual {p2}, Landroid/content/Intent;->getExtras()Landroid/os/Bundle;
+        move-result-object v2
+        if-eqz v2, :send
+        invoke-virtual {v2}, Landroid/os/Bundle;->keySet()Ljava/util/Set;
+        move-result-object v3
+        invoke-interface {v3}, Ljava/util/Set;->iterator()Ljava/util/Iterator;
+        move-result-object v3
+        :loop
+        invoke-interface {v3}, Ljava/util/Iterator;->hasNext()Z
+        move-result v4
+        if-eqz v4, :send
+        invoke-interface {v3}, Ljava/util/Iterator;->next()Ljava/lang/Object;
+        move-result-object v4
+        check-cast v4, Ljava/lang/String;
+        invoke-virtual {v2, v4}, Landroid/os/Bundle;->get(Ljava/lang/String;)Ljava/lang/Object;
+        move-result-object v5
+        invoke-static {v5}, Lorg/json/JSONObject;->wrap(Ljava/lang/Object;)Ljava/lang/Object;
+        move-result-object v6
+        if-nez v6, :put
+        invoke-static {v5}, Ljava/lang/String;->valueOf(Ljava/lang/Object;)Ljava/lang/String;
+        move-result-object v6
+        :put
+        invoke-virtual {v1, v4, v6}, Lorg/json/JSONObject;->put(Ljava/lang/String;Ljava/lang/Object;)Lorg/json/JSONObject;
+        goto :loop
+        :try_end
+        :handler
+        move-exception v1
+        :h_start
+        const-string v2, "err"
+        invoke-virtual {v1}, Ljava/lang/Throwable;->toString()Ljava/lang/String;
+        move-result-object v1
+        invoke-virtual {v0, v2, v1}, Lorg/json/JSONObject;->put(Ljava/lang/String;Ljava/lang/Object;)Lorg/json/JSONObject;
+        :h_end
+        goto :send
+        :h_err
+        move-exception v1
+        :send
+        new-instance v1, Ljava/lang/StringBuilder;
+        const-string v2, "window.onBcast&&onBcast("
+        invoke-direct {v1, v2}, Ljava/lang/StringBuilder;-><init>(Ljava/lang/String;)V
+        invoke-virtual {v0}, Lorg/json/JSONObject;->toString()Ljava/lang/String;
+        move-result-object v2
+        invoke-virtual {v1, v2}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+        const-string v2, ")"
+        invoke-virtual {v1, v2}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+        invoke-virtual {v1}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+        move-result-object v1
+        iget-object v2, p0, Lcom/carnav/camry/Rcv;->m:Lcom/carnav/camry/Main;
+        invoke-virtual {v2, v1}, Lcom/carnav/camry/Main;->js(Ljava/lang/String;)V
+        return-void
+        .catchall {:try_start .. :try_end} :handler
+        .catchall {:h_start .. :h_end} :h_err
+    ''')
+
+    return [main, chrome, sys_, web, gnss, rcv]

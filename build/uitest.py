@@ -22,6 +22,9 @@ window.prompt = function (cmd, arg) {
       {p:'com.syu.bt', l:'Bluetooth'}, {p:'com.spotify.music', l:'Spotify'}, {p:'com.google.android.youtube', l:'YouTube'},
       {p:'com.android.settings', l:'الإعدادات'}, {p:'com.whatsapp', l:'WhatsApp'}, {p:'com.anghami', l:'أنغامي'},
       {p:'com.carnav.camry', l:'مقود'}, {p:'com.syu.fancontrol', l:'Fan'}, {p:'com.example.tpms', l:'TPMS'}, {p:'com.example.carmanager', l:'Car Manager'}]);
+    case 'dexscan': return JSON.stringify(['*com.reglink.vehicleinfo.ACTION_TPMS_UPDATE', 'tpms_fl_pressure', 'tpms_fr_pressure', 'TirePressureBean',
+      'Lcom/reglink/vehicleinfo/tpms/TpmsManager;', '/dev/ttyS3', 'com.reglink.vehicleinfo.ACTION_CAN_DATA', 'android.intent.action.BOOT_COMPLETED', 'tire_unit']);
+    case 'listen': return arg ? String(JSON.parse(arg).length) : '0';
     case 'probe': return JSON.stringify({usb:[{n:'/dev/bus/usb/001/004', v:6790, p:29987, c:255, i:1, ic:255, m:'QinHeng', pr:'USB Serial'}],
       pk: arg ? {p:arg, ver:'2.1', src:'/system/app/TPMS/TPMS.apk', svc:['com.example.tpms.TpmsService [exported]'], rcv:['com.example.tpms.BootReceiver [exported]'], prv:[],
       perm:['android.permission.SYSTEM_ALERT_WINDOW', 'android.permission.RECEIVE_BOOT_COMPLETED']} : undefined, set:['system: tpms_unit = 1']});

@@ -144,7 +144,48 @@
         }).join('') +
         '<div class="sec-title">إعدادات النظام عن الإطارات (' + App.d(set.length) + ')</div><div class="pb" dir="ltr">' +
         (set.length ? set.map(function (q) { return '<div class="pb-row">' + App.esc(q) + '</div>'; }).join('') : '<div class="pb-row pb-dim">none</div>') + '</div>';
+      // deep check: what the sensor app's own code mentions, and every broadcast it sends while this page is open
+      var src = null;
+      res.forEach(function (x) { if (!src && x.r.pk && x.r.pk.src) src = x.r.pk.src; });
+      if (!src) return;
+      var box = document.createElement('div'); box.id = 'pbDeep';
+      box.innerHTML = '<div class="sec-title">الفحص المتقدم</div><div class="pb"><div class="pb-row pb-dim">جاري قراءة تطبيق الحساسات…</div></div>';
+      body.insertBefore(box, body.children[1]);
+      setTimeout(function () { deep(box, src); }, 250);
     });
+  };
+  var caught = [];
+  function deep(box, src) {
+    var raw = App.Native.json('dexscan', src) || [], seen = {};
+    var strs = raw.map(function (q) { return q.charCodeAt(0) === q.length - 1 ? q.slice(1) : q; }).filter(function (q) { return !seen[q] && (seen[q] = 1); });
+    var tire = strs.filter(function (q) { return /tpms|tire|tyre|pressure/i.test(q); });
+    var acts = strs.filter(function (q) {
+      return (/^[A-Za-z_][\w$]*(\.[\w$]+){2,}$/.test(q) && !/^(java|javax|android|androidx|kotlin|kotlinx|dalvik|org|com\.google|com\.android)\./.test(q)) ||
+        (/^[\w$]+(\.[\w$]+)+$/.test(q) && /tpms|tire|tyre/i.test(q));
+    });
+    var devs = strs.filter(function (q) { return /\/dev\//.test(q); });
+    var n = acts.length ? App.Native.call('listen', JSON.stringify(acts.slice(0, 400))) : '0';
+    function grid(t, arr, max) {
+      return arr.length ? '<div class="pb-k">' + t + ' (' + arr.length + ')</div><div class="pb-grid">' + arr.slice(0, max).map(function (q) { return '<span>' + App.esc(q) + '</span>'; }).join('') + '</div>' : '';
+    }
+    box.innerHTML = '<div class="sec-title">البث من تطبيق الحساسات — أستمع لـ ' + App.esc(n) + ' نوع</div>' +
+      '<div class="pb" dir="ltr" id="pbCaught"><div class="pb-row pb-dim">' + (caught.length ? '' : 'ما وصل شي للحين — افتح تطبيق TPMS دقيقة وارجع هنا') + '</div></div>' +
+      '<div class="sec-title">داخل تطبيق الحساسات (' + App.d(strs.length) + ')</div><div class="pb" dir="ltr">' +
+      (strs.length ? grid('tyres', tire, 90) + grid('actions', acts, 70) + grid('devices', devs, 20) : '<div class="pb-row pb-dim">' + App.esc(src) + ' — unreadable</div>') + '</div>';
+    paintCaught();
+  }
+  function paintCaught() {
+    var el = App.$('pbCaught'); if (!el || !caught.length) return;
+    el.innerHTML = caught.map(function (o) {
+      return '<div class="pb-row"><b>' + App.esc(o.a || '?') + '</b> ' + App.esc(JSON.stringify(o.x || {})).slice(0, 600) + (o.err ? ' <span class="pb-dim">' + App.esc(o.err) + '</span>' : '') + '</div>';
+    }).join('');
+  }
+  window.onBcast = function (o) {
+    if (!o) return;
+    caught = caught.filter(function (c) { return c.a !== o.a; });
+    caught.unshift(o); if (caught.length > 12) caught.pop();
+    try { App.store.set('bcast', caught); } catch (e) { /* storage full or unavailable */ }
+    paintCaught();
   };
 
   // ---------- recording ----------
@@ -291,7 +332,11 @@
     bar();
     App.on('tires', bar);
     App.on('settings', bar);
-    App.on('panel', function (n) { if (n !== 'tires') edit = null; });
+    App.on('panel', function (n) {
+      if (n !== 'tires') edit = null;
+      if (!n && App.Native.has) App.Native.call('listen', '');
+    });
+    caught = App.store.get('bcast', []) || [];
     setInterval(bar, 3600e3);
   };
 })();

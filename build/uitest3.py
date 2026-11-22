@@ -118,6 +118,13 @@ if __name__ == '__main__':
             p.click('#tyProbe2'); p.wait_for_timeout(500)
             print('probe panel:', p.locator('.pb').count())
         shot('orbit', 1280, 720, 'probe2', v)
+        def deep(p):
+            p.click('.st-b[data-panel="tires"]'); p.wait_for_timeout(500)
+            p.click('#tyProbe2'); p.wait_for_timeout(900)
+            p.evaluate("onBcast({a:'com.reglink.vehicleinfo.ACTION_TPMS_UPDATE', x:{fl:2.7, fr:2.6, rl:2.6, rr:2.8, unit:'bar'}})")
+            p.wait_for_timeout(300)
+            print('listen calls:', [c[1][:60] for c in p.evaluate('window.__calls') if c[0] == 'listen'])
+        shot('orbit', 1280, 720, 'probe_deep', deep)
         def w(p):
             p.click('.st-b[data-panel="tires"]'); p.wait_for_timeout(500)
         shot('orbit', 1280, 720, 'tires_panel_323', w)
