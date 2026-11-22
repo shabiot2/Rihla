@@ -111,6 +111,16 @@ if __name__ == '__main__':
             p.click('#tyApp'); p.wait_for_timeout(500)
             print('launched:', [c for c in p.evaluate('window.__calls') if c[0] == 'launch'])
         shot('orbit', 1280, 720, 'sensor_launch', sens)
+    elif which == 'probe2':
+        def v(p):
+            p.click('.st-b[data-panel="tires"]'); p.wait_for_timeout(500)
+            print('probe button:', p.locator('#tyProbe2').count())
+            p.click('#tyProbe2'); p.wait_for_timeout(500)
+            print('probe panel:', p.locator('.pb').count())
+        shot('orbit', 1280, 720, 'probe2', v)
+        def w(p):
+            p.click('.st-b[data-panel="tires"]'); p.wait_for_timeout(500)
+        shot('orbit', 1280, 720, 'tires_panel_323', w)
     elif which == 'one':
         w, h = [int(x) for x in sys.argv[4].split('x')] if len(sys.argv) > 4 else (1280, 720)
         shot(sys.argv[3], w, h)

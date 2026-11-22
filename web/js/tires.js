@@ -219,7 +219,8 @@
         '<button class="chip" id="tySet">' + App.icon('settings') + 'تعديل</button></div>' +
         '<div class="btn-row"><button class="btn primary" id="tyLog">' + App.icon('edit') + 'تسجيل قراءة</button>' +
         '<button class="btn" id="tyFill">' + App.icon('check') + 'عبّيتها كلها ' + T.num(r) + '</button></div>' +
-        '<button class="btn ty-app" id="tyApp">' + App.icon('car') + 'صفحة الحساسات في الشاشة' + (App.settings.tpmsApp ? '<small>' + App.esc(App.system.label(App.settings.tpmsApp)) + '</small>' : '') + '</button>' +
+        '<div class="btn-row"><button class="btn ty-app" id="tyApp">' + App.icon('car') + 'صفحة الحساسات' + (App.settings.tpmsApp ? '<small>' + App.esc(App.system.label(App.settings.tpmsApp)) + '</small>' : '') + '</button>' +
+        (App.Native.has ? '<button class="btn" id="tyProbe2">' + App.icon('search') + 'فحص الحساس</button>' : '') + '</div>' +
         (hist.length ? '<div class="sec-title">آخر القراءات</div><div class="ty-hist">' + hist.map(function (h) {
           return '<div class="ty-h"><span class="d">' + dateLbl(h.t) + '</span><span class="q">' + h.v.map(function (p) {
             return '<i class="lv-' + T.level(p) + '">' + T.num(p) + '</i>';
@@ -250,6 +251,7 @@
       App.$('tyLog').onclick = start;
       App.$('tyFill').onclick = function () { T.fillAll(); App.panels.refresh(); };
       App.$('tySet').onclick = settings;
+      if (App.$('tyProbe2')) App.$('tyProbe2').onclick = T.probe;
     }
     App.$('tyApp').onclick = function () { T.openSensors(false); };
   }

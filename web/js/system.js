@@ -299,7 +299,7 @@
       '<span class="chip ' + (App.android.supported ? 'on' : 'danger') + '">' + App.icon(App.android.supported ? 'check' : 'close') +
       (App.android.supported ? 'متوافق' : 'نسخة قديمة') + '</span></div></div>' +
       '<div class="sec"><div class="sec-title">حول التطبيق</div><div class="about">' + App.brand('lg') +
-      '<div class="ab-txt"><b>رحلة — الإصدار ' + App.d('3.2.2') + '</b><span>جميع الحقوق محفوظة © ' + App.d('2026') + ' أبو دانة للبرمجة</span>' +
+      '<div class="ab-txt"><b>رحلة — الإصدار ' + App.d('3.2.3') + '</b><span>جميع الحقوق محفوظة © ' + App.d('2026') + ' أبو دانة للبرمجة</span>' +
       '<small>تصميم وتطوير أبو دانة للبرمجة • بيانات المدن والأحياء: Natural Earth و homaily/Saudi-Arabia-Regions-Cities-and-Districts (GPL-2.0) • الأماكن © OpenStreetMap • ' +
       'الإذاعات mp3quran.net و radio-browser.info • الطقس Open-Meteo • الخطوط: Readex Pro و Alexandria و Changa و Orbitron و El Messiri و IBM Plex Sans Arabic و Baloo Bhaijaan 2 و Aref Ruqaa و Amiri (SIL OFL)</small></div></div></div>';
 
