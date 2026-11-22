@@ -86,6 +86,7 @@
   T.openSensors = function (choose) {
     if (!App.Native.has) { App.toast('صفحة الحساسات تفتح من شاشة السيارة نفسها', 3200); return; }
     var s = App.settings.tpmsApp, list = T.sensorApps(), exact = list.filter(isTpms);
+    if (!choose && exact.length === 1 && s !== exact[0].p) { s = App.settings.tpmsApp = exact[0].p; App.saveSettings(); }
     if (s && !choose && App.Native.call('launch', s) === '1') return;
     if (exact.length === 1) list = exact.concat(list.filter(function (a) { return !isTpms(a); }));
     if ((exact.length === 1 || list.length === 1) && !choose) { App.settings.tpmsApp = list[0].p; App.saveSettings(); App.system.launch(list[0].p, list[0].l); return; }
@@ -118,17 +119,47 @@
 
   // ---------- «فحص الحساس»: how does the screen's TPMS app get its numbers? (USB device, its components, settings keys) ----------
   function hex4(n) { n = (+n || 0).toString(16); return ('0000' + n).slice(-4); }
+  // which apps to examine: the screen's «TPMS» first, then the chosen one, then anything about cars / tyres
+  function probeApps() {
+    var all = App.system.apps(true), saved = App.settings.tpmsApp, out = [], seen = {};
+    function add(a) { if (a && !seen[a.p] && out.length < 3 && !/carplay|zlink|autokit|android\.auto|projection|mirror/i.test(a.p + ' ' + a.l)) { seen[a.p] = 1; out.push(a); } }
+    all.filter(isTpms).forEach(add);
+    if (saved) add(all.filter(function (a) { return a.p === saved; })[0] || { p: saved, l: saved });
+    all.filter(function (a) { return TP.test(a.p) || TP.test(String(a.l)); }).forEach(add);
+    all.filter(function (a) { return /car|vehicle|auto/i.test(a.p + ' ' + a.l); }).forEach(add);
+    return out;
+  }
+  function pickForProbe() {
+    App.panels.push('اختر تطبيق الحساسات', function (body) {
+      var all = App.system.apps(true);
+      body.innerHTML = '<div class="note">اختر التطبيق اللي يطلع فيه ضغط الكفرات (مثل TPMS). الفحص يبدأ فيه.</div>' +
+        '<div class="search-input">' + App.icon('search') + '<input id="ppFilter" placeholder="ابحث…"></div>' +
+        all.map(function (a) {
+          return '<button class="row" data-p="' + App.esc(a.p) + '" data-l="' + App.esc(String(a.l).toLowerCase()) + '"><span data-icon="' + App.esc(a.p) + '" class="lead-ic"><span class="ph">' +
+            App.esc(String(a.l).charAt(0)) + '</span></span><span class="txt"><b>' + App.esc(a.l) + '</b><small>' + App.esc(a.p) + '</small></span></button>';
+        }).join('');
+      body.querySelectorAll('[data-p]').forEach(function (b) {
+        b.onclick = function () { App.settings.tpmsApp = b.dataset.p; App.saveSettings(); App.panels.back(); App.panels.refresh(); };
+      });
+      App.$('ppFilter').oninput = function () {
+        var q = this.value.trim().toLowerCase();
+        body.querySelectorAll('[data-p]').forEach(function (x) { x.style.display = !q || x.dataset.l.indexOf(q) >= 0 || x.dataset.p.indexOf(q) >= 0 ? '' : 'none'; });
+      };
+      App.system.lazyIcons(body);
+    });
+  }
   T.probe = function () {
     App.panels.push('فحص حساس الإطارات', function (body) {
       if (!App.Native.has) { body.innerHTML = '<div class="note">الفحص يشتغل على شاشة السيارة نفسها.</div>'; return; }
-      var cands = T.sensorApps().sort(function (a, b) { return isTpms(b) - isTpms(a); }).slice(0, 3);
-      var saved = App.settings.tpmsApp;
-      if (saved && !cands.some(function (a) { return a.p === saved; })) cands.unshift({ p: saved, l: App.system.label(saved) });
+      var cands = probeApps();
       var res = cands.length ? cands.map(function (a) { return { a: a, r: App.Native.json('probe', a.p) || {} }; }) : [{ a: null, r: App.Native.json('probe', '') || {} }];
       var first = res[0].r, usb = first.usb || [], set = first.set || [];
       function list(t, arr) { return arr && arr.length ? '<div class="pb-k">' + t + ' (' + arr.length + ')</div><div class="pb-v">' + arr.map(App.esc).join('<br>') + '</div>' : ''; }
       body.innerHTML = '<div class="big-status on">' + App.icon('tire') + '<div class="txt"><b>صوّر هالصفحة وأرسلها</b><small>' +
         'تبيّن من وين يجيب تطبيق الحساسات أرقامه — عشان رحلة تقرأها مباشرة. اسحب لتحت وصوّر الباقي إذا طويلة.</small></div></div>' +
+        '<div class="pb-apps"><span>التطبيقات المفحوصة: <b>' + (cands.length ? cands.map(function (a) { return App.esc(a.l); }).join(' · ') : '—') + '</b></span>' +
+        '<button class="chip" id="pbPick">' + App.icon('apps') + 'اختر تطبيق ثاني</button></div>' +
+        '<div id="pbDeep"></div>' +
         '<div class="sec-title">أجهزة USB الموصولة (' + App.d(usb.length) + ')</div><div class="pb" dir="ltr">' +
         (usb.length ? usb.map(function (d) {
           return '<div class="pb-row"><b>' + hex4(d.v) + ':' + hex4(d.p) + '</b> class ' + d.c + '/' + (d.ic == null ? '-' : d.ic) + ' · if ' + d.i +
@@ -144,19 +175,23 @@
         }).join('') +
         '<div class="sec-title">إعدادات النظام عن الإطارات (' + App.d(set.length) + ')</div><div class="pb" dir="ltr">' +
         (set.length ? set.map(function (q) { return '<div class="pb-row">' + App.esc(q) + '</div>'; }).join('') : '<div class="pb-row pb-dim">none</div>') + '</div>';
-      // deep check: what the sensor app's own code mentions, and every broadcast it sends while this page is open
-      var src = null;
-      res.forEach(function (x) { if (!src && x.r.pk && x.r.pk.src) src = x.r.pk.src; });
-      if (!src) return;
-      var box = document.createElement('div'); box.id = 'pbDeep';
-      box.innerHTML = '<div class="sec-title">الفحص المتقدم</div><div class="pb"><div class="pb-row pb-dim">جاري قراءة تطبيق الحساسات…</div></div>';
-      body.insertBefore(box, body.children[1]);
-      setTimeout(function () { deep(box, src); }, 250);
+      App.$('pbPick').onclick = pickForProbe;
+      // deep check: what each app's own code mentions, and every broadcast those names carry while this page is open
+      var srcs = res.filter(function (x) { return x.a && x.r.pk && x.r.pk.src; }).map(function (x) { return { l: x.a.l, src: x.r.pk.src }; });
+      var box = App.$('pbDeep');
+      if (!srcs.length) { box.innerHTML = ''; return; }
+      box.innerHTML = '<div class="sec-title">الفحص المتقدم</div><div class="pb"><div class="pb-row pb-dim">جاري قراءة ' + srcs.map(function (x) { return App.esc(x.l); }).join(' و ') + '…</div></div>';
+      var raw = [], k = 0;
+      (function next() {
+        if (k >= srcs.length) { deep(box, raw, srcs); return; }
+        raw = raw.concat(App.Native.json('dexscan', srcs[k++].src) || []);
+        setTimeout(next, 30);
+      })();
     });
   };
   var caught = [];
-  function deep(box, src) {
-    var raw = App.Native.json('dexscan', src) || [], seen = {};
+  function deep(box, raw, srcs) {
+    var seen = {};
     var strs = raw.map(function (q) { return q.charCodeAt(0) === q.length - 1 ? q.slice(1) : q; }).filter(function (q) { return !seen[q] && (seen[q] = 1); });
     var tire = strs.filter(function (q) { return /tpms|tire|tyre|pressure/i.test(q); });
     var acts = strs.filter(function (q) {
@@ -164,14 +199,14 @@
         (/^[\w$]+(\.[\w$]+)+$/.test(q) && /tpms|tire|tyre/i.test(q));
     });
     var devs = strs.filter(function (q) { return /\/dev\//.test(q); });
-    var n = acts.length ? App.Native.call('listen', JSON.stringify(acts.slice(0, 400))) : '0';
+    var n = acts.length ? App.Native.call('listen', JSON.stringify(acts.slice(0, 600))) : '0';
     function grid(t, arr, max) {
       return arr.length ? '<div class="pb-k">' + t + ' (' + arr.length + ')</div><div class="pb-grid">' + arr.slice(0, max).map(function (q) { return '<span>' + App.esc(q) + '</span>'; }).join('') + '</div>' : '';
     }
-    box.innerHTML = '<div class="sec-title">البث من تطبيق الحساسات — أستمع لـ ' + App.esc(n) + ' نوع</div>' +
+    box.innerHTML = '<div class="sec-title">البث الملتقط — أستمع لـ ' + App.esc(n) + ' نوع</div>' +
       '<div class="pb" dir="ltr" id="pbCaught"><div class="pb-row pb-dim">' + (caught.length ? '' : 'ما وصل شي للحين — افتح تطبيق TPMS دقيقة وارجع هنا') + '</div></div>' +
-      '<div class="sec-title">داخل تطبيق الحساسات (' + App.d(strs.length) + ')</div><div class="pb" dir="ltr">' +
-      (strs.length ? grid('tyres', tire, 90) + grid('actions', acts, 70) + grid('devices', devs, 20) : '<div class="pb-row pb-dim">' + App.esc(src) + ' — unreadable</div>') + '</div>';
+      '<div class="sec-title">داخل ' + srcs.map(function (x) { return App.esc(x.l); }).join(' و ') + ' (' + App.d(strs.length) + ')</div><div class="pb" dir="ltr">' +
+      (strs.length ? grid('tyres', tire, 90) + grid('actions', acts, 70) + grid('devices', devs, 20) : '<div class="pb-row pb-dim">unreadable</div>') + '</div>';
     paintCaught();
   }
   function paintCaught() {
