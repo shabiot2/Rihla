@@ -85,3 +85,12 @@
   .ty { grid-template-columns: 1fr; }
   .ty-hist { grid-template-columns: repeat(auto-fill, minmax(15vmin, 1fr)); }
 }
+
+/* «فحص الحساس» — technical, left-to-right, screenshot-friendly */
+.pb { border: 1px solid var(--line); border-radius: 14px; padding: 1vmin 1.4vmin; margin-bottom: 1.2vmin; background: var(--card);
+  font-size: 1.65vmin; line-height: 1.5; text-align: left; word-break: break-all; }
+.pb-row { padding: .3vmin 0; }
+.pb-row b { color: var(--accent); }
+.pb-k { margin-top: .6vmin; font-weight: 700; color: var(--muted); }
+.pb-v { padding-left: 1vmin; }
+.pb-dim { color: var(--muted); }

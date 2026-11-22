@@ -66,6 +66,15 @@ SUPER = {
     'Landroid/content/IntentFilter;': 'Ljava/lang/Object;',
     'Landroid/os/PowerManager;': 'Ljava/lang/Object;',
     'Landroid/content/BroadcastReceiver;': 'Ljava/lang/Object;',
+    'Landroid/content/pm/ComponentInfo;': 'Landroid/content/pm/PackageItemInfo;',
+    'Landroid/content/pm/ServiceInfo;': 'Landroid/content/pm/ComponentInfo;',
+    'Landroid/content/pm/ProviderInfo;': 'Landroid/content/pm/ComponentInfo;',
+    'Landroid/content/pm/PackageInfo;': 'Ljava/lang/Object;',
+    'Landroid/hardware/usb/UsbManager;': 'Ljava/lang/Object;',
+    'Landroid/hardware/usb/UsbDevice;': 'Ljava/lang/Object;',
+    'Landroid/hardware/usb/UsbInterface;': 'Ljava/lang/Object;',
+    'Landroid/content/ContentResolver;': 'Ljava/lang/Object;',
+    'Landroid/os/CancellationSignal;': 'Ljava/lang/Object;',
 }
 for _c in ['Landroid/content/Context;', 'Landroid/view/View;', 'Landroid/webkit/WebChromeClient;',
            'Landroid/webkit/WebViewClient;', 'Landroid/webkit/WebSettings;', 'Landroid/webkit/JsResult;',
@@ -83,7 +92,8 @@ for _c in ['Landroid/content/Context;', 'Landroid/view/View;', 'Landroid/webkit/
 IFACE = {'Landroid/location/LocationListener;', 'Landroid/speech/tts/TextToSpeech$OnInitListener;',
          'Ljava/lang/CharSequence;', 'Ljava/util/List;', 'Ljava/util/Set;', 'Ljava/util/Iterator;',
          'Landroid/webkit/ValueCallback;', 'Landroid/webkit/GeolocationPermissions$Callback;',
-         'Ljava/util/Map;', 'Landroid/webkit/WebResourceRequest;'}
+         'Ljava/util/Map;', 'Landroid/webkit/WebResourceRequest;', 'Landroid/database/Cursor;',
+         'Ljava/util/Collection;'}
 IMPLS = {'Lcom/carnav/camry/Main;': {'Landroid/location/LocationListener;',
                                      'Landroid/speech/tts/TextToSpeech$OnInitListener;'},
          'Ljava/lang/String;': {'Ljava/lang/CharSequence;'},
@@ -349,6 +359,9 @@ def verify(m, warnings):
         elif n == 'check-cast':
             need_ref(R0)
             put(R0, ('R', ins.ref, True, None))
+        elif n == 'instance-of':
+            need_ref(ins.regs[1])
+            put(R0, I)
         elif n == 'new-array':
             need_int(ins.regs[1])
             put(R0, ('R', ins.ref, True, None))

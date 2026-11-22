@@ -278,7 +278,7 @@ def build_classes():
     cmds = [('launch', True), ('intent', True), ('view', True), ('apps', False), ('icon', True),
             ('wifi', True), ('bt', True), ('tts', True), ('vol', True), ('key', True), ('full', True),
             ('home', True), ('temp', True), ('sys', True), ('net', True), ('cache', True),
-            ('radios', False), ('start', True), ('ls', True), ('perm', True)]
+            ('radios', False), ('start', True), ('ls', True), ('perm', True), ('probe', True)]
     h = ['const-string v0, "ping"', S_EQ % ('v0', 'p1'), 'move-result v1', 'if-eqz v1, :c0',
          'const-string v0, "pong"', 'return-object v0']
     for k, (c, has_arg) in enumerate(cmds):
@@ -779,6 +779,13 @@ def build_classes():
         return-object v0
     ''')
 
+    # tyre-sensor check: USB devices on the head unit, one app's components, and settings keys about tyres
+    main.method('probe', [STR], STR, 3, '''
+        invoke-static {p0, p1}, Lcom/carnav/camry/Sys;->probe(Landroid/app/Activity;Ljava/lang/String;)Ljava/lang/String;
+        move-result-object v0
+        return-object v0
+    ''')
+
     chrome = ClassDef(CHROME, 'Landroid/webkit/WebChromeClient;')
     chrome.field('a', MAIN)
     chrome.method('<init>', [MAIN], 'V', 2, '''
@@ -1183,6 +1190,271 @@ def build_classes():
         invoke-virtual {v0}, Lorg/json/JSONObject;->toString()Ljava/lang/String;
         move-result-object v0
         return-object v0
+    ''', flags=ACC_PUBLIC | ACC_STATIC)
+
+    # ComponentInfo[] -> ["name [exported] @authority", ...]
+    sys_.method('names', ['[Landroid/content/pm/ComponentInfo;'], 'Lorg/json/JSONArray;', 8, '''
+        new-instance v0, Lorg/json/JSONArray;
+        invoke-direct {v0}, Lorg/json/JSONArray;-><init>()V
+        if-eqz p0, :done
+        array-length v1, p0
+        const/4 v2, 0
+        :loop
+        if-ge v2, v1, :done
+        aget-object v3, p0, v2
+        new-instance v4, Ljava/lang/StringBuilder;
+        invoke-direct {v4}, Ljava/lang/StringBuilder;-><init>()V
+        iget-object v5, v3, Landroid/content/pm/PackageItemInfo;->name:Ljava/lang/String;
+        invoke-virtual {v4, v5}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+        iget-boolean v5, v3, Landroid/content/pm/ComponentInfo;->exported:Z
+        if-eqz v5, :priv
+        const-string v5, " [exported]"
+        invoke-virtual {v4, v5}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+        :priv
+        instance-of v5, v3, Landroid/content/pm/ProviderInfo;
+        if-eqz v5, :add
+        check-cast v3, Landroid/content/pm/ProviderInfo;
+        const-string v5, " @"
+        invoke-virtual {v4, v5}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+        iget-object v5, v3, Landroid/content/pm/ProviderInfo;->authority:Ljava/lang/String;
+        invoke-virtual {v4, v5}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+        :add
+        invoke-virtual {v4}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+        move-result-object v5
+        invoke-virtual {v0, v5}, Lorg/json/JSONArray;->put(Ljava/lang/Object;)Lorg/json/JSONArray;
+        add-int/lit8 v2, v2, 1
+        goto :loop
+        :done
+        return-object v0
+    ''', flags=ACC_PUBLIC | ACC_STATIC)
+
+    # rows of content://settings/<table> whose key mentions tpms / tire / tyre / press -> "table: key = value"
+    sys_.method('scanSettings', ['Landroid/app/Activity;', STR, 'Lorg/json/JSONArray;'], 'V', 12, '''
+        :try_start
+        invoke-virtual {p0}, Landroid/app/Activity;->getContentResolver()Landroid/content/ContentResolver;
+        move-result-object v0
+        new-instance v1, Ljava/lang/StringBuilder;
+        invoke-direct {v1}, Ljava/lang/StringBuilder;-><init>()V
+        const-string v2, "content://settings/"
+        invoke-virtual {v1, v2}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+        invoke-virtual {v1, p1}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+        invoke-virtual {v1}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+        move-result-object v1
+        invoke-static {v1}, Landroid/net/Uri;->parse(Ljava/lang/String;)Landroid/net/Uri;
+        move-result-object v1
+        const/4 v2, 0
+        invoke-virtual {v0, v1, v2, v2, v2}, Landroid/content/ContentResolver;->query(Landroid/net/Uri;[Ljava/lang/String;Landroid/os/Bundle;Landroid/os/CancellationSignal;)Landroid/database/Cursor;
+        move-result-object v0
+        if-eqz v0, :out
+        :loop
+        invoke-interface {v0}, Landroid/database/Cursor;->moveToNext()Z
+        move-result v1
+        if-eqz v1, :close
+        const-string v1, "name"
+        invoke-interface {v0, v1}, Landroid/database/Cursor;->getColumnIndex(Ljava/lang/String;)I
+        move-result v1
+        if-ltz v1, :close
+        invoke-interface {v0, v1}, Landroid/database/Cursor;->getString(I)Ljava/lang/String;
+        move-result-object v2
+        if-eqz v2, :loop
+        invoke-virtual {v2}, Ljava/lang/String;->toLowerCase()Ljava/lang/String;
+        move-result-object v3
+        const-string v4, "tpms"
+        invoke-virtual {v3, v4}, Ljava/lang/String;->contains(Ljava/lang/CharSequence;)Z
+        move-result v5
+        if-nez v5, :hit
+        const-string v4, "tire"
+        invoke-virtual {v3, v4}, Ljava/lang/String;->contains(Ljava/lang/CharSequence;)Z
+        move-result v5
+        if-nez v5, :hit
+        const-string v4, "tyre"
+        invoke-virtual {v3, v4}, Ljava/lang/String;->contains(Ljava/lang/CharSequence;)Z
+        move-result v5
+        if-nez v5, :hit
+        const-string v4, "press"
+        invoke-virtual {v3, v4}, Ljava/lang/String;->contains(Ljava/lang/CharSequence;)Z
+        move-result v5
+        if-nez v5, :hit
+        goto :loop
+        :hit
+        const-string v4, "value"
+        invoke-interface {v0, v4}, Landroid/database/Cursor;->getColumnIndex(Ljava/lang/String;)I
+        move-result v4
+        new-instance v5, Ljava/lang/StringBuilder;
+        invoke-direct {v5}, Ljava/lang/StringBuilder;-><init>()V
+        invoke-virtual {v5, p1}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+        const-string v6, ": "
+        invoke-virtual {v5, v6}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+        invoke-virtual {v5, v2}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+        const-string v6, " = "
+        invoke-virtual {v5, v6}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+        if-ltz v4, :noval
+        invoke-interface {v0, v4}, Landroid/database/Cursor;->getString(I)Ljava/lang/String;
+        move-result-object v6
+        invoke-virtual {v5, v6}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+        :noval
+        invoke-virtual {v5}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+        move-result-object v6
+        invoke-virtual {p2, v6}, Lorg/json/JSONArray;->put(Ljava/lang/Object;)Lorg/json/JSONArray;
+        goto :loop
+        :close
+        invoke-interface {v0}, Landroid/database/Cursor;->close()V
+        :out
+        return-void
+        :try_end
+        :handler
+        move-exception v0
+        return-void
+        .catchall {:try_start .. :try_end} :handler
+    ''', flags=ACC_PUBLIC | ACC_STATIC)
+
+    # {"usb":[{n,v,p,c,i,ic,m,pr}], "pk":{p,ver,src,svc,rcv,prv,perm}, "set":["system: key = value"]}
+    sys_.method('probe', ['Landroid/app/Activity;', STR], STR, 14, '''
+        new-instance v0, Lorg/json/JSONObject;
+        invoke-direct {v0}, Lorg/json/JSONObject;-><init>()V
+        :u_try
+        const-string v1, "usb"
+        invoke-virtual {p0, v1}, Landroid/app/Activity;->getSystemService(Ljava/lang/String;)Ljava/lang/Object;
+        move-result-object v1
+        check-cast v1, Landroid/hardware/usb/UsbManager;
+        invoke-virtual {v1}, Landroid/hardware/usb/UsbManager;->getDeviceList()Ljava/util/HashMap;
+        move-result-object v1
+        invoke-virtual {v1}, Ljava/util/HashMap;->values()Ljava/util/Collection;
+        move-result-object v1
+        invoke-interface {v1}, Ljava/util/Collection;->iterator()Ljava/util/Iterator;
+        move-result-object v1
+        new-instance v2, Lorg/json/JSONArray;
+        invoke-direct {v2}, Lorg/json/JSONArray;-><init>()V
+        :u_loop
+        invoke-interface {v1}, Ljava/util/Iterator;->hasNext()Z
+        move-result v3
+        if-eqz v3, :u_done
+        invoke-interface {v1}, Ljava/util/Iterator;->next()Ljava/lang/Object;
+        move-result-object v3
+        check-cast v3, Landroid/hardware/usb/UsbDevice;
+        new-instance v4, Lorg/json/JSONObject;
+        invoke-direct {v4}, Lorg/json/JSONObject;-><init>()V
+        const-string v5, "n"
+        invoke-virtual {v3}, Landroid/hardware/usb/UsbDevice;->getDeviceName()Ljava/lang/String;
+        move-result-object v6
+        invoke-virtual {v4, v5, v6}, Lorg/json/JSONObject;->put(Ljava/lang/String;Ljava/lang/Object;)Lorg/json/JSONObject;
+        const-string v5, "v"
+        invoke-virtual {v3}, Landroid/hardware/usb/UsbDevice;->getVendorId()I
+        move-result v6
+        invoke-virtual {v4, v5, v6}, Lorg/json/JSONObject;->put(Ljava/lang/String;I)Lorg/json/JSONObject;
+        const-string v5, "p"
+        invoke-virtual {v3}, Landroid/hardware/usb/UsbDevice;->getProductId()I
+        move-result v6
+        invoke-virtual {v4, v5, v6}, Lorg/json/JSONObject;->put(Ljava/lang/String;I)Lorg/json/JSONObject;
+        const-string v5, "c"
+        invoke-virtual {v3}, Landroid/hardware/usb/UsbDevice;->getDeviceClass()I
+        move-result v6
+        invoke-virtual {v4, v5, v6}, Lorg/json/JSONObject;->put(Ljava/lang/String;I)Lorg/json/JSONObject;
+        const-string v5, "i"
+        invoke-virtual {v3}, Landroid/hardware/usb/UsbDevice;->getInterfaceCount()I
+        move-result v6
+        invoke-virtual {v4, v5, v6}, Lorg/json/JSONObject;->put(Ljava/lang/String;I)Lorg/json/JSONObject;
+        if-eqz v6, :u_names
+        const/4 v6, 0
+        invoke-virtual {v3, v6}, Landroid/hardware/usb/UsbDevice;->getInterface(I)Landroid/hardware/usb/UsbInterface;
+        move-result-object v6
+        invoke-virtual {v6}, Landroid/hardware/usb/UsbInterface;->getInterfaceClass()I
+        move-result v6
+        const-string v5, "ic"
+        invoke-virtual {v4, v5, v6}, Lorg/json/JSONObject;->put(Ljava/lang/String;I)Lorg/json/JSONObject;
+        :u_names
+        const-string v5, "m"
+        invoke-virtual {v3}, Landroid/hardware/usb/UsbDevice;->getManufacturerName()Ljava/lang/String;
+        move-result-object v6
+        invoke-virtual {v4, v5, v6}, Lorg/json/JSONObject;->put(Ljava/lang/String;Ljava/lang/Object;)Lorg/json/JSONObject;
+        const-string v5, "pr"
+        invoke-virtual {v3}, Landroid/hardware/usb/UsbDevice;->getProductName()Ljava/lang/String;
+        move-result-object v6
+        invoke-virtual {v4, v5, v6}, Lorg/json/JSONObject;->put(Ljava/lang/String;Ljava/lang/Object;)Lorg/json/JSONObject;
+        invoke-virtual {v2, v4}, Lorg/json/JSONArray;->put(Ljava/lang/Object;)Lorg/json/JSONArray;
+        goto :u_loop
+        :u_done
+        const-string v5, "usb"
+        invoke-virtual {v0, v5, v2}, Lorg/json/JSONObject;->put(Ljava/lang/String;Ljava/lang/Object;)Lorg/json/JSONObject;
+        :u_end
+        goto :k_start
+        :u_err
+        move-exception v1
+        :k_start
+        invoke-virtual {p1}, Ljava/lang/String;->length()I
+        move-result v1
+        if-eqz v1, :s_start
+        :k_try
+        invoke-virtual {p0}, Landroid/app/Activity;->getPackageManager()Landroid/content/pm/PackageManager;
+        move-result-object v1
+        const/16 v2, 0x100e
+        invoke-virtual {v1, p1, v2}, Landroid/content/pm/PackageManager;->getPackageInfo(Ljava/lang/String;I)Landroid/content/pm/PackageInfo;
+        move-result-object v2
+        new-instance v3, Lorg/json/JSONObject;
+        invoke-direct {v3}, Lorg/json/JSONObject;-><init>()V
+        const-string v4, "p"
+        invoke-virtual {v3, v4, p1}, Lorg/json/JSONObject;->put(Ljava/lang/String;Ljava/lang/Object;)Lorg/json/JSONObject;
+        const-string v4, "ver"
+        iget-object v5, v2, Landroid/content/pm/PackageInfo;->versionName:Ljava/lang/String;
+        invoke-virtual {v3, v4, v5}, Lorg/json/JSONObject;->put(Ljava/lang/String;Ljava/lang/Object;)Lorg/json/JSONObject;
+        const-string v4, "src"
+        iget-object v5, v2, Landroid/content/pm/PackageInfo;->applicationInfo:Landroid/content/pm/ApplicationInfo;
+        iget-object v5, v5, Landroid/content/pm/ApplicationInfo;->sourceDir:Ljava/lang/String;
+        invoke-virtual {v3, v4, v5}, Lorg/json/JSONObject;->put(Ljava/lang/String;Ljava/lang/Object;)Lorg/json/JSONObject;
+        const-string v4, "svc"
+        iget-object v5, v2, Landroid/content/pm/PackageInfo;->services:[Landroid/content/pm/ServiceInfo;
+        check-cast v5, [Landroid/content/pm/ComponentInfo;
+        invoke-static {v5}, Lcom/carnav/camry/Sys;->names([Landroid/content/pm/ComponentInfo;)Lorg/json/JSONArray;
+        move-result-object v5
+        invoke-virtual {v3, v4, v5}, Lorg/json/JSONObject;->put(Ljava/lang/String;Ljava/lang/Object;)Lorg/json/JSONObject;
+        const-string v4, "rcv"
+        iget-object v5, v2, Landroid/content/pm/PackageInfo;->receivers:[Landroid/content/pm/ActivityInfo;
+        check-cast v5, [Landroid/content/pm/ComponentInfo;
+        invoke-static {v5}, Lcom/carnav/camry/Sys;->names([Landroid/content/pm/ComponentInfo;)Lorg/json/JSONArray;
+        move-result-object v5
+        invoke-virtual {v3, v4, v5}, Lorg/json/JSONObject;->put(Ljava/lang/String;Ljava/lang/Object;)Lorg/json/JSONObject;
+        const-string v4, "prv"
+        iget-object v5, v2, Landroid/content/pm/PackageInfo;->providers:[Landroid/content/pm/ProviderInfo;
+        check-cast v5, [Landroid/content/pm/ComponentInfo;
+        invoke-static {v5}, Lcom/carnav/camry/Sys;->names([Landroid/content/pm/ComponentInfo;)Lorg/json/JSONArray;
+        move-result-object v5
+        invoke-virtual {v3, v4, v5}, Lorg/json/JSONObject;->put(Ljava/lang/String;Ljava/lang/Object;)Lorg/json/JSONObject;
+        const-string v4, "perm"
+        iget-object v5, v2, Landroid/content/pm/PackageInfo;->requestedPermissions:[Ljava/lang/String;
+        if-eqz v5, :k_put
+        new-instance v6, Lorg/json/JSONArray;
+        invoke-direct {v6, v5}, Lorg/json/JSONArray;-><init>(Ljava/lang/Object;)V
+        invoke-virtual {v3, v4, v6}, Lorg/json/JSONObject;->put(Ljava/lang/String;Ljava/lang/Object;)Lorg/json/JSONObject;
+        :k_put
+        const-string v4, "pk"
+        invoke-virtual {v0, v4, v3}, Lorg/json/JSONObject;->put(Ljava/lang/String;Ljava/lang/Object;)Lorg/json/JSONObject;
+        :k_end
+        goto :s_start
+        :k_err
+        move-exception v1
+        :s_start
+        new-instance v1, Lorg/json/JSONArray;
+        invoke-direct {v1}, Lorg/json/JSONArray;-><init>()V
+        const-string v2, "system"
+        invoke-static {p0, v2, v1}, Lcom/carnav/camry/Sys;->scanSettings(Landroid/app/Activity;Ljava/lang/String;Lorg/json/JSONArray;)V
+        const-string v2, "global"
+        invoke-static {p0, v2, v1}, Lcom/carnav/camry/Sys;->scanSettings(Landroid/app/Activity;Ljava/lang/String;Lorg/json/JSONArray;)V
+        const-string v2, "secure"
+        invoke-static {p0, v2, v1}, Lcom/carnav/camry/Sys;->scanSettings(Landroid/app/Activity;Ljava/lang/String;Lorg/json/JSONArray;)V
+        :f_try
+        const-string v2, "set"
+        invoke-virtual {v0, v2, v1}, Lorg/json/JSONObject;->put(Ljava/lang/String;Ljava/lang/Object;)Lorg/json/JSONObject;
+        invoke-virtual {v0}, Lorg/json/JSONObject;->toString()Ljava/lang/String;
+        move-result-object v0
+        return-object v0
+        :f_end
+        :f_err
+        move-exception v0
+        const-string v0, "{}"
+        return-object v0
+        .catchall {:u_try .. :u_end} :u_err
+        .catchall {:k_try .. :k_end} :k_err
+        .catchall {:f_try .. :f_end} :f_err
     ''', flags=ACC_PUBLIC | ACC_STATIC)
 
     sys_.method('ls', [STR], STR, 12, '''

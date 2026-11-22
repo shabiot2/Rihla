@@ -78,15 +78,17 @@
   T.bar = bar;
 
   // ---------- the screen's own sensor page ----------
+  function isTpms(a) { return /^\s*tpms\s*$/i.test(String(a.l)) || /(^|[.\s_-])tpms/i.test(a.p); }
   T.sensorApps = function () {
     if (!App.Native.has) return [];
     return App.system.apps().filter(function (a) { return TP.test(a.p) || TP.test(String(a.l)); });
   };
   T.openSensors = function (choose) {
     if (!App.Native.has) { App.toast('صفحة الحساسات تفتح من شاشة السيارة نفسها', 3200); return; }
-    var s = App.settings.tpmsApp, list = T.sensorApps();
+    var s = App.settings.tpmsApp, list = T.sensorApps(), exact = list.filter(isTpms);
     if (s && !choose && App.Native.call('launch', s) === '1') return;
-    if (list.length === 1 && !choose) { App.settings.tpmsApp = list[0].p; App.saveSettings(); App.system.launch(list[0].p, list[0].l); return; }
+    if (exact.length === 1) list = exact.concat(list.filter(function (a) { return !isTpms(a); }));
+    if ((exact.length === 1 || list.length === 1) && !choose) { App.settings.tpmsApp = list[0].p; App.saveSettings(); App.system.launch(list[0].p, list[0].l); return; }
     App.panels.push('صفحة الحساسات', function (body) {
       var show = list.length ? list : App.system.apps();
       body.innerHTML = '<div class="big-status on">' + App.icon('tire') + '<div class="txt"><b>' +
@@ -111,6 +113,37 @@
       };
       if (App.$('tpAll')) App.$('tpAll').onclick = function () { list = []; App.panels.refresh(); };
       App.system.lazyIcons(body);
+    });
+  };
+
+  // ---------- «فحص الحساس»: how does the screen's TPMS app get its numbers? (USB device, its components, settings keys) ----------
+  function hex4(n) { n = (+n || 0).toString(16); return ('0000' + n).slice(-4); }
+  T.probe = function () {
+    App.panels.push('فحص حساس الإطارات', function (body) {
+      if (!App.Native.has) { body.innerHTML = '<div class="note">الفحص يشتغل على شاشة السيارة نفسها.</div>'; return; }
+      var cands = T.sensorApps().sort(function (a, b) { return isTpms(b) - isTpms(a); }).slice(0, 3);
+      var saved = App.settings.tpmsApp;
+      if (saved && !cands.some(function (a) { return a.p === saved; })) cands.unshift({ p: saved, l: App.system.label(saved) });
+      var res = cands.length ? cands.map(function (a) { return { a: a, r: App.Native.json('probe', a.p) || {} }; }) : [{ a: null, r: App.Native.json('probe', '') || {} }];
+      var first = res[0].r, usb = first.usb || [], set = first.set || [];
+      function list(t, arr) { return arr && arr.length ? '<div class="pb-k">' + t + ' (' + arr.length + ')</div><div class="pb-v">' + arr.map(App.esc).join('<br>') + '</div>' : ''; }
+      body.innerHTML = '<div class="big-status on">' + App.icon('tire') + '<div class="txt"><b>صوّر هالصفحة وأرسلها</b><small>' +
+        'تبيّن من وين يجيب تطبيق الحساسات أرقامه — عشان رحلة تقرأها مباشرة. اسحب لتحت وصوّر الباقي إذا طويلة.</small></div></div>' +
+        '<div class="sec-title">أجهزة USB الموصولة (' + App.d(usb.length) + ')</div><div class="pb" dir="ltr">' +
+        (usb.length ? usb.map(function (d) {
+          return '<div class="pb-row"><b>' + hex4(d.v) + ':' + hex4(d.p) + '</b> class ' + d.c + '/' + (d.ic == null ? '-' : d.ic) + ' · if ' + d.i +
+            ' · ' + App.esc((d.m || '') + ' ' + (d.pr || '')) + ' <span class="pb-dim">' + App.esc(d.n || '') + '</span></div>';
+        }).join('') : '<div class="pb-row pb-dim">none</div>') + '</div>' +
+        res.map(function (x) {
+          var k = x.r.pk; if (!x.a) return '';
+          return '<div class="sec-title">' + App.esc(x.a.l) + '</div><div class="pb" dir="ltr">' + (k ?
+            '<div class="pb-row"><b>' + App.esc(k.p) + '</b> v' + App.esc(k.ver || '?') + ' <span class="pb-dim">' + App.esc(k.src || '') + '</span></div>' +
+            list('services', k.svc) + list('receivers', k.rcv) + list('providers', k.prv) +
+            list('permissions', (k.perm || []).map(function (q) { return q.replace(/^android\.permission\./, ''); })) :
+            '<div class="pb-row pb-dim">' + App.esc(x.a.p) + ' — no details</div>') + '</div>';
+        }).join('') +
+        '<div class="sec-title">إعدادات النظام عن الإطارات (' + App.d(set.length) + ')</div><div class="pb" dir="ltr">' +
+        (set.length ? set.map(function (q) { return '<div class="pb-row">' + App.esc(q) + '</div>'; }).join('') : '<div class="pb-row pb-dim">none</div>') + '</div>';
     });
   };
 
@@ -232,6 +265,8 @@
           '<div class="ty-step big"><button data-d="-1">−</button><b class="num" id="tyRecV">' + T.num(T.rec()) + '</b><button data-d="1">+</button></div></div>' +
         '<div class="set-row"><div class="txt"><b>صفحة الحساسات</b><small>' + (s.tpmsApp ? 'تفتح «' + App.esc(App.system.label(s.tpmsApp)) + '»' : 'ما اخترت تطبيق للحين') + '</small></div>' +
           '<button class="btn" id="tyPick">' + App.icon('apps') + 'اختيار</button></div>' +
+        '<div class="set-row"><div class="txt"><b>فحص الحساس</b><small>لو تطبيق الحساسات في الشاشة يعرض الضغط: صوّر نتيجة الفحص وأرسلها عشان رحلة تقرأه مباشرة</small></div>' +
+          '<button class="btn" id="tyProbe">' + App.icon('search') + 'فحص</button></div>' +
         '<div class="set-row"><div class="txt"><b>سجل القراءات</b><small>' + App.d(data().log.length) + ' قراءة محفوظة في الشاشة</small></div>' +
           '<button class="btn" id="tyClear">' + App.icon('trash') + 'مسح</button></div>';
       body.querySelectorAll('#tyUnit [data-v]').forEach(function (b) {
@@ -241,6 +276,7 @@
         b.onclick = function () { s.tireRec = Math.max(20, Math.min(60, T.rec() + (+b.dataset.d))); App.saveSettings(); App.$('tyRecV').textContent = T.num(T.rec()); bar(); };
       });
       App.$('tyPick').onclick = function () { T.openSensors(true); };
+      App.$('tyProbe').onclick = T.probe;
       App.$('tyClear').onclick = function () { save({ log: [] }); App.toast('تم مسح السجل'); App.panels.refresh(); };
     });
   }

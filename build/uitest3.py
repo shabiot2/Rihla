@@ -100,6 +100,17 @@ if __name__ == '__main__':
         shot('orbit', 1280, 720, 'tirebar_orbit')
         shot('glass', 1280, 720, 'tirebar_glass')
         shot('pure', 800, 480, 'tirebar_800')
+    elif which == 'probe':
+        def pr(p):
+            p.click('.st-b[data-panel="tires"]'); p.wait_for_timeout(500)
+            p.click('#tySet'); p.wait_for_timeout(400)
+            p.click('#tyProbe'); p.wait_for_timeout(500)
+        shot('orbit', 1280, 720, 'probe', pr)
+        def sens(p):
+            p.click('.st-b[data-panel="tires"]'); p.wait_for_timeout(500)
+            p.click('#tyApp'); p.wait_for_timeout(500)
+            print('launched:', [c for c in p.evaluate('window.__calls') if c[0] == 'launch'])
+        shot('orbit', 1280, 720, 'sensor_launch', sens)
     elif which == 'one':
         w, h = [int(x) for x in sys.argv[4].split('x')] if len(sys.argv) > 4 else (1280, 720)
         shot(sys.argv[3], w, h)
