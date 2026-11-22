@@ -154,11 +154,14 @@
       var cands = probeApps();
       var res = cands.length ? cands.map(function (a) { return { a: a, r: App.Native.json('probe', a.p) || {} }; }) : [{ a: null, r: App.Native.json('probe', '') || {} }];
       var first = res[0].r, usb = first.usb || [], set = first.set || [];
+      last = { probe: res.map(function (x) { return { l: x.a && x.a.l, p: x.a && x.a.p, r: x.r }; }), scan: null };
       function list(t, arr) { return arr && arr.length ? '<div class="pb-k">' + t + ' (' + arr.length + ')</div><div class="pb-v">' + arr.map(App.esc).join('<br>') + '</div>' : ''; }
-      body.innerHTML = '<div class="big-status on">' + App.icon('tire') + '<div class="txt"><b>صوّر هالصفحة وأرسلها</b><small>' +
-        'تبيّن من وين يجيب تطبيق الحساسات أرقامه — عشان رحلة تقرأها مباشرة. اسحب لتحت وصوّر الباقي إذا طويلة.</small></div></div>' +
+      body.innerHTML = '<div class="big-status on">' + App.icon('tire') + '<div class="txt"><b>افتح تطبيق TPMS دقيقة، وارجع اضغط «إرسال الفحص بالنت»</b><small>' +
+        'الفحص يبيّن من وين يجيب تطبيق الحساسات أرقامه عشان رحلة تقرأها مباشرة. ما فيه نت؟ صوّر الصفحة بدال الإرسال.</small></div></div>' +
         '<div class="pb-apps"><span>التطبيقات المفحوصة: <b>' + (cands.length ? cands.map(function (a) { return App.esc(a.l); }).join(' · ') : '—') + '</b></span>' +
         '<button class="chip" id="pbPick">' + App.icon('apps') + 'اختر تطبيق ثاني</button></div>' +
+        '<div class="pb-send"><button class="btn primary" id="pbSend">' + App.icon('globe') + 'إرسال الفحص بالنت</button>' +
+        '<span id="pbCode">يرفع النتيجة كنص على صفحة مؤقتة ويعطيك رمز قصير ترسله في المحادثة — بدون صور أو موقع</span></div>' +
         '<div id="pbDeep"></div>' +
         '<div class="sec-title">أجهزة USB الموصولة (' + App.d(usb.length) + ')</div><div class="pb" dir="ltr">' +
         (usb.length ? usb.map(function (d) {
@@ -176,6 +179,7 @@
         '<div class="sec-title">إعدادات النظام عن الإطارات (' + App.d(set.length) + ')</div><div class="pb" dir="ltr">' +
         (set.length ? set.map(function (q) { return '<div class="pb-row">' + App.esc(q) + '</div>'; }).join('') : '<div class="pb-row pb-dim">none</div>') + '</div>';
       App.$('pbPick').onclick = pickForProbe;
+      App.$('pbSend').onclick = sendReport;
       // deep check: what each app's own code mentions, and every broadcast those names carry while this page is open
       var srcs = res.filter(function (x) { return x.a && x.r.pk && x.r.pk.src; }).map(function (x) { return { l: x.a.l, src: x.r.pk.src }; });
       var box = App.$('pbDeep');
@@ -189,7 +193,38 @@
       })();
     });
   };
-  var caught = [];
+  var caught = [], last = null;
+  // upload the whole check as plain text (paste.rs, then dpaste.com) and show the short code to send in the chat
+  function sendReport() {
+    var out = App.$('pbCode'), btn = App.$('pbSend');
+    if (!navigator.onLine) { out.textContent = 'ما فيه نت — شغّل نت الجوال على الشاشة وجرّب'; return; }
+    btn.disabled = true; out.textContent = 'جاري الإرسال…';
+    var rep = { app: 'Rihla ' + App.VERSION, at: new Date().toISOString(), sys: App.Native.json('sys'),
+      apps: App.system.apps(true).map(function (a) { return a.p + ' | ' + a.l; }),
+      check: last && last.probe, caught: caught,
+      scan: last && last.scan && { apps: last.scan.apps, listen: last.scan.listen, strings: (last.scan.strings || []).slice(0, 2500) } };
+    var text = JSON.stringify(rep, null, 1);
+    function done(url) {
+      btn.disabled = false;
+      var code = String(url || '').trim().replace(/^https?:\/\//, '');
+      if (!/^[\w.-]+\/\w+/.test(code)) { fail(); return; }
+      out.innerHTML = 'أرسل هالرمز في المحادثة: <b class="pb-codev" dir="ltr">' + App.esc(code) + '</b>';
+      App.store.set('lastReport', code);
+    }
+    function fail() { btn.disabled = false; out.textContent = 'تعذّر الإرسال — تأكد من النت وجرّب مرة ثانية'; }
+    function post(url, opts) {
+      var c = new AbortController(), t = setTimeout(function () { c.abort(); }, 20000);
+      opts.signal = c.signal;
+      return fetch(url, opts).then(function (r) { clearTimeout(t); if (!r.ok) throw new Error('http ' + r.status); return r.text(); });
+    }
+    post('https://paste.rs/', { method: 'POST', body: text })
+      .then(done)
+      .catch(function () {
+        return post('https://dpaste.com/api/v2/', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: 'content=' + encodeURIComponent(text) + '&expiry_days=30' }).then(done);
+      })
+      .catch(fail);
+  }
   function deep(box, raw, srcs) {
     var seen = {};
     var strs = raw.map(function (q) { return q.charCodeAt(0) === q.length - 1 ? q.slice(1) : q; }).filter(function (q) { return !seen[q] && (seen[q] = 1); });
@@ -200,6 +235,7 @@
     });
     var devs = strs.filter(function (q) { return /\/dev\//.test(q); });
     var n = acts.length ? App.Native.call('listen', JSON.stringify(acts.slice(0, 600))) : '0';
+    if (last) last.scan = { apps: srcs, listen: n, strings: strs };
     function grid(t, arr, max) {
       return arr.length ? '<div class="pb-k">' + t + ' (' + arr.length + ')</div><div class="pb-grid">' + arr.slice(0, max).map(function (q) { return '<span>' + App.esc(q) + '</span>'; }).join('') + '</div>' : '';
     }

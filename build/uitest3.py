@@ -128,6 +128,16 @@ if __name__ == '__main__':
         def w(p):
             p.click('.st-b[data-panel="tires"]'); p.wait_for_timeout(500)
         shot('orbit', 1280, 720, 'tires_panel_323', w)
+    elif which == 'send':
+        def sd(p):
+            p.evaluate("""window.__posted = null; window.fetch = function (url, o) { window.__posted = [url, (o.body || '').length];
+              return Promise.resolve({ ok: true, text: function () { return Promise.resolve('https://paste.rs/AbC1x'); } }); };
+              Object.defineProperty(navigator, 'onLine', {get: function () { return true; }});""")
+            p.click('.st-b[data-panel="tires"]'); p.wait_for_timeout(500)
+            p.click('#tyProbe2'); p.wait_for_timeout(900)
+            p.click('#pbSend'); p.wait_for_timeout(500)
+            print('posted:', p.evaluate('window.__posted'), '| code:', p.inner_text('#pbCode'))
+        shot('orbit', 1280, 720, 'send', sd)
     elif which == 'one':
         w, h = [int(x) for x in sys.argv[4].split('x')] if len(sys.argv) > 4 else (1280, 720)
         shot(sys.argv[3], w, h)

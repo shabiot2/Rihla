@@ -99,3 +99,6 @@
 .pb-apps { display: flex; align-items: center; justify-content: space-between; gap: 1.6vmin; margin: 1.2vmin 0; font-size: 1.8vmin; color: var(--muted); }
 .pb-apps b { color: var(--text); }
 .pb-apps .chip { margin: 0; flex: none; }
+.pb-send { display: flex; align-items: center; gap: 1.6vmin; margin: 0 0 1.2vmin; font-size: 1.75vmin; color: var(--muted); }
+.pb-send .btn { margin: 0; flex: none; }
+.pb-codev { font-size: 3.2vmin; color: var(--accent); letter-spacing: .04em; }
