@@ -68,8 +68,9 @@ if __name__ == '__main__':
         shot('girls', 1280, 720, 'quiz_endless', many)
     elif which == 'settings':
         def st(p):
+            p.evaluate("App.settings.elKey = 'sk_' + 'a'.repeat(48)")
             p.click('.dk[data-panel="settings"]'); p.wait_for_timeout(500)
-            p.evaluate("document.getElementById('sElKey').scrollIntoView()"); p.wait_for_timeout(300)
+            p.evaluate("document.getElementById('sElOn').scrollIntoView({block: 'center'})"); p.wait_for_timeout(300)
         shot('orbit', 1280, 720, 'settings_el', st)
     elif which == 'tires':
         def empty(p):

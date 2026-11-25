@@ -1,21 +1,36 @@
 /* voice.js — «الصوت»: one place that speaks for the whole app (prayer reminders, navigation prompts, tasks, stories,
    the quiz). With an ElevenLabs key it speaks in an ElevenLabs voice, and keeps every phrase it has generated on the unit
    (IndexedDB), so a phrase heard once is heard again without internet. Without a key, or offline and not cached yet,
-   or if ElevenLabs refuses, it falls back to the unit's own Arabic engine. The key is typed by the owner in Settings and
-   stays on the unit (localStorage); it is never in the code. Written for «رحلة» by أبو دانة للبرمجة. */
+   or if ElevenLabs refuses, it falls back to the unit's own Arabic engine. Nothing to set up: a build made for the owner
+   carries the key, scrambled, from a private folder outside the repository (build/build_private.py), and leaves it on the
+   unit, so the ordinary updates that follow (which never carry it) keep the voice. The key is never in the source or in
+   a published file. Written for «رحلة» by أبو دانة للبرمجة. */
 (function () {
   'use strict';
   var V = App.voice = {};
   var API = 'https://api.elevenlabs.io/v1/';
-  var DEF_VOICE = 'JBFqnCBsd6RMkjVDRZzb';          // a premade multilingual voice; the owner can pick any other in Settings
+  var DEF_VOICE = 'JBFqnCBsd6RMkjVDRZzb';          // a premade multilingual voice — premade voices work on every plan, the free one included
   var MODEL = 'eleven_multilingual_v2';
   var token = 0, audio = null, url = null, warned = {}, downUntil = 0, usedNative = false, cacheDb = null, mem = {};
 
+  var MASK = 'رحلة-أبو-دانة';                      // must match build/build_private.py
+  function builtKey() {                             // the key the owner's build carries (window.RIHLA_VK, from data/vk.js)
+    var e = window.RIHLA_VK, o = '';
+    if (!e) return '';
+    try {
+      var b = atob(e);
+      for (var i = 0; i < b.length; i++) o += String.fromCharCode(b.charCodeAt(i) ^ ((MASK.charCodeAt(i % MASK.length) + i * 7) & 255));
+    } catch (x) { return ''; }
+    return /^[\x21-\x7e]{20,}$/.test(o) ? o : '';
+  }
   function cfg() {
     var s = App.settings;
-    return { key: String(s.elKey || '').trim(), voice: String(s.elVoice || '').trim() || DEF_VOICE, model: s.elModel || MODEL, on: s.elOn !== false };
+    return { key: builtKey() || String(s.elKey || '').trim(), voice: String(s.elVoice || '').trim() || DEF_VOICE, model: s.elModel || MODEL, on: s.elOn !== false };
   }
   V.enabled = function () { var c = cfg(); return !!(c.key && c.on); };
+  V.hasKey = function () { return !!cfg().key; };
+  // a build that carries the key also leaves it on the unit, so a later update without it keeps the voice
+  (function () { var k = builtKey(); if (k && App.settings.elKey !== k) { App.settings.elKey = k; App.saveSettings(); } })();
 
   // what is sent to be spoken: the symbols a voice would stumble on become the words they stand for
   V.clean = function (t) {
@@ -100,12 +115,13 @@
       }).then(function (b) { ok(b); }, function (e) { clearTimeout(to); no(e); });
     });
   }
+  function quota(e) { return /quota|credit/i.test((e && e.body) || ''); }
+  function spent(e) { return !!(e && (e.status === 402 || quota(e))); }
   function explain(e) {
-    var m = (e && e.body) || '';
-    if (e && e.status === 401) return 'مفتاح ElevenLabs غير صحيح';
-    if (e && (e.status === 402 || /quota|credit/i.test(m))) return 'انتهى رصيد ElevenLabs — أرجع لصوت الشاشة';
+    if (spent(e)) return 'خلص رصيد ElevenLabs لهالشهر — رحلة تتكلم بصوت الشاشة لين يتجدد';
+    if (e && e.status === 401) return 'ElevenLabs رفض المفتاح — رحلة تتكلم بصوت الشاشة';
     if (e && e.status === 429) return 'ElevenLabs مشغول — أحاول لاحقاً';
-    if (e && e.status === 404) return 'رقم الصوت غير موجود في حسابك';
+    if (e && e.status === 404) return 'الصوت مو موجود في الحساب';
     return 'ما اتصلت بـElevenLabs (' + ((e && (e.status || e.message)) || '?') + ')';
   }
   function getBlob(text, c, cb) {                   // cache first, then the network (only when the unit is online)
@@ -114,7 +130,14 @@
       if (b) { cb(b); return; }
       if (navigator.onLine === false || Date.now() < downUntil) { cb(null); return; }
       fetchAudio(text, c).then(function (blob) { putC(k, blob); cb(blob); }, function (e) {
-        if (e && (e.status === 401 || e.status === 402 || e.status === 429 || e.status === 404)) { say(explain(e)); downUntil = Date.now() + (e.status === 429 ? 120000 : 600000); }
+        var st = e && e.status;
+        if (c.voice !== DEF_VOICE && st >= 400 && st < 500 && st !== 401 && st !== 429 && !quota(e)) {
+          // a voice picked by an older version that this account cannot use (a library voice on the free plan, or one
+          // that was removed): forget it, and the premade voice takes over
+          App.settings.elVoice = ''; App.settings.elVoiceName = ''; App.saveSettings();
+          getBlob(text, cfg(), cb); return;
+        }
+        if (spent(e) || st === 401 || st === 429 || st === 404) { say(explain(e)); downUntil = Date.now() + (st === 429 ? 120000 : spent(e) ? 6 * 3600000 : 600000); }
         cb(null, e);
       });
     });
@@ -138,10 +161,9 @@
     V.stop();
     var t = V.clean(text), my = token;
     if (!t) { o.done && o.done(); return; }
-    var c = cfg();
     if (!V.enabled()) { nativeSpeak(t); o.done && setTimeout(o.done, Math.min(15000, t.length * 70)); return; }
-    var list = chunks(t), i = 0, ready = null;
-    function fetchNext(n, cb) { getBlob(list[n], c, cb); }
+    var list = chunks(t), ready = null;
+    function fetchNext(n, cb) { getBlob(list[n], cfg(), cb); }
     function fallback(from) { nativeSpeak(list.slice(from).join(' ')); o.done && setTimeout(o.done, Math.min(15000, list.slice(from).join(' ').length * 70)); }
     function playFrom(n, blob) {
       if (my !== token) return;
@@ -164,24 +186,4 @@
   };
   V.isSpeaking = function () { return !!(audio && !audio.paused && !audio.ended); };
 
-  // ---------- Settings helpers ----------
-  V.test = function (cb) {
-    var c = cfg();
-    if (!c.key) { cb('اكتب مفتاح ElevenLabs أولاً'); return; }
-    fetchAudio('بسم الله. هذا صوت ElevenLabs من رحلة.', c).then(function (b) {
-      var k = hash(c.voice + '|' + c.model + '|بسم الله. هذا صوت ElevenLabs من رحلة.'); putC(k, b);
-      if (!audio) audio = new Audio();
-      V.stop(); url = URL.createObjectURL(b); audio.src = url; audio.play().catch(function () { });
-      cb('اشتغل ✔ — تسمع الصوت الحين');
-    }, function (e) { cb(explain(e)); });
-  };
-  V.voices = function (cb) {
-    var c = cfg();
-    if (!c.key) { cb(null, 'اكتب مفتاح ElevenLabs أولاً'); return; }
-    fetch(API + 'voices', { headers: { 'xi-api-key': c.key } }).then(function (r) {
-      if (!r.ok) { var e = new Error('HTTP ' + r.status); e.status = r.status; throw e; }
-      return r.json();
-    }).then(function (j) { cb(j.voices || []); }, function (e) { cb(null, explain(e)); });
-  };
-  V.preview = function (u) { if (!audio) audio = new Audio(); V.stop(); audio.src = u; audio.play().catch(function () { }); };
 })();

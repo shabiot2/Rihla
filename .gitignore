@@ -3,3 +3,6 @@ out/
 build/release.p12
 __pycache__/
 *.pyc
+web/data/vk.js
+web/data/family.js
+*.key
