@@ -21,7 +21,7 @@ body[data-layout="orbit"] #home {
 body[data-layout="orbit"] .ac-tile:nth-child(n+10):not(:last-child) { display: none; }
 
 /* live: a moving world fills the screen; clock in the open, fuel economy under it */
-#wFuel, #lvBg { display: none; }
+#wFuel, #lvChips { display: none; }
 body[data-layout="live"] #home {
   grid-template-columns: minmax(0, 1fr) minmax(0, 1.32fr) minmax(0, 1fr);
   grid-template-rows: minmax(0, .95fr) minmax(0, 1.05fr) minmax(0, 1fr);
@@ -30,7 +30,7 @@ body[data-layout="live"] #home {
 }
 body[data-layout="live"] #wViz { display: none; }
 body[data-layout="live"] #wFuel { display: flex; grid-area: fuel; }
-body[data-layout="live"] #lvBg { display: inline-flex; }
+body[data-layout="live"] #lvChips { display: flex; }
 body[data-layout="live"] .ac-tile:nth-child(n+10):not(:last-child) { display: none; }
 
 /* dune + founding: a wide sky with the sun's path, postcards underneath */

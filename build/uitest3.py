@@ -140,15 +140,27 @@ if __name__ == '__main__':
         shot('orbit', 1280, 720, 'send', sd)
     elif which == 'live':
         import itertools
-        for k in ['desert', 'city', 'aurora', 'warp', 'sea', 'rain', 'flow', 'dunes']:
+        for k in ['naqsh', 'jazan', 'fifa', 'desert', 'city', 'aurora', 'warp', 'sea', 'rain', 'flow', 'dunes']:
             def pick(p, k=k):
                 p.evaluate("App.settings.liveBg='%s'; App.saveSettings(); App.live.set('%s', true)" % (k, k)); p.wait_for_timeout(1500)
             shot('live', 1280, 720, 'live_' + k, pick)
         def fuel(p):
             p.evaluate("App.cdata.ingest({a:'x', x:{instantFuel: 13.4, avgFuelConsumption: 11.8, rangeKm: 420}})"); p.wait_for_timeout(1300)
         shot('live', 1280, 720, 'live_fuel', fuel)
+        def full(p):
+            p.evaluate("App.live.set('jazan', true)"); p.wait_for_timeout(600)
+            p.click('#lvFull'); p.wait_for_timeout(1400)
+        shot('live', 1280, 720, 'live_full_jazan', full)
+        def full2(p):
+            p.evaluate("App.live.set('fifa', true)"); p.wait_for_timeout(600)
+            p.click('#lvFull'); p.wait_for_timeout(1400)
+        shot('live', 1280, 720, 'live_full_fifa', full2)
+        def full3(p):
+            p.evaluate("App.live.set('naqsh', true)"); p.wait_for_timeout(2600)
+            p.click('#lvFull'); p.wait_for_timeout(900)
+        shot('live', 1280, 720, 'live_full_naqsh', full3)
         def picker(p):
-            p.click('#lvBg'); p.wait_for_timeout(1500)
+            p.click('#lvBg'); p.wait_for_timeout(1800)
         shot('live', 1280, 720, 'live_picker', picker)
         shot('live', 1024, 600, 'live_1024')
         shot('live', 720, 1280, 'live_portrait')

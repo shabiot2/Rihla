@@ -374,12 +374,305 @@
       });
     } };
 
-  var KEYS = ['desert', 'city', 'aurora', 'warp', 'sea', 'rain', 'flow', 'dunes'];
+  // ---------- the south: Jazan's coast and Fifa's mountains ----------
+  function jasmine(sz) {   // «الفل» — five white petals around a pale-green heart
+    return layer(sz, sz, function (g) {
+      var c = sz / 2, r = sz * .26;
+      g.fillStyle = '#ffffff';
+      for (var i = 0; i < 5; i++) {
+        var a = i / 5 * TAU;
+        g.beginPath(); g.ellipse(c + Math.cos(a) * r * .9, c + Math.sin(a) * r * .9, r * .82, r * .48, a, 0, TAU); g.fill();
+      }
+      g.strokeStyle = 'rgba(190,200,190,.6)'; g.lineWidth = .6;
+      for (var j = 0; j < 5; j++) { var b = j / 5 * TAU; g.beginPath(); g.ellipse(c + Math.cos(b) * r * .9, c + Math.sin(b) * r * .9, r * .82, r * .48, b, 0, TAU); g.stroke(); }
+      g.fillStyle = '#d9e8a0'; g.beginPath(); g.arc(c, c, r * .32, 0, TAU); g.fill();
+    });
+  }
+  function hut(g, x, y, s) {   // «العشّة»: a round mud wall with a painted band, a cone of thatch, a lit doorway
+    var rw = s * .9, wh = s * .95, top = y - wh, apex = top - s * 1.25;
+    g.fillStyle = '#b98d5f'; g.beginPath();
+    g.moveTo(x - rw, y); g.lineTo(x - rw * 1.02, top); g.lineTo(x + rw * 1.02, top); g.lineTo(x + rw, y); g.closePath(); g.fill();
+    var bandY = top + wh * .22, bh = wh * .2, cols = ['#d63a2c', '#2f9a58', '#f2c230', '#2c6fd1', '#ffffff'], n = 9;
+    for (var i = 0; i < n; i++) {
+      var x0 = x - rw + i * (2 * rw / n), x1 = x0 + 2 * rw / n;
+      g.fillStyle = cols[i % cols.length];
+      g.beginPath(); g.moveTo(x0, bandY + bh); g.lineTo((x0 + x1) / 2, bandY); g.lineTo(x1, bandY + bh); g.closePath(); g.fill();
+    }
+    g.fillStyle = '#7a4a22'; g.fillRect(x - rw, bandY + bh, 2 * rw, 2);
+    var dg = g.createLinearGradient(0, y - wh * .62, 0, y);
+    dg.addColorStop(0, '#ffe2a0'); dg.addColorStop(1, '#ff8a3a'); g.fillStyle = dg;
+    g.beginPath(); g.moveTo(x - rw * .28, y); g.lineTo(x - rw * .28, y - wh * .45); g.quadraticCurveTo(x, y - wh * .72, x + rw * .28, y - wh * .45); g.lineTo(x + rw * .28, y); g.closePath(); g.fill();
+    g.fillStyle = '#8c6a3a'; g.beginPath(); g.moveTo(x - rw * 1.25, top + 3); g.quadraticCurveTo(x - rw * .45, apex + s * .35, x, apex); g.quadraticCurveTo(x + rw * .45, apex + s * .35, x + rw * 1.25, top + 3); g.closePath(); g.fill();
+    g.strokeStyle = 'rgba(70,45,20,.55)'; g.lineWidth = 1;
+    for (var k = -6; k <= 6; k++) { g.beginPath(); g.moveTo(x, apex + 2); g.lineTo(x + k * rw * .2, top + 3); g.stroke(); }
+    for (var r = 1; r <= 3; r++) { var yy = apex + (top - apex) * r / 4, ww = rw * 1.25 * r / 4 * 1.1; g.beginPath(); g.moveTo(x - ww, yy); g.quadraticCurveTo(x, yy + 3, x + ww, yy); g.stroke(); }
+    g.fillStyle = '#5e4320'; g.fillRect(x - 2, apex - s * .18, 4, s * .2);
+    return { dx: x, dy: y - wh * .3, r: s * .9 };
+  }
+  function doum(g, x, y, s, col) {   // «الدوم»: the forked palm of Tihama, fan-leaved
+    g.strokeStyle = col; g.fillStyle = col; g.lineCap = 'round';
+    function fan(cx, cy, r) {
+      for (var i = 0; i < 11; i++) {
+        var a = -Math.PI * .95 + i * Math.PI * .9 / 10 - .1;
+        g.beginPath(); g.moveTo(cx, cy);
+        g.lineTo(cx + Math.cos(a - .09) * r, cy + Math.sin(a - .09) * r);
+        g.lineTo(cx + Math.cos(a) * r * 1.08, cy + Math.sin(a) * r * 1.08);
+        g.lineTo(cx + Math.cos(a + .09) * r, cy + Math.sin(a + .09) * r); g.closePath(); g.fill();
+      }
+    }
+    g.lineWidth = s * .09; g.beginPath(); g.moveTo(x, y); g.lineTo(x + s * .05, y - s * 1.1); g.stroke();
+    g.lineWidth = s * .07; g.beginPath(); g.moveTo(x + s * .05, y - s * 1.1); g.quadraticCurveTo(x - s * .2, y - s * 1.5, x - s * .45, y - s * 1.85); g.stroke();
+    g.beginPath(); g.moveTo(x + s * .05, y - s * 1.1); g.quadraticCurveTo(x + s * .35, y - s * 1.45, x + s * .5, y - s * 2.05); g.stroke();
+    fan(x - s * .45, y - s * 1.85, s * .55); fan(x + s * .5, y - s * 2.05, s * .6);
+  }
+
+  SC.jazan = { name: 'ساحل جازان', sub: 'عشش ودوم وبحر فرسان والفل بالهوا', acc: [60, 205, 200],
+    init: function (W, H) {
+      var hz = Math.round(H * .6), sx = W * .3, R = rng(77), door = [];
+      var bg = layer(W, H, function (g) {
+        g.fillStyle = vgrad(g, 0, hz, [[0, '#183f62'], [.45, '#4f8aa6'], [.78, '#f0b07c'], [1, '#ff9858']]); g.fillRect(0, 0, W, hz);
+        g.drawImage(glow(Math.round(H * .28), '255,190,120', .16), sx - H * .28, hz - H * .06 - H * .28);
+        g.fillStyle = '#fff0c8'; g.beginPath(); g.arc(sx, hz - H * .06, H * .055, 0, TAU); g.fill();
+        g.fillStyle = 'rgba(255,190,170,.22)';
+        [[.55, .2, .2], [.7, .27, .14], [.15, .16, .16], [.85, .12, .1]].forEach(function (c) { g.beginPath(); g.ellipse(W * c[0], H * c[1], W * c[2], H * .018, 0, 0, TAU); g.fill(); });
+        g.fillStyle = '#2d5a69';
+        g.beginPath(); g.ellipse(W * .66, hz, W * .09, H * .016, 0, Math.PI, TAU); g.fill();
+        g.beginPath(); g.ellipse(W * .88, hz, W * .06, H * .012, 0, Math.PI, TAU); g.fill();
+        g.fillStyle = vgrad(g, hz, H, [[0, '#2aa3ad'], [.35, '#13798f'], [1, '#08344d']]); g.fillRect(0, hz, W, H - hz);
+        g.fillStyle = vgrad(g, H * .84, H, [[0, '#ecc994'], [1, '#c79a63']]);
+        g.beginPath(); g.moveTo(0, H * .84); g.quadraticCurveTo(W * .3, H * .87, W * .55, H * .93); g.quadraticCurveTo(W * .8, H * .975, W, H * .96); g.lineTo(W, H); g.lineTo(0, H); g.closePath(); g.fill();
+        doum(g, W * .045, H * .9, H * .2, '#22302a');
+        door.push(hut(g, W * .27, H * .885, H * .05));
+        door.push(hut(g, W * .15, H * .93, H * .075));
+        doum(g, W * .37, H * .93, H * .15, '#26352d');
+      });
+      var fl = jasmine(22), petals = [];
+      for (var i = 0; i < 26; i++) petals.push({ x: R() * W, y: R() * H, s: .5 + R() * .8, a: R() * TAU, va: (R() - .5) * 1.4, vx: 18 + R() * 30, vy: 6 + R() * 14 });
+      return { bg: bg, hz: hz, sx: sx, door: door, fl: fl, petals: petals, warm: glow(40, '255,170,80'), R: R, k: Math.max(.3, H / 720),
+        gulls: [{ x: .5, y: .22, s: 1 }, { x: .58, y: .18, s: .7 }] };
+    },
+    frame: function (g, S, W, H, t, dt, v) {
+      g.drawImage(S.bg, 0, 0);
+      var hz = S.hz, D = H * .84 - hz, sp = .6 + v;
+      for (var i = 1; i < 12; i++) {
+        var q = Math.pow(i / 12, 1.5), y = hz + D * q;
+        g.strokeStyle = 'rgba(220,250,255,' + (0.06 + .1 * (1 - q)).toFixed(3) + ')'; g.lineWidth = 1 + q;
+        g.beginPath();
+        for (var x = 0; x <= W; x += 24) { var yy = y + Math.sin(x * (0.018 / (q + .25)) + t * sp + i * 1.7) * (1 + q * 3.5); if (x) g.lineTo(x, yy); else g.moveTo(x, yy); }
+        g.stroke();
+      }
+      var R = rng(Math.floor(t * 6) + 3); g.fillStyle = 'rgba(255,230,180,.8)';
+      for (var k = 0; k < 30; k++) { var qq = R(), yk = hz + 3 + D * Math.pow(qq, 1.4), xk = S.sx + (R() - .5) * W * (.02 + .08 * qq); if (R() < .7) g.fillRect(xk, yk, 3 + qq * 12, 1 + qq); }
+      var bx = W * (.58 + .02 * Math.sin(t * .05)), by = hz + D * .32 + Math.sin(t * 1.3) * 2.5, bs = H * .03;
+      g.save(); g.translate(bx, by); g.rotate(Math.sin(t * 1.1) * .04);
+      g.fillStyle = '#5a3a24'; g.beginPath(); g.moveTo(-bs * 1.6, 0); g.lineTo(bs * 1.6, 0); g.lineTo(bs * 1.1, bs * .45); g.lineTo(-bs * 1.2, bs * .45); g.closePath(); g.fill();
+      g.fillStyle = '#d63a2c'; g.fillRect(-bs * 1.6, -bs * .08, bs * 3.2, bs * .12);
+      g.strokeStyle = '#3d2817'; g.lineWidth = 1.5; g.beginPath(); g.moveTo(0, 0); g.lineTo(0, -bs * 1.6); g.stroke();
+      g.fillStyle = 'rgba(255,245,225,.9)'; g.beginPath(); g.moveTo(1, -bs * 1.5); g.lineTo(bs * .9, -bs * .25); g.lineTo(1, -bs * .25); g.closePath(); g.fill();
+      g.restore();
+      g.globalAlpha = .55 + .2 * Math.sin(t * 7) + .1 * Math.sin(t * 13);
+      S.door.forEach(function (d) { g.drawImage(S.warm, d.dx - d.r * 1.6, d.dy - d.r * 1.6, d.r * 3.2, d.r * 3.2); });
+      g.globalAlpha = 1;
+      g.strokeStyle = 'rgba(40,40,60,.7)'; g.lineWidth = 1.6;
+      S.gulls.forEach(function (b, n) {
+        b.x += dt * .01 * (1 + n * .3); if (b.x > 1.1) b.x = -.1;
+        var gx = b.x * W, gy = b.y * H + Math.sin(t * .8 + n) * 5, w = Math.sin(t * 5 + n) * 3 * b.s, s2 = 8 * b.s;
+        g.beginPath(); g.moveTo(gx - s2, gy - w); g.quadraticCurveTo(gx - s2 * .4, gy - s2 * .35, gx, gy); g.quadraticCurveTo(gx + s2 * .4, gy - s2 * .35, gx + s2, gy - w); g.stroke();
+      });
+      var wind = .6 + v * 1.4;
+      S.petals.forEach(function (p) {
+        p.x += p.vx * wind * dt * S.k; p.y += (p.vy + Math.sin(t * 1.3 + p.a) * 10) * dt * S.k; p.a += p.va * dt;
+        if (p.x > W + 20 || p.y > H + 20) { p.x = -20 - S.R() * W * .3; p.y = S.R() * H * .8; }
+        var z = 22 * p.s * S.k;
+        g.save(); g.translate(p.x, p.y); g.rotate(p.a); g.globalAlpha = .85; g.drawImage(S.fl, -z / 2, -z / 2, z, z); g.restore();
+      });
+      g.globalAlpha = 1;
+    } };
+
+  function mountain(g, W, H, base, amp, col, seed, terr, tcol) {
+    var R = rng(seed), f = [1 + R() * 1.5, 2.5 + R() * 2, 5 + R() * 3], p = [R() * TAU, R() * TAU, R() * TAU], pts = [];
+    for (var x = -10; x <= W + 10; x += 6) {
+      var u = x / W * TAU;
+      pts.push([x, base - amp * (.55 * Math.sin(u * f[0] + p[0]) + .3 * Math.sin(u * f[1] + p[1]) + .15 * Math.sin(u * f[2] + p[2]) + .45)]);
+    }
+    g.fillStyle = col; g.beginPath(); g.moveTo(-10, H + 2);
+    pts.forEach(function (q) { g.lineTo(q[0], q[1]); }); g.lineTo(W + 10, H + 2); g.closePath(); g.fill();
+    if (terr) {
+      g.strokeStyle = tcol; g.lineWidth = 1;
+      for (var k = terr; k < H; k += terr) {
+        g.beginPath(); var on = false;
+        pts.forEach(function (q) { var y = q[1] + k; if (y < H) { if (on) g.lineTo(q[0], y); else { g.moveTo(q[0], y); on = true; } } });
+        g.stroke();
+      }
+    }
+    return pts;
+  }
+  SC.fifa = { name: 'جبال فيفا', sub: 'مدرّجات البن والضباب يمشي بين الجبال', acc: [120, 205, 125], bright: true,
+    init: function (W, H) {
+      var R = rng(101);
+      var bg = layer(W, H, function (g) {
+        g.fillStyle = vgrad(g, 0, H * .7, [[0, '#7fb6dc'], [.6, '#cfe3e6'], [1, '#eef0e2']]); g.fillRect(0, 0, W, H);
+        g.drawImage(glow(Math.round(H * .3), '255,248,220', .2), W * .78 - H * .3, H * .14 - H * .3);
+        mountain(g, W, H, H * .42, H * .12, '#9db8bb', 3, 0);
+        mountain(g, W, H, H * .5, H * .13, '#7fa59b', 5, 0);
+      });
+      var mid = layer(W, H, function (g) {
+        var pts = mountain(g, W, H, H * .6, H * .14, '#5b8a67', 8, 6, 'rgba(25,60,35,.28)');
+        for (var i = 0; i < 26; i++) {
+          var q = pts[(R() * pts.length) | 0], hx = q[0], hy = q[1] + 6 + R() * H * .12;
+          if (hy > H * .9) continue;
+          g.fillStyle = R() < .6 ? '#f2ede0' : '#d8cdb4'; g.fillRect(hx, hy - 7, 9, 7);
+          g.fillStyle = 'rgba(60,50,40,.7)'; g.fillRect(hx + 2, hy - 5, 2, 2); g.fillRect(hx + 5, hy - 5, 2, 2);
+        }
+      });
+      var front = layer(W, H, function (g) {
+        var pts = mountain(g, W, H, H * .78, H * .12, '#3e6d47', 13, 7, 'rgba(15,40,20,.32)');
+        for (var i = 0; i < 140; i++) {
+          var q = pts[(R() * pts.length) | 0], y = q[1] + 6 + R() * (H - q[1]);
+          g.fillStyle = R() < .5 ? '#2c5634' : '#355f3b'; g.beginPath(); g.arc(q[0] + R() * 6, y, 2.5 + R() * 2.5, 0, TAU); g.fill();
+        }
+      });
+      var branch = layer(Math.round(H * .5), Math.round(H * .42), function (g, w, h) {   // a coffee branch with red cherries (البن الخولاني)
+        g.strokeStyle = '#4b3423'; g.lineWidth = 5; g.lineCap = 'round';
+        g.beginPath(); g.moveTo(w, h); g.quadraticCurveTo(w * .6, h * .55, w * .08, h * .3); g.stroke();
+        for (var i = 0; i < 8; i++) {
+          var u = i / 8, x = w - (w * .92) * u, y = h - (h * .7) * Math.pow(u, .8);
+          for (var sd = -1; sd <= 1; sd += 2) {
+            g.save(); g.translate(x, y); g.rotate(sd * (.9 + u * .3) - .6);
+            g.fillStyle = sd < 0 ? '#2f6b34' : '#3a7d3f'; g.beginPath(); g.ellipse(h * .1, 0, h * .1, h * .035, 0, 0, TAU); g.fill();
+            g.strokeStyle = 'rgba(200,230,180,.35)'; g.lineWidth = 1; g.beginPath(); g.moveTo(0, 0); g.lineTo(h * .2, 0); g.stroke();
+            g.restore();
+          }
+          if (i % 2 === 0) for (var c = 0; c < 4; c++) {
+            g.fillStyle = c % 2 ? '#c8241c' : '#e0412c'; g.beginPath(); g.arc(x + (c - 1.5) * 5, y + 5 + (c % 2) * 4, 4.2, 0, TAU); g.fill();
+            g.fillStyle = 'rgba(255,255,255,.4)'; g.beginPath(); g.arc(x + (c - 1.5) * 5 - 1.2, y + 3.8 + (c % 2) * 4, 1.1, 0, TAU); g.fill();
+          }
+        }
+      });
+      var fog = layer(320, 90, function (g) {
+        var x = g.createRadialGradient(160, 45, 0, 160, 45, 160);
+        x.addColorStop(0, 'rgba(255,255,255,.62)'); x.addColorStop(.6, 'rgba(255,255,255,.25)'); x.addColorStop(1, 'rgba(255,255,255,0)');
+        g.save(); g.scale(1, 90 / 320 * 2); g.fillStyle = x; g.beginPath(); g.arc(160, 80, 160, 0, TAU); g.fill(); g.restore();
+      });
+      var fogs = [];
+      for (var i = 0; i < 9; i++) fogs.push({ x: R() * W, y: H * (i < 5 ? .5 + R() * .12 : .66 + R() * .14), s: 1 + R() * 1.4, v: 6 + R() * 10, back: i < 5 });
+      return { bg: bg, mid: mid, front: front, branch: branch, fog: fog, fogs: fogs, birds: [{ a: 0, r: .07, cx: .3, cy: .2 }, { a: 2, r: .05, cx: .36, cy: .24 }] };
+    },
+    frame: function (g, S, W, H, t, dt, v) {
+      var m = .5 + v;
+      function fogs(back) {
+        S.fogs.forEach(function (f) {
+          if (f.back !== back) return;
+          f.x += f.v * m * dt; if (f.x > W + 200) f.x = -400;
+          var w = 320 * f.s * 1.6, h = 90 * f.s;
+          g.drawImage(S.fog, f.x, f.y - h / 2, w, h);
+        });
+      }
+      g.drawImage(S.bg, 0, 0); fogs(true);
+      g.drawImage(S.mid, 0, 0); fogs(false);
+      g.drawImage(S.front, 0, 0);
+      g.strokeStyle = 'rgba(40,45,40,.75)'; g.lineWidth = 1.8;
+      S.birds.forEach(function (b, n) {
+        b.a += dt * .25; var x = (b.cx + Math.cos(b.a) * b.r) * W, y = (b.cy + Math.sin(b.a) * b.r * .4) * H, w = Math.sin(t * 2 + n) * 2.5, s2 = 10;
+        g.beginPath(); g.moveTo(x - s2, y - w); g.quadraticCurveTo(x - s2 * .4, y - 3, x, y); g.quadraticCurveTo(x + s2 * .4, y - 3, x + s2, y - w); g.stroke();
+      });
+      var bw = S.branch.width, bh = S.branch.height;
+      g.save(); g.translate(W, H); g.rotate(Math.sin(t * .9) * .025 + Math.sin(t * 2.3) * .008); g.drawImage(S.branch, -bw, -bh); g.restore();
+    } };
+
+  // ---------- «نقش جيزاني»: woven bands like the Sadu, in the south's colours (the hut walls and the palm-frond weaving) ----------
+  var JZ = { red: '#c7281f', green: '#1d8a4b', yellow: '#f2b531', blue: '#2457b5', black: '#17110f', cream: '#f3e6cc', orange: '#e5672a', maroon: '#7c1e22' };
+  var BANDS = {
+    stripes: { h: 1.1, p: 4, draw: function (g, x, y, P, h) {
+      [[0, .18, JZ.black], [.18, .36, JZ.cream], [.36, .64, JZ.red], [.64, .82, JZ.cream], [.82, 1, JZ.black]].forEach(function (b) { g.fillStyle = b[2]; g.fillRect(x, y + h * b[0], P, h * (b[1] - b[0]) + .5); });
+    } },
+    teeth: { h: 2, p: 2, draw: function (g, x, y, P, h, alt) {
+      g.fillStyle = alt ? JZ.blue : JZ.green; g.fillRect(x, y, P, h);
+      g.fillStyle = alt ? JZ.yellow : JZ.yellow; g.beginPath(); g.moveTo(x, y + h); g.lineTo(x + P / 2, y + h * .12); g.lineTo(x + P, y + h); g.closePath(); g.fill();
+      g.fillStyle = alt ? JZ.cream : JZ.red; g.beginPath(); g.moveTo(x + P / 2, y + h); g.lineTo(x + P * .75, y + h * .5); g.lineTo(x + P, y + h); g.closePath(); g.fill();
+      g.beginPath(); g.moveTo(x, y + h); g.lineTo(x + P * .25, y + h * .5); g.lineTo(x + P / 2, y + h); g.closePath(); g.fill();
+    } },
+    diamonds: { h: 3, p: 3, draw: function (g, x, y, P, h, alt) {
+      g.fillStyle = alt ? JZ.maroon : JZ.red; g.fillRect(x, y, P, h);
+      var cx = x + P / 2, cy = y + h / 2;
+      function rh(r, c) { g.fillStyle = c; g.beginPath(); g.moveTo(cx, cy - r); g.lineTo(cx + r * .9, cy); g.lineTo(cx, cy + r); g.lineTo(cx - r * .9, cy); g.closePath(); g.fill(); }
+      rh(h * .42, JZ.cream); rh(h * .32, JZ.black); rh(h * .19, alt ? JZ.green : JZ.yellow); rh(h * .07, JZ.cream);
+      g.fillStyle = alt ? JZ.yellow : JZ.green;
+      [[x, y], [x + P, y], [x, y + h], [x + P, y + h]].forEach(function (c) {
+        var d = c[1] === y ? 1 : -1; g.beginPath(); g.moveTo(c[0] - h * .14, c[1]); g.lineTo(c[0], c[1] + d * h * .16); g.lineTo(c[0] + h * .14, c[1]); g.closePath(); g.fill();
+      });
+    } },
+    checks: { h: 1.4, p: 1.4, draw: function (g, x, y, P, h, alt) {
+      var c = alt ? [JZ.yellow, JZ.black] : [JZ.blue, JZ.cream];
+      for (var i = 0; i < 2; i++) for (var j = 0; j < 2; j++) { g.fillStyle = c[(i + j) % 2]; g.fillRect(x + i * P / 2, y + j * h / 2, P / 2 + .5, h / 2 + .5); }
+    } },
+    chevron: { h: 2, p: 2, draw: function (g, x, y, P, h, alt) {
+      g.fillStyle = alt ? JZ.green : JZ.black; g.fillRect(x, y, P, h);
+      g.lineJoin = 'miter';
+      g.strokeStyle = JZ.yellow; g.lineWidth = h * .22; g.beginPath(); g.moveTo(x - 1, y + h * .62); g.lineTo(x + P / 2, y + h * .25); g.lineTo(x + P + 1, y + h * .62); g.stroke();
+      g.strokeStyle = alt ? JZ.cream : JZ.red; g.lineWidth = h * .1; g.beginPath(); g.moveTo(x - 1, y + h * .92); g.lineTo(x + P / 2, y + h * .55); g.lineTo(x + P + 1, y + h * .92); g.stroke();
+    } },
+    hourglass: { h: 2.4, p: 2.4, draw: function (g, x, y, P, h, alt) {
+      g.fillStyle = alt ? JZ.yellow : JZ.orange; g.fillRect(x, y, P, h);
+      g.fillStyle = JZ.black; g.beginPath(); g.moveTo(x + P * .18, y + h * .12); g.lineTo(x + P * .82, y + h * .12); g.lineTo(x + P / 2, y + h / 2); g.closePath(); g.fill();
+      g.beginPath(); g.moveTo(x + P * .18, y + h * .88); g.lineTo(x + P * .82, y + h * .88); g.lineTo(x + P / 2, y + h / 2); g.closePath(); g.fill();
+      g.fillStyle = JZ.cream; g.beginPath(); g.arc(x, y + h / 2, h * .09, 0, TAU); g.arc(x + P, y + h / 2, h * .09, 0, TAU); g.fill();
+      g.fillStyle = alt ? JZ.red : JZ.green; g.beginPath(); g.arc(x + P / 2, y + h * .3, h * .06, 0, TAU); g.arc(x + P / 2, y + h * .7, h * .06, 0, TAU); g.fill();
+    } },
+    khous: { h: 1.6, p: 3, draw: function (g, x, y, P, h) {   // «الخوص»: palm-frond strands, over and under
+      var cols = [JZ.red, JZ.cream, JZ.green, JZ.cream, JZ.yellow, JZ.cream, JZ.blue, JZ.cream], n = cols.length, w = P / n;
+      for (var i = 0; i < n; i++) { g.fillStyle = cols[i]; g.fillRect(x + i * w, y, w + .5, h); }
+      g.fillStyle = 'rgba(0,0,0,.22)';
+      for (var k = 0; k < n; k += 2) g.fillRect(x + k * w, y + h * .5, w + .5, h * .5);
+      for (var m = 1; m < n; m += 2) g.fillRect(x + m * w, y, w + .5, h * .5);
+    } }
+  };
+  var SEQ = ['stripes', 'teeth', 'stripes', 'diamonds', 'stripes', 'chevron', 'checks', 'hourglass', 'stripes', 'khous', 'teeth*', 'stripes', 'diamonds*', 'checks*', 'chevron*', 'stripes', 'hourglass*', 'khous'];
+  SC.naqsh = { name: 'نقش جيزاني', sub: 'زخارف العشّة والخوص بألوان الجنوب — تنسج نفسها مثل السدو', acc: [242, 181, 49], bright: true,
+    init: function (W, H) {
+      var u = H / 34, rows = [], y = 0, i = 0;
+      while (y < H) {
+        var k = SEQ[i % SEQ.length], alt = k.slice(-1) === '*', B = BANDS[alt ? k.slice(0, -1) : k];
+        var h = Math.round(B.h * u), P = Math.round(B.p * u), n = Math.ceil(W / P) + 2;
+        var strip = layer(P * n, h, function (g) { for (var j = 0; j < n; j++) B.draw(g, j * P, 0, P, h, alt); });
+        rows.push({ c: strip, y: y, h: h, P: P, dir: i % 2 ? -1 : 1, sp: 5 + (i % 3) * 4, o: 0 });
+        y += h; i++;
+      }
+      var weave = layer(W, H, function (g) {
+        g.strokeStyle = 'rgba(0,0,0,.08)'; g.lineWidth = 1;
+        for (var d = -H; d < W; d += 4) { g.beginPath(); g.moveTo(d, 0); g.lineTo(d + H, H); g.stroke(); }
+        var v = g.createRadialGradient(W / 2, H * .4, H * .1, W / 2, H * .4, W * .7);
+        v.addColorStop(0, 'rgba(0,0,0,.05)'); v.addColorStop(1, 'rgba(0,0,0,.45)'); g.fillStyle = v; g.fillRect(0, 0, W, H);
+      });
+      var sheen = layer(Math.round(W * .35), H, function (g, w) {
+        var x = g.createLinearGradient(0, 0, w, 0);
+        x.addColorStop(0, 'rgba(255,240,210,0)'); x.addColorStop(.5, 'rgba(255,240,210,.14)'); x.addColorStop(1, 'rgba(255,240,210,0)');
+        g.fillStyle = x; g.fillRect(0, 0, w, H);
+      });
+      return { rows: rows, weave: weave, sheen: sheen, t0: null };
+    },
+    frame: function (g, S, W, H, t, dt, v) {
+      if (S.t0 == null) { S.t0 = t; g.fillStyle = '#17110f'; g.fillRect(0, 0, W, H); }
+      var m = .4 + v * 1.5, el = t - S.t0;
+      S.rows.forEach(function (r, i) {
+        r.o = (r.o + r.dir * r.sp * m * dt) % r.P;
+        var rev = Math.max(0, Math.min(1, (el - i * .09) / .45));
+        if (rev <= 0) return;
+        if (rev < 1) { g.save(); g.beginPath(); g.rect(W * (1 - rev), r.y, W * rev, r.h); g.clip(); }
+        g.drawImage(r.c, -r.P + r.o, r.y);
+        if (rev < 1) g.restore();
+      });
+      g.drawImage(S.weave, 0, 0);
+      var cyc = (t % 11) / 11, sx = -W * .4 + cyc * W * 1.8;
+      g.globalCompositeOperation = 'lighter'; g.drawImage(S.sheen, sx, 0); g.globalCompositeOperation = 'source-over';
+    } };
+
+  var KEYS = ['naqsh', 'jazan', 'fifa', 'desert', 'city', 'aurora', 'warp', 'sea', 'rain', 'flow', 'dunes'];
   L.scenes = SC; L.keys = KEYS;
 
   // ---------- engine ----------
   var cv = null, g = null, W = 0, H = 0, S = null, key = null, raf = 0, last = 0, running = false, paused = false, sp = 0, autoT = 0;
-  function cur() { var k = App.settings.liveBg; return SC[k] ? k : 'desert'; }
+  function cur() { var k = App.settings.liveBg; return SC[k] ? k : 'naqsh'; }
   function speedFactor() {
     if (App.settings.liveSpeed === false) return 0;
     var f = App.loc && App.loc.fix, s = f && f.src !== 'last' && Date.now() - f.t < 6000 ? f.speed || 0 : 0;
@@ -399,7 +692,11 @@
     tinted = { '--accent': 'rgb(' + rgb + ')', '--accent-rgb': rgb, '--pri-a': 'rgb(' + a.map(function (x) { return Math.min(255, x + 30); }).join(', ') + ')', '--pri-b': 'rgb(' + rgb + ')' };
     for (var p in tinted) document.body.style.setProperty(p, tinted[p]);
   }
-  function bright() { var fx = App.$('fx'); if (fx) fx.classList.toggle('lv-bright', !!SC[key].bright); }
+  function bright() {
+    var fx = App.$('fx'), on = !!SC[key].bright;
+    if (fx) fx.classList.toggle('lv-bright', on);
+    document.body.classList.toggle('lv-busy', on);   // busy or daylight worlds get firmer cards
+  }
   function untint() {
     var st = document.body.style;
     for (var p in tinted) if (st.getPropertyValue(p).trim() === tinted[p]) st.removeProperty(p);
@@ -420,7 +717,7 @@
     if (!autoT) autoT = Date.now();
     if (!running) { running = true; last = 0; raf = requestAnimationFrame(loop); }
   };
-  L.stop = function () { running = false; cancelAnimationFrame(raf); cv = g = S = null; untint(); };
+  L.stop = function () { running = false; cancelAnimationFrame(raf); cv = g = S = null; untint(); document.body.classList.remove('lv-busy'); };
   L.set = function (k, quiet) {
     if (!SC[k]) return;
     App.settings.liveBg = k; App.saveSettings();
@@ -432,6 +729,7 @@
   function thumb(k, w, h) {
     return layer(w, h, function (tg) {
       var st = SC[k].init(w, h);
+      if ('t0' in st) st.t0 = -100;   // previews show the pattern already woven
       for (var i = 0; i < 24; i++) SC[k].frame(tg, st, w, h, 3 + i * .05, .05, .4);
     });
   }
@@ -495,9 +793,14 @@
   // ---------- wiring ----------
   L.init = function () {
     var b = App.$('lvBg'); if (b) b.onclick = L.picker;
+    var fb = App.$('lvFull');
+    if (fb) fb.onclick = function () {   // the whole world, only the clock and the fuel card left on it
+      var on = document.body.classList.toggle('lv-full');
+      App.$('lvFullT').textContent = on ? 'رجّع البطاقات' : 'عرض كامل';
+    };
     var fu = App.$('wFuel'); if (fu) fu.onclick = fuelInfo;
     App.on('skin', function (k) {
-      if (k !== 'live') { if (running) L.stop(); return; }
+      if (k !== 'live') { document.body.classList.remove('lv-full'); if (running) L.stop(); return; }
       setTimeout(function () { L.start(); fuelPaint(); }, 0);
     });
     App.on('panel', function (n) { paused = !!n; });

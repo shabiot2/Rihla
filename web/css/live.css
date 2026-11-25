@@ -20,7 +20,12 @@ body[data-skin="live"] .lv-shade { position: absolute; top: 0; left: 0; right: 0
 body[data-skin="live"] #wClock { background: none; border: 0; box-shadow: none; justify-content: center; }
 body[data-skin="live"] .clock { text-shadow: 0 .3rem 1.8rem rgba(0, 0, 0, .6); }
 body[data-skin="live"] #wClock .greet, body[data-skin="live"] .dates { text-shadow: 0 .1rem .7rem rgba(0, 0, 0, .7); }
-.lv-bgbtn { align-self: center; margin-top: .9rem; background: rgba(0, 0, 0, .35); border-color: rgba(255, 255, 255, .22); color: #fff; }
+.lv-chips { justify-content: center; gap: .6rem; margin-top: .9rem; }
+.lv-bgbtn { margin: 0; background: rgba(0, 0, 0, .35); border-color: rgba(255, 255, 255, .22); color: #fff; }
+/* «عرض كامل»: the cards step aside, the clock and the fuel card stay */
+body[data-skin="live"] #home > .w { transition: opacity .45s ease; }
+body.lv-full[data-skin="live"] #home > .w:not(#wClock):not(#wFuel) { opacity: 0; pointer-events: none; }
+body.lv-full[data-skin="live"] #wFuel { --w-bg: rgba(0, 0, 0, .35); }
 .lv-bgbtn .ic { width: 1.05rem; height: 1.05rem; }
 
 /* fuel economy: one gauge, km/L, red → green */
@@ -52,3 +57,4 @@ body[data-skin="live"] #wClock .greet, body[data-skin="live"] .dates { text-shad
 /* a daylight world gets a deeper veil so the clock and cards stay readable */
 #fx.lv-bright .lv-shade { background: radial-gradient(ellipse 34% 30% at 50% 36%, rgba(0, 0, 0, .32), rgba(0, 0, 0, 0)),
   linear-gradient(180deg, rgba(0, 0, 0, .55) 0%, rgba(0, 0, 0, .1) 18%, rgba(0, 0, 0, .1) 66%, rgba(0, 0, 0, .55) 100%); }
+body.lv-busy[data-skin="live"] { --w-bg: linear-gradient(165deg, rgba(12, 14, 28, .88), rgba(6, 8, 18, .82)); }
