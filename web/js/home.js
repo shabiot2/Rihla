@@ -462,6 +462,7 @@
     neon: function () { return stars(90, .6, 9) + '<i class="nsun-glow"></i><i class="nsun"></i><i class="nhaze"></i>' + mountains() + '<div class="nfloor"><i class="ngrid"></i></div>'; },
     luxe: function () { return '<i class="lsheen"></i>'; },
     pure: function () { return ''; },
+    live: function () { return '<canvas id="liveCv"></canvas><i class="lv-shade"></i>'; },
     girls: girlsScene,
     glass: function () { return '<i class="gbg" id="gbg"></i><i class="gshade"></i><i class="gorb o1"></i><i class="gorb o2"></i><i class="gorb o3"></i><i class="gsheen"></i>'; },
     friday: function () { return '<i class="fx-pat"></i><i class="fglow"></i>' + lantern('l1') + lantern('l2'); }

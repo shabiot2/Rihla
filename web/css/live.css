@@ -1,0 +1,54 @@
+/* live.css — «حيّ»: the canvas world, the legibility layer, the fuel-economy card and the background picker */
+body[data-skin="live"] {
+  --f-ui: "Alexandria", "Tajawal", sans-serif; --f-disp: "Alexandria", "Tajawal", sans-serif;
+  --f-clock: "Alexandria", sans-serif; --f-latin: "Alexandria", sans-serif;
+  --bg2: #05060d; --card: rgba(10, 12, 24, .7); --card-a: rgba(14, 16, 30, .72); --card-b: rgba(8, 10, 20, .68); --card-c: rgba(6, 8, 16, .75);
+  --sheet: rgba(8, 10, 22, .97); --glass: rgba(10, 12, 26, .9);
+  --text: #f3f5ff; --muted: #b8bfd8; --dim: #6f7694;
+  --accent: #ffba5c; --accent-rgb: 255, 186, 92; --accent-d: #c98a3a; --accent-l: #ffe0b0; --on-accent: #1a1006;
+  --pri-a: #ffd38c; --pri-b: #ffba5c;
+  --w-bg: linear-gradient(165deg, rgba(12, 14, 28, .72), rgba(6, 8, 18, .58));
+  --w-border: 1px solid rgba(255, 255, 255, .12); --w-r: 1.4rem;
+  --w-shadow: 0 .8rem 2rem rgba(0, 0, 0, .35);
+  --clock-size: 7.2rem; --clock-w: 300;
+  --viz-track: rgba(255, 255, 255, .14); --viz-day: var(--accent); --viz-day2: #ffd27a; --viz-night: #5a5fe0;
+}
+body[data-skin="live"] #app { background: #05060d; }
+#liveCv { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: block; }
+body[data-skin="live"] .lv-shade { position: absolute; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none;
+  background: linear-gradient(180deg, rgba(0, 0, 0, .5) 0%, rgba(0, 0, 0, 0) 16%, rgba(0, 0, 0, 0) 66%, rgba(0, 0, 0, .55) 100%); }
+body[data-skin="live"] #wClock { background: none; border: 0; box-shadow: none; justify-content: center; }
+body[data-skin="live"] .clock { text-shadow: 0 .3rem 1.8rem rgba(0, 0, 0, .6); }
+body[data-skin="live"] #wClock .greet, body[data-skin="live"] .dates { text-shadow: 0 .1rem .7rem rgba(0, 0, 0, .7); }
+.lv-bgbtn { align-self: center; margin-top: .9rem; background: rgba(0, 0, 0, .35); border-color: rgba(255, 255, 255, .22); color: #fff; }
+.lv-bgbtn .ic { width: 1.05rem; height: 1.05rem; }
+
+/* fuel economy: one gauge, km/L, red → green */
+.w-fuel { flex-direction: column; cursor: pointer; }
+.fu-main { position: relative; flex: 1; min-height: 0; display: flex; align-items: flex-end; justify-content: center; }
+.fu-g { height: 100%; max-height: 9.5rem; max-width: 100%; overflow: visible; }
+.fu-track { fill: none; stroke: rgba(255, 255, 255, .13); stroke-width: 12; stroke-linecap: round; }
+.fu-val { fill: none; stroke: url(#fuGrad); stroke-width: 12; stroke-linecap: round; transition: stroke-dasharray .9s ease; }
+.fu-tick { stroke: rgba(255, 255, 255, .35); stroke-width: 2; }
+.fu-tl { fill: var(--muted); font-size: 10px; font-family: var(--f-latin); }
+#fuDot { fill: #fff; transition: cx .9s ease, cy .9s ease, opacity .3s; }
+.fu-read { position: absolute; bottom: .1rem; left: 0; right: 0; text-align: center; pointer-events: none; }
+.fu-read b { display: block; font-size: 2.5rem; font-weight: 700; line-height: 1; }
+.fu-read small { color: var(--muted); font-size: .85rem; }
+.fu-stats { display: flex; justify-content: space-around; gap: 1rem; padding-top: .35rem; font-size: .9rem; color: var(--muted); }
+.fu-stats b { color: var(--text); font-weight: 700; margin-right: .35rem; }
+.w-fuel.stale .fu-read b { color: var(--muted); }
+
+/* background picker */
+.lv-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1rem; margin-bottom: 1.2rem; }
+.lv-card { display: flex; flex-direction: column; align-items: stretch; gap: .25rem; padding: .5rem .5rem .7rem; border-radius: 1rem;
+  background: var(--card); border: 2px solid transparent; text-align: right; color: var(--text); }
+.lv-card.on { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(var(--accent-rgb), .25); }
+.lv-th { display: block; aspect-ratio: 16 / 9; border-radius: .7rem; overflow: hidden; background: #0a0c18; }
+.lv-th canvas { display: block; width: 100%; height: 100%; }
+.lv-card b { font-size: 1.05rem; margin-top: .25rem; }
+.lv-card small { color: var(--muted); font-size: .82rem; line-height: 1.35; }
+@media (max-aspect-ratio: 1/1) { .lv-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+/* a daylight world gets a deeper veil so the clock and cards stay readable */
+#fx.lv-bright .lv-shade { background: radial-gradient(ellipse 34% 30% at 50% 36%, rgba(0, 0, 0, .32), rgba(0, 0, 0, 0)),
+  linear-gradient(180deg, rgba(0, 0, 0, .55) 0%, rgba(0, 0, 0, .1) 18%, rgba(0, 0, 0, .1) 66%, rgba(0, 0, 0, .55) 100%); }

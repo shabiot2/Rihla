@@ -13,10 +13,10 @@ uitest.OUT = OUT
 # a moment that suits each world (Riyadh time)
 WHEN = {
     'orbit': (2026, 11, 16, 20, 34), 'dune': (2026, 11, 16, 16, 38), 'neon': (2026, 11, 16, 21, 12),
-    'luxe': (2026, 11, 16, 13, 7), 'pure': (2026, 11, 16, 10, 21), 'girls': (2026, 11, 16, 16, 2), 'glass': (2026, 11, 16, 18, 41),
+    'luxe': (2026, 11, 16, 13, 7), 'pure': (2026, 11, 16, 10, 21), 'girls': (2026, 11, 16, 16, 2), 'glass': (2026, 11, 16, 18, 41), 'live': (2026, 11, 16, 21, 12),
     'friday': (2026, 11, 20, 10, 46), 'national': (2026, 9, 23, 9, 15), 'founding': (2027, 2, 22, 19, 25),
 }
-ORDER = ['orbit', 'dune', 'neon', 'luxe', 'pure', 'girls', 'glass', 'friday', 'national', 'founding']
+ORDER = ['orbit', 'live', 'dune', 'neon', 'luxe', 'pure', 'girls', 'glass', 'friday', 'national', 'founding']
 
 
 SP = '/tmp/claude-0/-home-claude/1696dbce-1f1f-58f1-a7e0-73ec14da2a1a/scratchpad'
@@ -138,6 +138,20 @@ if __name__ == '__main__':
             p.click('#pbSend'); p.wait_for_timeout(500)
             print('posted:', p.evaluate('window.__posted'), '| code:', p.inner_text('#pbCode'))
         shot('orbit', 1280, 720, 'send', sd)
+    elif which == 'live':
+        import itertools
+        for k in ['desert', 'city', 'aurora', 'warp', 'sea', 'rain', 'flow', 'dunes']:
+            def pick(p, k=k):
+                p.evaluate("App.settings.liveBg='%s'; App.saveSettings(); App.live.set('%s', true)" % (k, k)); p.wait_for_timeout(1500)
+            shot('live', 1280, 720, 'live_' + k, pick)
+        def fuel(p):
+            p.evaluate("App.cdata.ingest({a:'x', x:{instantFuel: 13.4, avgFuelConsumption: 11.8, rangeKm: 420}})"); p.wait_for_timeout(1300)
+        shot('live', 1280, 720, 'live_fuel', fuel)
+        def picker(p):
+            p.click('#lvBg'); p.wait_for_timeout(1500)
+        shot('live', 1280, 720, 'live_picker', picker)
+        shot('live', 1024, 600, 'live_1024')
+        shot('live', 720, 1280, 'live_portrait')
     elif which == 'one':
         w, h = [int(x) for x in sys.argv[4].split('x')] if len(sys.argv) > 4 else (1280, 720)
         shot(sys.argv[3], w, h)

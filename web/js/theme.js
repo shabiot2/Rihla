@@ -41,6 +41,8 @@
       font: '"IBM Plex Sans Arabic"', bg: '#eef1f7', fg: '#11142a' },
     girls: { name: 'بناتي', sub: 'وردي ناعم بالغيوم والنجوم وصوركم', layout: 'girls', viz: 'rainbow', metal: 'rose',
       font: '"Baloo Bhaijaan 2"', bg: '#ffe4ea', fg: '#7a3d52' },
+    live: { name: 'حيّ', sub: 'خلفيات متحركة تختار منها، واستهلاك البنزين من السيارة', layout: 'live', viz: 'none', metal: 'silver',
+      font: '"Alexandria"', bg: '#05060d', fg: '#f3f5ff' },
     glass: { name: 'زجاج', sub: 'زجاج مغبّش بصورة بناتك — وألوانه من ألوانها', layout: 'glass', viz: 'halo', metal: 'silver',
       font: '"Alexandria"', bg: '#1b0f2e', fg: '#fff0f7' },
     friday: { name: 'الجمعة', sub: 'محراب وزخارف ذهبية — تلقائي كل جمعة', layout: 'friday', viz: 'arch', metal: 'gold', occasion: 'friday',
@@ -50,7 +52,7 @@
     founding: { name: 'يوم التأسيس', sub: 'طين نجدي ونقش السدو — في موسمه', layout: 'dune', viz: 'sun', metal: 'gold', occasion: 'founding',
       font: '"Aref Ruqaa"', bg: '#3b2414', fg: '#fbf1dc' }
   };
-  var ORDER = ['orbit', 'dune', 'neon', 'luxe', 'pure', 'girls', 'glass', 'friday', 'national', 'founding'];
+  var ORDER = ['orbit', 'live', 'dune', 'neon', 'luxe', 'pure', 'girls', 'glass', 'friday', 'national', 'founding'];
   var LEGACY = { silver: 'orbit', royal: 'orbit', match: 'pure', black: 'luxe', custom: 'orbit' };   // skins of v2.x
   var METAL = {
     silver: ['#ffffff', '#d3d9de', '#7f8891', '#e2e6e9', '#8a939b'],

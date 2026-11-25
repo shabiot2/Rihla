@@ -47,6 +47,8 @@
     App.tasks.init();
     App.fan.init();
     if (App.tires) App.tires.init();
+    if (App.cdata) App.cdata.init();
+    if (App.live) App.live.init();
     App.loc.start();
     weather();
     setInterval(weather, 20 * 60000);

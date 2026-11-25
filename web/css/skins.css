@@ -20,6 +20,19 @@ body[data-layout="orbit"] #home {
 }
 body[data-layout="orbit"] .ac-tile:nth-child(n+10):not(:last-child) { display: none; }
 
+/* live: a moving world fills the screen; clock in the open, fuel economy under it */
+#wFuel, #lvBg { display: none; }
+body[data-layout="live"] #home {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.32fr) minmax(0, 1fr);
+  grid-template-rows: minmax(0, .95fr) minmax(0, 1.05fr) minmax(0, 1fr);
+  grid-template-areas: "prayer core carplay" "prayer core media" "smart fuel apps";
+  --ac-cols: 5;
+}
+body[data-layout="live"] #wViz { display: none; }
+body[data-layout="live"] #wFuel { display: flex; grid-area: fuel; }
+body[data-layout="live"] #lvBg { display: inline-flex; }
+body[data-layout="live"] .ac-tile:nth-child(n+10):not(:last-child) { display: none; }
+
 /* dune + founding: a wide sky with the sun's path, postcards underneath */
 body[data-layout="dune"] #home {
   grid-template-columns: minmax(0, 1.08fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, .92fr);
@@ -112,6 +125,9 @@ body[data-layout="friday"] #home {
     grid-template-rows: minmax(0, 1.1fr) repeat(3, minmax(0, 1fr));
     grid-template-areas: "clock clock" "prayer carplay" "prayer media" "apps smart"; }
   body[data-layout="neon"] #home { --ac-cols: 6; }
+  body[data-layout="live"] #home {
+    grid-template-rows: minmax(0, 1.1fr) minmax(0, .9fr) repeat(3, minmax(0, 1fr));
+    grid-template-areas: "core core" "fuel fuel" "prayer carplay" "prayer media" "apps smart"; }
 }
 
 /* =====================================================================================================
@@ -657,6 +673,12 @@ body[data-skin="friday"] .dk.active { background: rgba(227, 190, 106, .16); box-
 .p-orbit i:nth-child(2) { width: 22%; top: 12%; bottom: 12%; right: 6%; border-radius: .5rem; background: rgba(255, 255, 255, .1); border: 1px solid rgba(255, 255, 255, .15); }
 .p-orbit i:nth-child(3) { width: 22%; top: 12%; bottom: 12%; left: 6%; border-radius: .5rem; background: rgba(255, 255, 255, .1); border: 1px solid rgba(255, 255, 255, .15); }
 /* dune: sky, sun path, dunes */
+.sk-prev.p-live { background: linear-gradient(180deg, #050716 0%, #1c1640 38%, #5a2c4c 54%, #160f1c 54.5%, #09070d 100%); }
+.sk-prev.p-live i:nth-child(1) { left: 50%; bottom: 0; width: 0; height: 0; border-left: 4.2rem solid transparent; border-right: 4.2rem solid transparent;
+  border-bottom: 3.5rem solid #0c0c13; transform: translateX(-50%); }
+.sk-prev.p-live i:nth-child(2) { left: 50%; bottom: .5rem; width: .22rem; height: 2.2rem; transform: translateX(-50%);
+  background: repeating-linear-gradient(180deg, rgba(255, 230, 180, .9) 0 .45rem, transparent .45rem .8rem); }
+.sk-prev.p-live i:nth-child(3) { right: 1.2rem; top: .9rem; width: .9rem; height: .9rem; border-radius: 50%; background: #fff3dc; box-shadow: 0 0 1rem rgba(255, 236, 200, .8); }
 .sk-prev.p-dune { background: linear-gradient(180deg, #8ec5ee 0%, #f7d9a6 70%, #f3c98b 100%); }
 .p-dune i:nth-child(1) { left: -10%; right: -10%; bottom: -55%; height: 90%; border-radius: 50%; background: #d99a55; }
 .p-dune i:nth-child(2) { width: 70%; height: 70%; left: 15%; top: 18%; border-radius: 50% 50% 0 0; border: 2px dashed rgba(58, 36, 20, .35); border-bottom: 0; }

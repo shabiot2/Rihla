@@ -193,7 +193,7 @@
       })();
     });
   };
-  var caught = [], last = null;
+  var caught = [], last = null, savedAt = 0;
   // upload the whole check as plain text (paste.rs, then dpaste.com) and show the short code to send in the chat
   function sendReport() {
     var out = App.$('pbCode'), btn = App.$('pbSend');
@@ -234,6 +234,7 @@
         (/^[\w$]+(\.[\w$]+)+$/.test(q) && /tpms|tire|tyre/i.test(q));
     });
     var devs = strs.filter(function (q) { return /\/dev\//.test(q); });
+    if (acts.length) App.store.set('carActs', acts.slice(0, 600));
     var n = acts.length ? App.Native.call('listen', JSON.stringify(acts.slice(0, 600))) : '0';
     if (last) last.scan = { apps: srcs, listen: n, strings: strs };
     function grid(t, arr, max) {
@@ -255,8 +256,9 @@
     if (!o) return;
     caught = caught.filter(function (c) { return c.a !== o.a; });
     caught.unshift(o); if (caught.length > 12) caught.pop();
-    try { App.store.set('bcast', caught); } catch (e) { /* storage full or unavailable */ }
+    if (Date.now() - savedAt > 5000) { savedAt = Date.now(); try { App.store.set('bcast', caught); } catch (e) { /* storage full or unavailable */ } }
     paintCaught();
+    if (App.cdata) App.cdata.ingest(o);
   };
 
   // ---------- recording ----------
@@ -405,7 +407,7 @@
     App.on('settings', bar);
     App.on('panel', function (n) {
       if (n !== 'tires') edit = null;
-      if (!n && App.Native.has) App.Native.call('listen', '');
+      if (!n && App.Native.has) { if (App.cdata) App.cdata.listen(); }
     });
     caught = App.store.get('bcast', []) || [];
     setInterval(bar, 3600e3);
