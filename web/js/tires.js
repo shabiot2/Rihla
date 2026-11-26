@@ -250,14 +250,18 @@
   function sendReport() {
     var out = App.$('pbCode'), btn = App.$('pbSend');
     if (!navigator.onLine) { out.textContent = 'ما فيه نت — شغّل نت الجوال على الشاشة وجرّب'; return; }
-    btn.disabled = true; out.textContent = 'جاري الإرسال…';
+    btn.disabled = true;
+    // kept small (one compact line of JSON, only what can lead to the car's data) so it goes up quickly on a phone's hotspot
+    var all = packages(), carPkg = /reglink|yunovo|tpms|tire|tyre|can|mcu|car|vehicle|obd|serviceui|commonui|mediatek|mtk/i;
     var rep = { app: 'Rihla ' + App.VERSION, at: new Date().toISOString(), sys: App.Native.json('sys'),
-      apps: App.system.apps(true).map(function (a) { return a.p + ' | ' + a.l; }),
       launchers: (App.system.launchers || []).map(function (a) { return a.p + '/' + (a.c || '?') + ' | ' + a.l; }),
-      packages: packages().map(function (a) { return a.p + ' | ' + (a.l || '') + ' | ' + (a.f & 1 ? 'sys' : 'user') + (a.e === false ? ' off' : '') + ' | ' + (a.s || ''); }),
+      packages: { total: all.length, car: all.filter(function (a) { return carPkg.test(a.p + ' ' + (a.l || '')); }).slice(0, 200)
+        .map(function (a) { return a.p + ' | ' + (a.l || '') + ' | ' + (a.f & 1 ? 'sys' : 'user') + (a.e === false ? ' off' : '') + ' | ' + (a.s || ''); }) },
       check: last && last.probe, caught: caught, system: last && last.sysx,
-      scan: last && last.scan && { apps: last.scan.apps, files: last.scan.files, listen: last.scan.listen, strings: ranked(last.scan.strings || []).slice(0, 5000) } };
-    var text = JSON.stringify(rep, null, 1);
+      scan: last && last.scan && { apps: last.scan.apps, files: last.scan.files, listen: last.scan.listen,
+        strings: ranked((last.scan.strings || []).filter(function (q) { return CARWORDS.test(q) || /^[\w$]+(\.[\w$]+){2,}$/.test(q); })).slice(0, 3000) } };
+    var text = JSON.stringify(rep);
+    out.textContent = 'جاري الإرسال… (' + App.d(Math.ceil(text.length / 1024)) + ' KB)';
     function done(url) {
       btn.disabled = false;
       var code = String(url || '').trim().replace(/^https?:\/\//, '');
@@ -267,11 +271,17 @@
     }
     function fail() { btn.disabled = false; out.textContent = 'تعذّر الإرسال — تأكد من النت وجرّب مرة ثانية'; }
     function post(url, opts) {
-      var c = new AbortController(), t = setTimeout(function () { c.abort(); }, 20000);
+      var c = new AbortController(), t = setTimeout(function () { c.abort(); }, 40000);
       opts.signal = c.signal;
       return fetch(url, opts).then(function (r) { clearTimeout(t); if (!r.ok) throw new Error('http ' + r.status); return r.text(); });
     }
-    post('https://paste.rs/', { method: 'POST', body: text })
+    function pasteRs(again) {                // paste.rs is the one the chat can open: try it twice before the other site
+      return post('https://paste.rs/', { method: 'POST', body: text }).catch(function (e) {
+        if (!again) throw e;
+        return new Promise(function (r) { setTimeout(r, 5000); }).then(function () { return pasteRs(false); });
+      });
+    }
+    pasteRs(true)
       .then(done)
       .catch(function () {
         return post('https://dpaste.com/api/v2/', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
