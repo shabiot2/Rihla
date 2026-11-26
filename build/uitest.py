@@ -26,6 +26,8 @@ window.prompt = function (cmd, arg) {
     case 'dexscan': return JSON.stringify(['*com.reglink.vehicleinfo.ACTION_TPMS_UPDATE', 'tpms_fl_pressure', 'tpms_fr_pressure', 'TirePressureBean',
       'Lcom/reglink/vehicleinfo/tpms/TpmsManager;', '/dev/ttyS3', 'com.reglink.vehicleinfo.ACTION_CAN_DATA', 'android.intent.action.BOOT_COMPLETED', 'tire_unit']);
     case 'listen': return arg ? String(JSON.parse(arg).length) : '0';
+    case 'pkgs': return JSON.stringify([{p:'com.reglink.tpms', l:'TPMS', s:'/system/priv-app/Tpms/Tpms.apk', f:1, e:true},
+      {p:'com.reglink.canbus', l:'CanBus', s:'/system/app/CanBus/CanBus.apk', f:1, e:true}, {p:'com.android.phone', l:'Phone', s:'/system/priv-app/TeleService/TeleService.apk', f:1, e:true}]);
     case 'props': return '[ro.product.model]: [k80_bsp]\n[persist.sys.canbus.type]: [toyota_raise]\n[ro.build.version.release]: [8.1.0]\n[dalvik.vm.heapsize]: [512m]';
     case 'services': return 'Found 3 services:\n0\treglink_car: [com.reglink.services.ICarService]\n1\tactivity: [android.app.IActivityManager]\n2\twindow: [android.view.IWindowManager]';
     case 'devs': return 'crw-rw---- 1 system system 4,  64 2026-11-26 07:00 ttyMT0\ncrw-rw---- 1 system system 4,  65 2026-11-26 07:00 ttyMT1\ndrwxr-xr-x 2 root root 60 2026-11-26 07:00 input';

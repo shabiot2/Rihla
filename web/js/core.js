@@ -23,7 +23,7 @@ var App = window.App = {};
   };
 
   // ---------- native bridge (prompt() is intercepted by the Android shell) ----------
-  App.VERSION = '3.5.3';
+  App.VERSION = '3.5.4';
   var Native = App.Native = {
     has: false,
     call: function (cmd, arg) {

@@ -131,14 +131,27 @@
   // the apps behind the car's data on this kind of unit (reglink/yunovo): CarFun shows TPMS, Car Setup talks to the car, AC
   var CAR_PKGS = ['com.reglink.services', 'com.reglink.apps.settings', 'com.reglink.vehicleinfo', 'com.reglink.apps.serviceui'];
   var NOT_CAR = /carplay|zlink|autokit|android\.auto|androidauto|aasink|projection|mirror|cleaning/i;
+  // every installed package, the hidden and protected system ones too: the tyre program may have no icon at all
+  var pkgCache = null;
+  function packages() { if (!pkgCache) pkgCache = App.Native.json('pkgs') || []; return pkgCache; }
+  function hiddenCar() {
+    var rank = function (a) {
+      var t = a.p + ' ' + (a.l || '');
+      return TPMS_WORDS.test(t) ? 0 : /canbus|canbox|\bcan\b|\.can|can\.|mcu|obd|decod/i.test(t) ? 1 : /vehicle|carinfo|carservice|reglink|yunovo/i.test(t) ? 2 : 9;
+    };
+    return packages().filter(function (a) { return a.p && a.p !== 'com.carnav.camry' && rank(a) < 9 && !NOT_CAR.test(a.p + ' ' + (a.l || '')); })
+      .sort(function (a, b) { return rank(a) - rank(b); }).map(function (a) { return { p: a.p, l: a.l || a.p }; });
+  }
   function probeApps() {
     var all = App.system.apps(true), saved = App.settings.tpmsApp, out = [], seen = {};
-    function add(a) { if (a && !seen[a.p] && out.length < 5 && !NOT_CAR.test(a.p + ' ' + a.l)) { seen[a.p] = 1; out.push(a); } }
+    function add(a) { if (a && !seen[a.p] && out.length < 6 && !NOT_CAR.test(a.p + ' ' + a.l)) { seen[a.p] = 1; out.push(a); } }
     tpmsIcons().forEach(function (i) { add(all.filter(function (a) { return a.p === i.p; })[0] || { p: i.p, l: i.l }); });
+    hiddenCar().filter(function (a) { return TPMS_WORDS.test(a.p + ' ' + a.l); }).forEach(add);
     if (saved) add(all.filter(function (a) { return a.p === saved; })[0] || { p: saved, l: saved });
     CAR_PKGS.forEach(function (p) { add(all.filter(function (a) { return a.p === p; })[0]); });
     all.filter(isTpms).forEach(add);
     all.filter(function (a) { return TP.test(a.p) || TP.test(String(a.l)); }).forEach(add);
+    hiddenCar().forEach(add);
     all.filter(function (a) { return /car|vehicle/i.test(a.p + ' ' + a.l); }).forEach(add);
     return out;
   }
@@ -241,6 +254,7 @@
     var rep = { app: 'Rihla ' + App.VERSION, at: new Date().toISOString(), sys: App.Native.json('sys'),
       apps: App.system.apps(true).map(function (a) { return a.p + ' | ' + a.l; }),
       launchers: (App.system.launchers || []).map(function (a) { return a.p + '/' + (a.c || '?') + ' | ' + a.l; }),
+      packages: packages().map(function (a) { return a.p + ' | ' + (a.l || '') + ' | ' + (a.f & 1 ? 'sys' : 'user') + (a.e === false ? ' off' : '') + ' | ' + (a.s || ''); }),
       check: last && last.probe, caught: caught, system: last && last.sysx,
       scan: last && last.scan && { apps: last.scan.apps, files: last.scan.files, listen: last.scan.listen, strings: ranked(last.scan.strings || []).slice(0, 5000) } };
     var text = JSON.stringify(rep, null, 1);

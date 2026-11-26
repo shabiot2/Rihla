@@ -281,7 +281,7 @@ def build_classes():
             ('wifi', True), ('bt', True), ('tts', True), ('vol', True), ('key', True), ('full', True),
             ('home', True), ('temp', True), ('sys', True), ('net', True), ('cache', True),
             ('radios', False), ('start', True), ('ls', True), ('perm', True), ('probe', True),
-            ('dexscan', True), ('listen', True), ('props', False), ('services', False), ('devs', False)]
+            ('dexscan', True), ('listen', True), ('props', False), ('services', False), ('devs', False), ('pkgs', False)]
     h = ['const-string v0, "ping"', S_EQ % ('v0', 'p1'), 'move-result v1', 'if-eqz v1, :c0',
          'const-string v0, "pong"', 'return-object v0']
     for k, (c, has_arg) in enumerate(cmds):
@@ -852,6 +852,55 @@ def build_classes():
         move-result-object v0
         return-object v0
     ''' % cmd)
+
+    # every installed package, hidden system ones included (no launcher icon): [{p, l, s: source APK, f: flags, e: enabled}]
+    main.method('pkgs', [], STR, 11, '''
+        invoke-virtual {p0}, Landroid/app/Activity;->getPackageManager()Landroid/content/pm/PackageManager;
+        move-result-object v0
+        const/16 v1, 0x2200
+        invoke-virtual {v0, v1}, Landroid/content/pm/PackageManager;->getInstalledPackages(I)Ljava/util/List;
+        move-result-object v1
+        new-instance v2, Lorg/json/JSONArray;
+        invoke-direct {v2}, Lorg/json/JSONArray;-><init>()V
+        invoke-interface {v1}, Ljava/util/List;->size()I
+        move-result v3
+        const/4 v4, 0
+        :loop
+        if-ge v4, v3, :done
+        invoke-interface {v1, v4}, Ljava/util/List;->get(I)Ljava/lang/Object;
+        move-result-object v5
+        check-cast v5, Landroid/content/pm/PackageInfo;
+        new-instance v6, Lorg/json/JSONObject;
+        invoke-direct {v6}, Lorg/json/JSONObject;-><init>()V
+        iget-object v7, v5, Landroid/content/pm/PackageInfo;->packageName:Ljava/lang/String;
+        const-string v8, "p"
+        invoke-virtual {v6, v8, v7}, Lorg/json/JSONObject;->put(Ljava/lang/String;Ljava/lang/Object;)Lorg/json/JSONObject;
+        iget-object v7, v5, Landroid/content/pm/PackageInfo;->applicationInfo:Landroid/content/pm/ApplicationInfo;
+        if-eqz v7, :put
+        iget-object v8, v7, Landroid/content/pm/ApplicationInfo;->sourceDir:Ljava/lang/String;
+        const-string v9, "s"
+        invoke-virtual {v6, v9, v8}, Lorg/json/JSONObject;->put(Ljava/lang/String;Ljava/lang/Object;)Lorg/json/JSONObject;
+        iget v8, v7, Landroid/content/pm/ApplicationInfo;->flags:I
+        const-string v9, "f"
+        invoke-virtual {v6, v9, v8}, Lorg/json/JSONObject;->put(Ljava/lang/String;I)Lorg/json/JSONObject;
+        iget-boolean v8, v7, Landroid/content/pm/ApplicationInfo;->enabled:Z
+        const-string v9, "e"
+        invoke-virtual {v6, v9, v8}, Lorg/json/JSONObject;->put(Ljava/lang/String;Z)Lorg/json/JSONObject;
+        invoke-virtual {v0, v7}, Landroid/content/pm/PackageManager;->getApplicationLabel(Landroid/content/pm/ApplicationInfo;)Ljava/lang/CharSequence;
+        move-result-object v8
+        invoke-static {v8}, Ljava/lang/String;->valueOf(Ljava/lang/Object;)Ljava/lang/String;
+        move-result-object v8
+        const-string v9, "l"
+        invoke-virtual {v6, v9, v8}, Lorg/json/JSONObject;->put(Ljava/lang/String;Ljava/lang/Object;)Lorg/json/JSONObject;
+        :put
+        invoke-virtual {v2, v6}, Lorg/json/JSONArray;->put(Ljava/lang/Object;)Lorg/json/JSONArray;
+        add-int/lit8 v4, v4, 1
+        goto :loop
+        :done
+        invoke-virtual {v2}, Lorg/json/JSONArray;->toString()Ljava/lang/String;
+        move-result-object v0
+        return-object v0
+    ''')
 
     main.method('probe', [STR], STR, 3, '''
         invoke-static {p0, p1}, Lcom/carnav/camry/Sys;->probe(Landroid/app/Activity;Ljava/lang/String;)Ljava/lang/String;
