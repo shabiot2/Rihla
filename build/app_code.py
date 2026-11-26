@@ -281,7 +281,7 @@ def build_classes():
             ('wifi', True), ('bt', True), ('tts', True), ('vol', True), ('key', True), ('full', True),
             ('home', True), ('temp', True), ('sys', True), ('net', True), ('cache', True),
             ('radios', False), ('start', True), ('ls', True), ('perm', True), ('probe', True),
-            ('dexscan', True), ('listen', True)]
+            ('dexscan', True), ('listen', True), ('props', False), ('services', False), ('devs', False)]
     h = ['const-string v0, "ping"', S_EQ % ('v0', 'p1'), 'move-result v1', 'if-eqz v1, :c0',
          'const-string v0, "pong"', 'return-object v0']
     for k, (c, has_arg) in enumerate(cmds):
@@ -840,6 +840,15 @@ def build_classes():
     ''')
 
     # tyre-sensor check: USB devices on the head unit, one app's components, and settings keys about tyres
+    # fixed, read-only shell commands for the car-data check — the WebView can only pick one of these three
+    for name, cmd in (('props', 'getprop'), ('services', 'service list'), ('devs', 'ls -l /dev')):
+        main.method(name, [], STR, 3, '''
+        const-string v0, "%s"
+        invoke-static {v0}, Lcom/carnav/camry/Sys;->exec(Ljava/lang/String;)Ljava/lang/String;
+        move-result-object v0
+        return-object v0
+    ''' % cmd)
+
     main.method('probe', [STR], STR, 3, '''
         invoke-static {p0, p1}, Lcom/carnav/camry/Sys;->probe(Landroid/app/Activity;Ljava/lang/String;)Ljava/lang/String;
         move-result-object v0
@@ -1252,11 +1261,21 @@ def build_classes():
         return-object v0
     ''', flags=ACC_PUBLIC | ACC_STATIC)
 
-    # printable runs (6..200 chars) inside every *.dex of an APK that mention tyres, actions, devices -> JSON array
-    sys_.method('dexscan', [STR], STR, 12, '''
+    # printable runs (6..200 chars) that mention tyres, fuel, actions, devices, car services -> JSON array; read from
+    # every *.dex inside an APK, or from a whole file: a precompiled system app keeps its code in oat/<arch>/*.vdex|odex
+    sys_.method('dexscan', [STR], STR, 10, '''
         new-instance v0, Ljava/util/LinkedHashSet;
         invoke-direct {v0}, Ljava/util/LinkedHashSet;-><init>()V
         :try_start
+        const-string v1, ".apk"
+        invoke-virtual {p0, v1}, Ljava/lang/String;->endsWith(Ljava/lang/String;)Z
+        move-result v1
+        if-nez v1, :zip
+        new-instance v1, Ljava/io/FileInputStream;
+        invoke-direct {v1, p0}, Ljava/io/FileInputStream;-><init>(Ljava/lang/String;)V
+        invoke-static {v1, v0}, Lcom/carnav/camry/Sys;->runs(Ljava/io/InputStream;Ljava/util/Set;)V
+        goto :fin2
+        :zip
         new-instance v1, Ljava/util/zip/ZipFile;
         invoke-direct {v1, p0}, Ljava/util/zip/ZipFile;-><init>(Ljava/lang/String;)V
         invoke-virtual {v1}, Ljava/util/zip/ZipFile;->entries()Ljava/util/Enumeration;
@@ -1276,30 +1295,11 @@ def build_classes():
         if-eqz v5, :ent
         invoke-virtual {v1, v3}, Ljava/util/zip/ZipFile;->getInputStream(Ljava/util/zip/ZipEntry;)Ljava/io/InputStream;
         move-result-object v4
-        new-instance v5, Ljava/io/BufferedInputStream;
-        const v6, 0x10000
-        invoke-direct {v5, v4, v6}, Ljava/io/BufferedInputStream;-><init>(Ljava/io/InputStream;I)V
-        new-instance v6, Ljava/lang/StringBuilder;
-        invoke-direct {v6}, Ljava/lang/StringBuilder;-><init>()V
-        :rd
-        invoke-virtual {v5}, Ljava/io/BufferedInputStream;->read()I
-        move-result v7
-        if-ltz v7, :eof
-        const/16 v8, 0x20
-        if-lt v7, v8, :brk
-        const/16 v8, 0x7e
-        if-gt v7, v8, :brk
-        invoke-virtual {v6, v7}, Ljava/lang/StringBuilder;->appendCodePoint(I)Ljava/lang/StringBuilder;
-        goto :rd
-        :brk
-        invoke-static {v6, v0}, Lcom/carnav/camry/Sys;->keep(Ljava/lang/StringBuilder;Ljava/util/Set;)V
-        goto :rd
-        :eof
-        invoke-static {v6, v0}, Lcom/carnav/camry/Sys;->keep(Ljava/lang/StringBuilder;Ljava/util/Set;)V
-        invoke-virtual {v5}, Ljava/io/BufferedInputStream;->close()V
+        invoke-static {v4, v0}, Lcom/carnav/camry/Sys;->runs(Ljava/io/InputStream;Ljava/util/Set;)V
         goto :ent
         :fin
         invoke-virtual {v1}, Ljava/util/zip/ZipFile;->close()V
+        :fin2
         :try_end
         goto :out
         :handler
@@ -1313,6 +1313,78 @@ def build_classes():
         .catchall {:try_start .. :try_end} :handler
     ''', flags=ACC_PUBLIC | ACC_STATIC)
 
+    # printable runs of one stream into the set (through keep), then close it
+    sys_.method('runs', ['Ljava/io/InputStream;', 'Ljava/util/Set;'], 'V', 8, '''
+        new-instance v0, Ljava/io/BufferedInputStream;
+        const v1, 0x10000
+        invoke-direct {v0, p0, v1}, Ljava/io/BufferedInputStream;-><init>(Ljava/io/InputStream;I)V
+        new-instance v1, Ljava/lang/StringBuilder;
+        invoke-direct {v1}, Ljava/lang/StringBuilder;-><init>()V
+        :rd
+        invoke-virtual {v0}, Ljava/io/BufferedInputStream;->read()I
+        move-result v2
+        if-ltz v2, :eof
+        const/16 v3, 0x20
+        if-lt v2, v3, :brk
+        const/16 v3, 0x7e
+        if-gt v2, v3, :brk
+        invoke-virtual {v1, v2}, Ljava/lang/StringBuilder;->appendCodePoint(I)Ljava/lang/StringBuilder;
+        goto :rd
+        :brk
+        invoke-static {v1, p1}, Lcom/carnav/camry/Sys;->keep(Ljava/lang/StringBuilder;Ljava/util/Set;)V
+        goto :rd
+        :eof
+        invoke-static {v1, p1}, Lcom/carnav/camry/Sys;->keep(Ljava/lang/StringBuilder;Ljava/util/Set;)V
+        invoke-virtual {v0}, Ljava/io/BufferedInputStream;->close()V
+        return-void
+    ''', flags=ACC_PUBLIC | ACC_STATIC)
+
+    # stdout of a fixed shell command, at most 256 KB (Main passes only constants: getprop, service list, ls -l /dev)
+    sys_.method('exec', [STR], STR, 9, '''
+        new-instance v0, Ljava/lang/StringBuilder;
+        invoke-direct {v0}, Ljava/lang/StringBuilder;-><init>()V
+        :try_start
+        invoke-static {}, Ljava/lang/Runtime;->getRuntime()Ljava/lang/Runtime;
+        move-result-object v1
+        invoke-virtual {v1, p0}, Ljava/lang/Runtime;->exec(Ljava/lang/String;)Ljava/lang/Process;
+        move-result-object v1
+        invoke-virtual {v1}, Ljava/lang/Process;->getInputStream()Ljava/io/InputStream;
+        move-result-object v2
+        new-instance v3, Ljava/io/BufferedReader;
+        new-instance v4, Ljava/io/InputStreamReader;
+        invoke-direct {v4, v2}, Ljava/io/InputStreamReader;-><init>(Ljava/io/InputStream;)V
+        invoke-direct {v3, v4}, Ljava/io/BufferedReader;-><init>(Ljava/io/Reader;)V
+        :loop
+        invoke-virtual {v3}, Ljava/io/BufferedReader;->readLine()Ljava/lang/String;
+        move-result-object v4
+        if-eqz v4, :done
+        invoke-virtual {v0}, Ljava/lang/StringBuilder;->length()I
+        move-result v5
+        const v6, 0x40000
+        if-ge v5, v6, :done
+        invoke-virtual {v0, v4}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+        const/16 v5, 0xa
+        invoke-virtual {v0, v5}, Ljava/lang/StringBuilder;->append(C)Ljava/lang/StringBuilder;
+        goto :loop
+        :done
+        invoke-virtual {v3}, Ljava/io/BufferedReader;->close()V
+        invoke-virtual {v1}, Ljava/lang/Process;->destroy()V
+        :try_end
+        goto :out
+        :handler
+        move-exception v1
+        const-string v2, "error: "
+        invoke-virtual {v0, v2}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+        invoke-virtual {v1}, Ljava/lang/Object;->toString()Ljava/lang/String;
+        move-result-object v1
+        invoke-virtual {v0, v1}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+        :out
+        invoke-virtual {v0}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+        move-result-object v0
+        return-object v0
+        .catchall {:try_start .. :try_end} :handler
+    ''', flags=ACC_PUBLIC | ACC_STATIC)
+
     sys_.method('keep', ['Ljava/lang/StringBuilder;', 'Ljava/util/Set;'], 'V', 8, '''
         invoke-virtual {p0}, Ljava/lang/StringBuilder;->length()I
         move-result v0
@@ -1322,7 +1394,7 @@ def build_classes():
         if-gt v0, v1, :clear
         invoke-interface {p1}, Ljava/util/Set;->size()I
         move-result v1
-        const/16 v2, 3000
+        const/16 v2, 8000
         if-ge v1, v2, :clear
         invoke-virtual {p0}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
         move-result-object v1
@@ -1377,6 +1449,62 @@ def build_classes():
         move-result v4
         if-nez v4, :add
         const-string v3, "content://"
+        invoke-virtual {v2, v3}, Ljava/lang/String;->contains(Ljava/lang/CharSequence;)Z
+        move-result v4
+        if-nez v4, :add
+        const-string v3, "fuel"
+        invoke-virtual {v2, v3}, Ljava/lang/String;->contains(Ljava/lang/CharSequence;)Z
+        move-result v4
+        if-nez v4, :add
+        const-string v3, "consum"
+        invoke-virtual {v2, v3}, Ljava/lang/String;->contains(Ljava/lang/CharSequence;)Z
+        move-result v4
+        if-nez v4, :add
+        const-string v3, "vehicle"
+        invoke-virtual {v2, v3}, Ljava/lang/String;->contains(Ljava/lang/CharSequence;)Z
+        move-result v4
+        if-nez v4, :add
+        const-string v3, "mcu"
+        invoke-virtual {v2, v3}, Ljava/lang/String;->contains(Ljava/lang/CharSequence;)Z
+        move-result v4
+        if-nez v4, :add
+        const-string v3, "canbox"
+        invoke-virtual {v2, v3}, Ljava/lang/String;->contains(Ljava/lang/CharSequence;)Z
+        move-result v4
+        if-nez v4, :add
+        const-string v3, "carinfo"
+        invoke-virtual {v2, v3}, Ljava/lang/String;->contains(Ljava/lang/CharSequence;)Z
+        move-result v4
+        if-nez v4, :add
+        const-string v3, "car_info"
+        invoke-virtual {v2, v3}, Ljava/lang/String;->contains(Ljava/lang/CharSequence;)Z
+        move-result v4
+        if-nez v4, :add
+        const-string v3, "mileage"
+        invoke-virtual {v2, v3}, Ljava/lang/String;->contains(Ljava/lang/CharSequence;)Z
+        move-result v4
+        if-nez v4, :add
+        const-string v3, "odometer"
+        invoke-virtual {v2, v3}, Ljava/lang/String;->contains(Ljava/lang/CharSequence;)Z
+        move-result v4
+        if-nez v4, :add
+        const-string v3, "yunovo"
+        invoke-virtual {v2, v3}, Ljava/lang/String;->contains(Ljava/lang/CharSequence;)Z
+        move-result v4
+        if-nez v4, :add
+        const-string v3, "oil"
+        invoke-virtual {v2, v3}, Ljava/lang/String;->contains(Ljava/lang/CharSequence;)Z
+        move-result v4
+        if-nez v4, :add
+        const-string v3, "tty"
+        invoke-virtual {v2, v3}, Ljava/lang/String;->contains(Ljava/lang/CharSequence;)Z
+        move-result v4
+        if-nez v4, :add
+        const-string v3, "uart"
+        invoke-virtual {v2, v3}, Ljava/lang/String;->contains(Ljava/lang/CharSequence;)Z
+        move-result v4
+        if-nez v4, :add
+        const-string v3, ".aidl"
         invoke-virtual {v2, v3}, Ljava/lang/String;->contains(Ljava/lang/CharSequence;)Z
         move-result v4
         if-nez v4, :add

@@ -25,6 +25,9 @@ window.prompt = function (cmd, arg) {
     case 'dexscan': return JSON.stringify(['*com.reglink.vehicleinfo.ACTION_TPMS_UPDATE', 'tpms_fl_pressure', 'tpms_fr_pressure', 'TirePressureBean',
       'Lcom/reglink/vehicleinfo/tpms/TpmsManager;', '/dev/ttyS3', 'com.reglink.vehicleinfo.ACTION_CAN_DATA', 'android.intent.action.BOOT_COMPLETED', 'tire_unit']);
     case 'listen': return arg ? String(JSON.parse(arg).length) : '0';
+    case 'props': return '[ro.product.model]: [k80_bsp]\n[persist.sys.canbus.type]: [toyota_raise]\n[ro.build.version.release]: [8.1.0]\n[dalvik.vm.heapsize]: [512m]';
+    case 'services': return 'Found 3 services:\n0\treglink_car: [com.reglink.services.ICarService]\n1\tactivity: [android.app.IActivityManager]\n2\twindow: [android.view.IWindowManager]';
+    case 'devs': return 'crw-rw---- 1 system system 4,  64 2026-11-26 07:00 ttyMT0\ncrw-rw---- 1 system system 4,  65 2026-11-26 07:00 ttyMT1\ndrwxr-xr-x 2 root root 60 2026-11-26 07:00 input';
     case 'probe': return JSON.stringify({usb:[{n:'/dev/bus/usb/001/004', v:6790, p:29987, c:255, i:1, ic:255, m:'QinHeng', pr:'USB Serial'}],
       pk: arg ? {p:arg, ver:'2.1', src:'/system/app/TPMS/TPMS.apk', svc:['com.example.tpms.TpmsService [exported]'], rcv:['com.example.tpms.BootReceiver [exported]'], prv:[],
       perm:['android.permission.SYSTEM_ALERT_WINDOW', 'android.permission.RECEIVE_BOOT_COMPLETED']} : undefined, set:['system: tpms_unit = 1']});

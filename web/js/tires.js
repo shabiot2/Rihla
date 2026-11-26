@@ -120,14 +120,35 @@
   // ---------- «فحص الحساس»: how does the screen's TPMS app get its numbers? (USB device, its components, settings keys) ----------
   function hex4(n) { n = (+n || 0).toString(16); return ('0000' + n).slice(-4); }
   // which apps to examine: the screen's «TPMS» first, then the chosen one, then anything about cars / tyres
+  // the apps behind the car's data on this kind of unit (reglink/yunovo): CarFun shows TPMS, Car Setup talks to the car, AC
+  var CAR_PKGS = ['com.reglink.vehicleinfo', 'com.reglink.services', 'com.reglink.apps.serviceui'];
+  var NOT_CAR = /carplay|zlink|autokit|android\.auto|androidauto|aasink|projection|mirror|cleaning/i;
   function probeApps() {
     var all = App.system.apps(true), saved = App.settings.tpmsApp, out = [], seen = {};
-    function add(a) { if (a && !seen[a.p] && out.length < 3 && !/carplay|zlink|autokit|android\.auto|projection|mirror/i.test(a.p + ' ' + a.l)) { seen[a.p] = 1; out.push(a); } }
-    all.filter(isTpms).forEach(add);
+    function add(a) { if (a && !seen[a.p] && out.length < 4 && !NOT_CAR.test(a.p + ' ' + a.l)) { seen[a.p] = 1; out.push(a); } }
     if (saved) add(all.filter(function (a) { return a.p === saved; })[0] || { p: saved, l: saved });
+    CAR_PKGS.forEach(function (p) { add(all.filter(function (a) { return a.p === p; })[0]); });
+    all.filter(isTpms).forEach(add);
     all.filter(function (a) { return TP.test(a.p) || TP.test(String(a.l)); }).forEach(add);
-    all.filter(function (a) { return /car|vehicle|auto/i.test(a.p + ' ' + a.l); }).forEach(add);
+    all.filter(function (a) { return /car|vehicle/i.test(a.p + ' ' + a.l); }).forEach(add);
     return out;
+  }
+  // a precompiled system app keeps its code next to the APK: oat/<arch>/<name>.vdex|.odex
+  function codeFiles(src) {
+    var m = /^(.*)\/([^\/]+)\.apk$/.exec(src || '');
+    if (!m) return [src];
+    var out = [src];
+    ['arm', 'arm64'].forEach(function (arch) { ['vdex', 'odex'].forEach(function (x) { out.push(m[1] + '/oat/' + arch + '/' + m[2] + '.' + x); }); });
+    return out;
+  }
+  var CARWORDS = /tpms|tire|tyre|pressure|fuel|consum|oil|mileage|odometer|canbus|canbox|mcu|vehicle|carinfo|car_info|reglink|yunovo|serial|uart|tty|baud|protocol|decod/i;
+  function sysx() {                     // system properties, binder services and /dev entries that may lead to the car's data
+    var props = String(App.Native.call('props') || '').split('\n'), devs = String(App.Native.call('devs') || '').split('\n');
+    return {
+      props: props.filter(function (l) { return CARWORDS.test(l) || /^\[(persist|ro\.(product|board|hardware|vendor|build\.(display|version\.release|fingerprint)))/.test(l); }).slice(0, 400),
+      services: String(App.Native.call('services') || '').split('\n').filter(Boolean).slice(0, 400),
+      devs: devs.filter(function (l) { return /tty|can|mcu|spi|uart|serial|i2c|acm|hidraw|vehicle|car|gs\d/i.test(l); }).slice(0, 300)
+    };
   }
   function pickForProbe() {
     App.panels.push('اختر تطبيق الحساسات', function (body) {
@@ -182,18 +203,27 @@
       App.$('pbSend').onclick = sendReport;
       // deep check: what each app's own code mentions, and every broadcast those names carry while this page is open
       var srcs = res.filter(function (x) { return x.a && x.r.pk && x.r.pk.src; }).map(function (x) { return { l: x.a.l, src: x.r.pk.src }; });
+      var files = [];
+      srcs.forEach(function (x) { codeFiles(x.src).forEach(function (f) { files.push({ l: x.l, f: f }); }); });
+      last.sysx = sysx();
       var box = App.$('pbDeep');
       if (!srcs.length) { box.innerHTML = ''; return; }
       box.innerHTML = '<div class="sec-title">الفحص المتقدم</div><div class="pb"><div class="pb-row pb-dim">جاري قراءة ' + srcs.map(function (x) { return App.esc(x.l); }).join(' و ') + '…</div></div>';
       var raw = [], k = 0;
       (function next() {
-        if (k >= srcs.length) { deep(box, raw, srcs); return; }
-        raw = raw.concat(App.Native.json('dexscan', srcs[k++].src) || []);
+        if (k >= files.length) { deep(box, raw, srcs, files); return; }
+        var f = files[k++], got = App.Native.json('dexscan', f.f) || [];
+        f.n = got.length; raw = raw.concat(got);
         setTimeout(next, 30);
       })();
     });
   };
   var caught = [], last = null, savedAt = 0;
+  // the strings that can lead to the car's data first: car words, then dotted names (actions, interfaces), then the rest
+  function ranked(strs) {
+    function rank(q) { return CARWORDS.test(q) ? 0 : /^[\w$]+(\.[\w$]+){2,}$/.test(q) ? 1 : 2; }
+    return strs.map(function (q, i) { return [rank(q), i, q]; }).sort(function (a, b) { return a[0] - b[0] || a[1] - b[1]; }).map(function (x) { return x[2]; });
+  }
   // upload the whole check as plain text (paste.rs, then dpaste.com) and show the short code to send in the chat
   function sendReport() {
     var out = App.$('pbCode'), btn = App.$('pbSend');
@@ -201,8 +231,8 @@
     btn.disabled = true; out.textContent = 'جاري الإرسال…';
     var rep = { app: 'Rihla ' + App.VERSION, at: new Date().toISOString(), sys: App.Native.json('sys'),
       apps: App.system.apps(true).map(function (a) { return a.p + ' | ' + a.l; }),
-      check: last && last.probe, caught: caught,
-      scan: last && last.scan && { apps: last.scan.apps, listen: last.scan.listen, strings: (last.scan.strings || []).slice(0, 2500) } };
+      check: last && last.probe, caught: caught, system: last && last.sysx,
+      scan: last && last.scan && { apps: last.scan.apps, files: last.scan.files, listen: last.scan.listen, strings: ranked(last.scan.strings || []).slice(0, 5000) } };
     var text = JSON.stringify(rep, null, 1);
     function done(url) {
       btn.disabled = false;
@@ -225,7 +255,7 @@
       })
       .catch(fail);
   }
-  function deep(box, raw, srcs) {
+  function deep(box, raw, srcs, files) {
     var seen = {};
     var strs = raw.map(function (q) { return q.charCodeAt(0) === q.length - 1 ? q.slice(1) : q; }).filter(function (q) { return !seen[q] && (seen[q] = 1); });
     var tire = strs.filter(function (q) { return /tpms|tire|tyre|pressure/i.test(q); });
@@ -236,14 +266,18 @@
     var devs = strs.filter(function (q) { return /\/dev\//.test(q); });
     if (acts.length) App.store.set('carActs', acts.slice(0, 600));
     var n = acts.length ? App.Native.call('listen', JSON.stringify(acts.slice(0, 600))) : '0';
-    if (last) last.scan = { apps: srcs, listen: n, strings: strs };
+    if (last) last.scan = { apps: srcs, files: (files || []).filter(function (f) { return f.n; }).map(function (f) { return f.f + ' (' + f.n + ')'; }), listen: n, strings: strs };
+    var sx = (last && last.sysx) || { props: [], services: [], devs: [] };
     function grid(t, arr, max) {
       return arr.length ? '<div class="pb-k">' + t + ' (' + arr.length + ')</div><div class="pb-grid">' + arr.slice(0, max).map(function (q) { return '<span>' + App.esc(q) + '</span>'; }).join('') + '</div>' : '';
     }
     box.innerHTML = '<div class="sec-title">البث الملتقط — أستمع لـ ' + App.esc(n) + ' نوع</div>' +
       '<div class="pb" dir="ltr" id="pbCaught"><div class="pb-row pb-dim">' + (caught.length ? '' : 'ما وصل شي للحين — افتح تطبيق TPMS دقيقة وارجع هنا') + '</div></div>' +
       '<div class="sec-title">داخل ' + srcs.map(function (x) { return App.esc(x.l); }).join(' و ') + ' (' + App.d(strs.length) + ')</div><div class="pb" dir="ltr">' +
-      (strs.length ? grid('tyres', tire, 90) + grid('actions', acts, 70) + grid('devices', devs, 20) : '<div class="pb-row pb-dim">unreadable</div>') + '</div>';
+      (strs.length ? grid('tyres', tire, 90) + grid('actions', acts, 70) + grid('devices', devs, 20) : '<div class="pb-row pb-dim">unreadable</div>') + '</div>' +
+      '<div class="sec-title">النظام — خدمات ' + App.d(sx.services.length) + ' · خصائص ' + App.d(sx.props.length) + ' · منافذ ' + App.d(sx.devs.length) + '</div>' +
+      '<div class="pb" dir="ltr">' + grid('services', sx.services.filter(function (l) { return CARWORDS.test(l); }), 40) +
+      grid('properties', sx.props.filter(function (l) { return CARWORDS.test(l); }), 40) + grid('ports', sx.devs, 30) + '</div>';
     paintCaught();
   }
   function paintCaught() {
