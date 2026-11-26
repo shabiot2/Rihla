@@ -23,7 +23,7 @@ window.prompt = function (cmd, arg) {
       {p:'com.android.settings', l:'الإعدادات'}, {p:'com.whatsapp', l:'WhatsApp'}, {p:'com.anghami', l:'أنغامي'},
       {p:'com.carnav.camry', l:'مقود'}, {p:'com.syu.fancontrol', l:'Fan'}, {p:'com.example.tpms', l:'TPMS', c:'com.example.tpms.MainActivity'}, {p:'com.example.carmanager', l:'Car Manager'},
       {p:'com.reglink.services', l:'Car Setup', c:'com.reglink.services.MainActivity'}, {p:'com.reglink.services', l:'ضغط الإطارات', c:'com.reglink.services.tpms.TpmsActivity'}]);
-    case 'dexscan': return JSON.stringify(['*com.reglink.vehicleinfo.ACTION_TPMS_UPDATE', 'tpms_fl_pressure', 'tpms_fr_pressure', 'TirePressureBean',
+    case 'dexscan': if (window.__bigScan) return JSON.stringify(window.__bigScan); return JSON.stringify(['*com.reglink.vehicleinfo.ACTION_TPMS_UPDATE', 'tpms_fl_pressure', 'tpms_fr_pressure', 'TirePressureBean',
       'Lcom/reglink/vehicleinfo/tpms/TpmsManager;', '/dev/ttyS3', 'com.reglink.vehicleinfo.ACTION_CAN_DATA', 'android.intent.action.BOOT_COMPLETED', 'tire_unit']);
     case 'listen': return arg ? String(JSON.parse(arg).length) : '0';
     case 'pkgs': return JSON.stringify([{p:'com.reglink.tpms', l:'TPMS', s:'/system/priv-app/Tpms/Tpms.apk', f:1, e:true},

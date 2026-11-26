@@ -139,6 +139,17 @@ if __name__ == '__main__':
             p.click('#pbSend'); p.wait_for_timeout(500)
             print('posted:', p.evaluate('window.__posted'), '| code:', p.inner_text('#pbCode'))
         shot('orbit', 1280, 720, 'send', sd)
+        def sd2(p):   # paste.rs refuses twice: the other site takes it, the reason shows, and a big check still goes ~40 KB
+            p.evaluate("""window.__posted = []; window.fetch = function (url, o) { window.__posted.push([url, (o.body || '').length]);
+              if (/paste\\.rs/.test(url)) return Promise.resolve({ ok: false, status: 429, text: function () { return Promise.resolve(''); } });
+              return Promise.resolve({ ok: true, text: function () { return Promise.resolve('https://dpaste.com/XY12'); } }); };
+              Object.defineProperty(navigator, 'onLine', {get: function () { return true; }});""")
+            p.evaluate("window.__bigScan = Array.from({length: 9000}, (_, i) => 'com.reglink.tpms.Thing' + i + '.tire_pressure_value')")
+            p.click('.st-b[data-panel="tires"]'); p.wait_for_timeout(500)
+            p.click('#tyProbe2'); p.wait_for_timeout(1500)
+            p.click('#pbSend'); p.wait_for_timeout(6500)
+            print('posted:', p.evaluate('window.__posted'), '| code:', p.inner_text('#pbCode'))
+        shot('orbit', 1280, 720, 'send2', sd2)
     elif which == 'live':
         import itertools
         for k in ['naqsh', 'jazan', 'fifa', 'desert', 'city', 'aurora', 'warp', 'sea', 'rain', 'flow', 'dunes']:

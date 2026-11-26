@@ -32,7 +32,7 @@ KEYSTORE = os.path.join(HERE, 'release.p12')
 STOREPASS = 'camrynav2026'
 ALIAS = 'camry'
 APP_NAME = 'رحلة'
-VERSION_CODE, VERSION_NAME = 25, '3.5.5'
+VERSION_CODE, VERSION_NAME = 26, '3.5.6'
 ICON_PATH = 'res/drawable-xxxhdpi-v4/icon.png'
 
 PERMS = ['INTERNET', 'ACCESS_NETWORK_STATE', 'ACCESS_WIFI_STATE', 'CHANGE_WIFI_STATE',

@@ -251,22 +251,34 @@
     var out = App.$('pbCode'), btn = App.$('pbSend');
     if (!navigator.onLine) { out.textContent = 'ما فيه نت — شغّل نت الجوال على الشاشة وجرّب'; return; }
     btn.disabled = true;
-    // kept small (one compact line of JSON, only what can lead to the car's data) so it goes up quickly on a phone's hotspot
+    // at most ~40 KB, the size paste.rs took the first time: the broadcasts caught, the car apps' doors, the system's car
+    // services, then as many of the code's car words as still fit (the most telling first)
     var all = packages(), carPkg = /reglink|yunovo|tpms|tire|tyre|can|mcu|car|vehicle|obd|serviceui|commonui|mediatek|mtk/i;
+    var sx = (last && last.sysx) || {}, LIMIT = 40000;
     var rep = { app: 'Rihla ' + App.VERSION, at: new Date().toISOString(), sys: App.Native.json('sys'),
-      launchers: (App.system.launchers || []).map(function (a) { return a.p + '/' + (a.c || '?') + ' | ' + a.l; }),
-      packages: { total: all.length, car: all.filter(function (a) { return carPkg.test(a.p + ' ' + (a.l || '')); }).slice(0, 200)
-        .map(function (a) { return a.p + ' | ' + (a.l || '') + ' | ' + (a.f & 1 ? 'sys' : 'user') + (a.e === false ? ' off' : '') + ' | ' + (a.s || ''); }) },
-      check: last && last.probe, caught: caught, system: last && last.sysx,
-      scan: last && last.scan && { apps: last.scan.apps, files: last.scan.files, listen: last.scan.listen,
-        strings: ranked((last.scan.strings || []).filter(function (q) { return CARWORDS.test(q) || /^[\w$]+(\.[\w$]+){2,}$/.test(q); })).slice(0, 3000) } };
-    var text = JSON.stringify(rep);
+      caught: caught.map(function (c) { var t = JSON.stringify(c); return t.length > 1500 ? t.slice(0, 1500) + '…' : c; }),
+      check: last && (last.probe || []).map(function (x) {
+        var k = (x.r && x.r.pk) || {};
+        return { l: x.l, p: x.p, src: k.src, svc: k.svc, rcv: k.rcv, prv: k.prv };
+      }),
+      services: { total: (sx.services || []).length, car: (sx.services || []).filter(function (l) { return CARWORDS.test(l) || /vendor|mtk|car|hal/i.test(l); }).slice(0, 120) },
+      props: (sx.props || []).filter(function (l) { return CARWORDS.test(l); }).slice(0, 80), devs: (sx.devs || []).slice(0, 60),
+      packages: { total: all.length, car: all.filter(function (a) { return carPkg.test(a.p + ' ' + (a.l || '')); }).map(function (a) { return a.p + ' | ' + (a.l || ''); }).slice(0, 150) },
+      launchers: (App.system.launchers || []).filter(function (a) { return carPkg.test(a.p + ' ' + a.l); }).map(function (a) { return a.p + '/' + (a.c || '?') + ' | ' + a.l; }),
+      scan: last && last.scan && { apps: (last.scan.apps || []).map(function (x) { return x.l; }), files: last.scan.files, listen: last.scan.listen },
+      strings: [] };
+    var text = JSON.stringify(rep), room = LIMIT - text.length;
+    ranked(((last && last.scan && last.scan.strings) || []).filter(function (q) { return CARWORDS.test(q) || /^[\w$]+(\.[\w$]+){2,}$/.test(q); }))
+      .some(function (q) { room -= q.length + 3; if (room < 0) return true; rep.strings.push(q); });
+    text = JSON.stringify(rep);
     out.textContent = 'جاري الإرسال… (' + App.d(Math.ceil(text.length / 1024)) + ' KB)';
+    var why = '';
     function done(url) {
       btn.disabled = false;
       var code = String(url || '').trim().replace(/^https?:\/\//, '');
       if (!/^[\w.-]+\/\w+/.test(code)) { fail(); return; }
-      out.innerHTML = 'أرسل هالرمز في المحادثة: <b class="pb-codev" dir="ltr">' + App.esc(code) + '</b>';
+      out.innerHTML = 'أرسل هالرمز في المحادثة: <b class="pb-codev" dir="ltr">' + App.esc(code) + '</b>' +
+        (why ? ' <small class="pb-dim" dir="ltr">paste.rs: ' + App.esc(why) + '</small>' : '');
       App.store.set('lastReport', code);
     }
     function fail() { btn.disabled = false; out.textContent = 'تعذّر الإرسال — تأكد من النت وجرّب مرة ثانية'; }
@@ -277,6 +289,7 @@
     }
     function pasteRs(again) {                // paste.rs is the one the chat can open: try it twice before the other site
       return post('https://paste.rs/', { method: 'POST', body: text }).catch(function (e) {
+        why = String((e && (e.name === 'AbortError' ? 'timeout' : e.message)) || e).slice(0, 60);
         if (!again) throw e;
         return new Promise(function (r) { setTimeout(r, 5000); }).then(function () { return pasteRs(false); });
       });
