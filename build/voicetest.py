@@ -2,6 +2,8 @@
 """voicetest.py — checks the «no settings» ElevenLabs voice end to end, with a made-up key and a stand-in for
 ElevenLabs: the private build puts the key in scrambled, the app sends it, a voice this account cannot use falls
 back to the premade one, a spent month falls back to the unit's own voice, and the public build shows no voice rows.
+The sealed build: the key opens only with its 12-digit code (Arabic digits too), through crypto.subtle and through the
+plain-JS fallback alike; a mistyped code is caught by its check digit, or else by ElevenLabs, and asked for again.
 
     python3 build/voicetest.py
 """
@@ -30,12 +32,12 @@ def silent_wav():
     return b.getvalue()
 
 
-def page_for(web, key_seen, settings):
+def page_for(web, key_seen, settings, key=None, init=''):
     p = sync_playwright().start()
     b = p.chromium.launch()
     ctx = b.new_context(viewport={'width': 1280, 'height': 720}, locale='ar-SA', timezone_id='Asia/Riyadh',
                         user_agent='Mozilla/5.0 (Linux; Android 10) Chrome/120 Mobile CamryNav/2.1 (Android head unit; SDK 35)')
-    ctx.add_init_script(uitest.BRIDGE + 'window.__noHero=true;')
+    ctx.add_init_script(uitest.BRIDGE + 'window.__noHero=true;' + init)
     st = {'onboarded': 3, 'maps': True, 'briefing': False, 'autoOccasion': False}
     st.update(settings)
     ctx.add_init_script('localStorage.clear();localStorage.setItem("cn.settings", %s);'
@@ -51,6 +53,9 @@ def page_for(web, key_seen, settings):
             voice = u.split('text-to-speech/')[1].split('?')[0]
             text = json.loads(r.post_data or '{}').get('text', '')
             key_seen.append((voice, r.headers.get('xi-api-key'), text))
+            if key and r.headers.get('xi-api-key') != key:
+                return route.fulfill(status=401, content_type='application/json', body=json.dumps(
+                    {'detail': {'status': 'invalid_api_key', 'message': 'Invalid API key'}}))
             if voice != DEF_VOICE:
                 return route.fulfill(status=402, content_type='application/json', body=json.dumps(
                     {'detail': {'status': 'free_users_not_allowed', 'message': 'Free users cannot use library voices via the API.'}}))
@@ -111,7 +116,51 @@ def main():
             print('page errors:', errors[:3])
         b.close(); p.stop()
 
-        # 4) the public build: no key, no voice rows
+        # 4) the sealed build, as published: nothing works until the code is typed once
+        priv2 = os.path.join(tmp, 'private2'); os.makedirs(priv2)
+        open(os.path.join(priv2, 'elevenlabs.key'), 'w').write(key)
+        web2 = os.path.join(tmp, 'web2')
+        shutil.copytree(os.path.join(HERE, '..', 'web'), web2)
+        added = build_private.prepare(priv2, web2, key='sealed')
+        code = open(os.path.join(priv2, 'voice.code')).read().strip()
+        vk = open(os.path.join(web2, 'data', 'vk.js')).read()
+        print('sealed web:', added, '| key or its digits inside:', key in vk or key[3:] in vk)
+        ok &= 'RIHLA_VKS' in vk and key not in vk and key[3:] not in vk and len(code) == 12
+        arabic = ' '.join(''.join(chr(0x660 + int(ch)) for ch in code[i:i + 4]) for i in (0, 4, 8))
+        seen = []
+        p, b, pg, errors = page_for(web2, seen, {}, key=key)
+        ok &= pg.evaluate('[App.voice.sealed(), App.voice.enabled()]') == [True, False]
+        pg.click('.dk[data-panel="settings"]'); pg.wait_for_timeout(500)
+        pg.fill('#sElCode', '1234 5678 9012'); pg.click('#sElGo'); pg.wait_for_timeout(300)
+        bad = pg.evaluate("document.getElementById('sElMsg').textContent")
+        pg.screenshot(path=os.path.join(tmp, 'x.png'))
+        shutil.copy(os.path.join(tmp, 'x.png'), '/tmp/voicetest_sealed.png')
+        pg.fill('#sElCode', arabic); t0 = pg.evaluate('Date.now()'); pg.click('#sElGo')
+        pg.wait_for_function("App.settings.elKey && App.settings.elKey.length > 10", timeout=20000)
+        took = pg.evaluate('Date.now()') - t0; pg.wait_for_timeout(1500)
+        opened = pg.evaluate('App.settings.elKey') == key
+        rows = pg.evaluate("['sElCode','sElOn'].filter(id => document.getElementById(id))")
+        sent = any(k == key for _, k, _ in seen)
+        print('typo caught:', 'غلط' in bad, '| Arabic code opens the key: %s (%d ms) | rows after: %s | spoke with it: %s'
+              % (opened, took, rows, sent))
+        ok &= 'غلط' in bad and opened and rows == ['sElOn'] and sent and not errors
+        b.close(); p.stop()
+        # the plain-JS way (no crypto.subtle), and a mistyped code that still passes the check digit
+        p, b, pg, errors = page_for(web2, seen, {}, key=key, init='try{Object.defineProperty(window.crypto,"subtle",{value:undefined})}catch(e){}')
+        js = pg.evaluate("""c => new Promise(r => { const t = Date.now(); App.voice.unlock(c, ok => r([ok, App.settings.elKey, Date.now() - t])); })""", code)
+        print('plain JS opens it: %s (%d ms)' % (js[0] and js[1] == key, js[2]))
+        ok &= js[0] and js[1] == key
+        other = build_private.new_code()
+        pg.evaluate("App.settings.elKey = ''; App.saveSettings()")
+        wrong = pg.evaluate("""c => new Promise(r => App.voice.unlock(c, ok => r([ok, App.settings.elKey])))""", other)
+        pg.evaluate("App.voice.speak('جملة تجربة للرقم الغلط')"); pg.wait_for_timeout(1500)
+        after = pg.evaluate("[App.settings.elKey, App.settings.elSealed, App.voice.sealed()]")
+        toast = pg.evaluate("(document.getElementById('toast') || {}).textContent || ''")
+        print('wrong code -> refused, forgotten, asked again:', wrong[1] != key and after == ['', False, True], '|', toast.strip()[:40])
+        ok &= wrong[0] and wrong[1] != key and after == ['', False, True] and not errors
+        b.close(); p.stop()
+
+        # 5) the public build: no key, no voice rows
         seen = []
         p, b, pg, errors = page_for(os.path.join(HERE, '..', 'web'), seen, {})
         pg.click('.dk[data-panel="settings"]'); pg.wait_for_timeout(500)

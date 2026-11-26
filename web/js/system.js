@@ -243,6 +243,10 @@
     var s = App.settings, cp = s.carplayApp ? S.label(s.carplayApp) : '';
     var sd = App.stories ? App.stories.dirText() : '';
     body.innerHTML =
+      (App.voice.sealed() ? '<div class="sec"><div class="sec-title">الصوت الطبيعي</div>' +
+        row('رقم التفعيل', '<span id="sElMsg">اكتب الرقم اللي وصلك مرة وحدة، وبعدها تتكلم رحلة بصوت ElevenLabs</span>',
+          '<input class="field" id="sElCode" inputmode="numeric" dir="ltr" autocomplete="off" placeholder="0000 0000 0000">' +
+          '<button class="btn primary" id="sElGo">تفعيل</button>') + '</div>' : '') +
       '<div class="sec"><div class="sec-title">الثيمات — كل ثيم عالم مختلف</div>' + App.theme.cards(App.theme.key) + '</div>' +
       '<div class="sec"><div class="sec-title">المظهر</div>' +
       row('حركة الخلفية', 'الغيوم والنجوم والأضواء المتحركة — أطفها إذا تبي هدوء أكثر', sw('sMotion', !s.calm)) +
@@ -309,6 +313,17 @@
     App.$('sMotion').onclick = function () { s.calm = !s.calm; this.classList.toggle('on', !s.calm); App.saveSettings(); };
     bindSw('sVoice', 'voice', function () { if (s.voice) App.voice.stop(); });
     if (App.$('sElOn')) bindSw('sElOn', 'elOn');
+    if (App.$('sElGo')) App.$('sElGo').onclick = function () {
+      var btn = this, msg = App.$('sElMsg');
+      btn.disabled = true; msg.textContent = 'جاري التفعيل…';
+      App.voice.unlock(App.$('sElCode').value, function (ok) {
+        btn.disabled = false;
+        if (!ok) { msg.textContent = 'الرقم غلط — تأكد منه واكتبه مرة ثانية'; return; }
+        App.toast('تم تفعيل الصوت الطبيعي');
+        App.voice.speak('هلا والله، هذا صوت رحلة الجديد');
+        renderSettings(body);
+      });
+    };
     bindSw('sChime', 'adhanChime');
     bindSw('sFull', 'full', function () { N.call('full', s.full ? '1' : '0'); });
     bindSw('sOcc', 'autoOccasion', function () { s.themeLocked = false; App.saveSettings(); App.theme.apply(true); P.refresh(); });

@@ -32,6 +32,84 @@
   // a build that carries the key also leaves it on the unit, so a later update without it keeps the voice
   (function () { var k = builtKey(); if (k && App.settings.elKey !== k) { App.settings.elKey = k; App.saveSettings(); } })();
 
+  // ---------- one-time activation ----------
+  // A published build may carry the key sealed: window.RIHLA_VKS = { s: salt, c: the key's 24 bytes XOR the first bytes
+  // of PBKDF2-HMAC-SHA256(code, salt, n), n } (base64). The 12-digit code (its last digit a Luhn check, to catch typos)
+  // is handed to the owner privately and typed once in Settings; the key it opens is then kept on the unit like any other.
+  function bytes64(t) { var b = atob(t), u = new Uint8Array(b.length); for (var i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return u; }
+  function digits(t) {
+    return String(t || '').replace(/[٠-٩]/g, function (d) { return String(d.charCodeAt(0) - 0x660); })
+      .replace(/[۰-۹]/g, function (d) { return String(d.charCodeAt(0) - 0x6f0); }).replace(/\D/g, '');
+  }
+  function luhn(d) {
+    for (var i = 0, sum = 0; i < d.length; i++) { var n = +d[d.length - 1 - i]; if (i % 2) { n *= 2; if (n > 9) n -= 9; } sum += n; }
+    return sum % 10 === 0;
+  }
+  // SHA-256 / HMAC / PBKDF2 in plain JS, for a WebView without crypto.subtle (a few seconds on the head unit, once)
+  var K = [0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5, 0xd807aa98, 0x12835b01,
+    0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174, 0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f,
+    0x4a7484aa, 0x5cb0a9dc, 0x76f988da, 0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
+    0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85, 0xa2bfe8a1, 0xa81a664b, 0xc24b8b70,
+    0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070, 0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a,
+    0x5b9cca4f, 0x682e6ff3, 0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2];
+  var IV = [0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19], W = [];
+  function block(H, m, o) {
+    var i, a, b, t1, t2;
+    for (i = 0; i < 16; i++) W[i] = (m[o + 4 * i] << 24) | (m[o + 4 * i + 1] << 16) | (m[o + 4 * i + 2] << 8) | m[o + 4 * i + 3];
+    for (i = 16; i < 64; i++) {
+      a = W[i - 15]; b = W[i - 2];
+      W[i] = (((a >>> 7 | a << 25) ^ (a >>> 18 | a << 14) ^ (a >>> 3)) + W[i - 16] + ((b >>> 17 | b << 15) ^ (b >>> 19 | b << 13) ^ (b >>> 10)) + W[i - 7]) | 0;
+    }
+    var A = H[0], B = H[1], C = H[2], D = H[3], E = H[4], F = H[5], G = H[6], X = H[7];
+    for (i = 0; i < 64; i++) {
+      t1 = (X + ((E >>> 6 | E << 26) ^ (E >>> 11 | E << 21) ^ (E >>> 25 | E << 7)) + ((E & F) ^ (~E & G)) + K[i] + W[i]) | 0;
+      t2 = (((A >>> 2 | A << 30) ^ (A >>> 13 | A << 19) ^ (A >>> 22 | A << 10)) + ((A & B) ^ (A & C) ^ (B & C))) | 0;
+      X = G; G = F; F = E; E = (D + t1) | 0; D = C; C = B; B = A; A = (t1 + t2) | 0;
+    }
+    H[0] = (H[0] + A) | 0; H[1] = (H[1] + B) | 0; H[2] = (H[2] + C) | 0; H[3] = (H[3] + D) | 0;
+    H[4] = (H[4] + E) | 0; H[5] = (H[5] + F) | 0; H[6] = (H[6] + G) | 0; H[7] = (H[7] + X) | 0;
+  }
+  function finish(state, msg, before) {      // SHA-256 of (`before` bytes already in state) + msg
+    var H = state.slice(), n = msg.length, len = ((n + 9 + 63) >> 6) << 6, m = new Uint8Array(len), bits = (before + n) * 8, i;
+    m.set(msg); m[n] = 0x80;
+    m[len - 4] = bits >>> 24; m[len - 3] = bits >>> 16 & 255; m[len - 2] = bits >>> 8 & 255; m[len - 1] = bits & 255;
+    for (i = 0; i < len; i += 64) block(H, m, i);
+    var out = new Uint8Array(32);
+    for (i = 0; i < 8; i++) { out[4 * i] = H[i] >>> 24; out[4 * i + 1] = H[i] >>> 16 & 255; out[4 * i + 2] = H[i] >>> 8 & 255; out[4 * i + 3] = H[i] & 255; }
+    return out;
+  }
+  function pbkdf2(pw, salt, rounds) {        // PBKDF2-HMAC-SHA256, first 32 bytes
+    var k = pw.length > 64 ? finish(IV, pw, 0) : pw, pad = new Uint8Array(64), ist = IV.slice(), ost = IV.slice(), i, r;
+    for (i = 0; i < 64; i++) pad[i] = (k[i] || 0) ^ 0x36;
+    block(ist, pad, 0);
+    for (i = 0; i < 64; i++) pad[i] = (k[i] || 0) ^ 0x5c;
+    block(ost, pad, 0);
+    var s1 = new Uint8Array(salt.length + 4); s1.set(salt); s1[salt.length + 3] = 1;
+    var u = finish(ost, finish(ist, s1, 64), 64), t = u.slice();
+    for (r = 1; r < rounds; r++) { u = finish(ost, finish(ist, u, 64), 64); for (i = 0; i < 32; i++) t[i] ^= u[i]; }
+    return t;
+  }
+  function derive(code, salt, rounds, cb) {
+    var pw = new Uint8Array(code.length), sub = window.crypto && window.crypto.subtle, i;
+    for (i = 0; i < code.length; i++) pw[i] = code.charCodeAt(i);
+    function slow() { setTimeout(function () { cb(pbkdf2(pw, salt, rounds)); }, 30); }
+    if (!sub || !sub.importKey) return slow();
+    sub.importKey('raw', pw, 'PBKDF2', false, ['deriveBits']).then(function (k) {
+      return sub.deriveBits({ name: 'PBKDF2', salt: salt, iterations: rounds, hash: 'SHA-256' }, k, 256);
+    }).then(function (b) { cb(new Uint8Array(b)); }, slow);
+  }
+  V.sealed = function () { var v = window.RIHLA_VKS; return !!(v && v.s && v.c) && !cfg().key; };
+  V.unlock = function (text, cb) {             // cb(true) once the key is opened and kept on the unit
+    var d = digits(text), v = window.RIHLA_VKS;
+    if (!v || d.length !== 12 || !luhn(d)) { cb(false); return; }
+    derive(d, bytes64(v.s), v.n || 200000, function (dk) {
+      var c = bytes64(v.c), hex = '';
+      for (var i = 0; i < c.length; i++) hex += ('0' + (c[i] ^ dk[i]).toString(16)).slice(-2);
+      App.settings.elKey = 'sk_' + hex; App.settings.elSealed = true; App.saveSettings();
+      cb(true);
+    });
+  };
+
   // what is sent to be spoken: the symbols a voice would stumble on become the words they stand for
   V.clean = function (t) {
     return String(t || '')
@@ -136,6 +214,10 @@
           // that was removed): forget it, and the premade voice takes over
           App.settings.elVoice = ''; App.settings.elVoiceName = ''; App.saveSettings();
           getBlob(text, cfg(), cb); return;
+        }
+        if (st === 401 && App.settings.elSealed && /invalid_api_key|invalid api key/i.test((e && e.body) || '')) {
+          App.settings.elKey = ''; App.settings.elSealed = false; App.saveSettings();
+          say('رقم التفعيل غلط — اكتبه مرة ثانية من الإعدادات'); cb(null, e); return;
         }
         if (spent(e) || st === 401 || st === 429 || st === 404) { say(explain(e)); downUntil = Date.now() + (st === 429 ? 120000 : spent(e) ? 6 * 3600000 : 600000); }
         cb(null, e);
