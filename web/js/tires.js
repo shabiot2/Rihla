@@ -79,12 +79,20 @@
 
   // ---------- the screen's own sensor page ----------
   function isTpms(a) { return /^\s*tpms\s*$/i.test(String(a.l)) || /(^|[.\s_-])tpms/i.test(a.p); }
+  var TPMS_WORDS = /tpms|tyre|tire|ضغط|إطار|اطار|كفر/i;
+  function tpmsIcons() {                // launcher icons (package + screen) that show the tyres, even inside a bigger app
+    if (!App.Native.has) return [];
+    App.system.apps();
+    return (App.system.launchers || []).filter(function (a) { return a.c && TPMS_WORDS.test(String(a.l)); });
+  }
   T.sensorApps = function () {
     if (!App.Native.has) return [];
     return App.system.apps().filter(function (a) { return TP.test(a.p) || TP.test(String(a.l)); });
   };
   T.openSensors = function (choose) {
     if (!App.Native.has) { App.toast('صفحة الحساسات تفتح من شاشة السيارة نفسها', 3200); return; }
+    var icon = tpmsIcons()[0];
+    if (icon && !choose && !App.settings.tpmsApp && App.Native.call('start', icon.p + '/' + icon.c) === '1') return;
     var s = App.settings.tpmsApp, list = T.sensorApps(), exact = list.filter(isTpms);
     if (!choose && exact.length === 1 && s !== exact[0].p) { s = App.settings.tpmsApp = exact[0].p; App.saveSettings(); }
     if (s && !choose && App.Native.call('launch', s) === '1') return;
@@ -121,11 +129,12 @@
   function hex4(n) { n = (+n || 0).toString(16); return ('0000' + n).slice(-4); }
   // which apps to examine: the screen's «TPMS» first, then the chosen one, then anything about cars / tyres
   // the apps behind the car's data on this kind of unit (reglink/yunovo): CarFun shows TPMS, Car Setup talks to the car, AC
-  var CAR_PKGS = ['com.reglink.vehicleinfo', 'com.reglink.services', 'com.reglink.apps.serviceui'];
+  var CAR_PKGS = ['com.reglink.services', 'com.reglink.apps.settings', 'com.reglink.vehicleinfo', 'com.reglink.apps.serviceui'];
   var NOT_CAR = /carplay|zlink|autokit|android\.auto|androidauto|aasink|projection|mirror|cleaning/i;
   function probeApps() {
     var all = App.system.apps(true), saved = App.settings.tpmsApp, out = [], seen = {};
-    function add(a) { if (a && !seen[a.p] && out.length < 4 && !NOT_CAR.test(a.p + ' ' + a.l)) { seen[a.p] = 1; out.push(a); } }
+    function add(a) { if (a && !seen[a.p] && out.length < 5 && !NOT_CAR.test(a.p + ' ' + a.l)) { seen[a.p] = 1; out.push(a); } }
+    tpmsIcons().forEach(function (i) { add(all.filter(function (a) { return a.p === i.p; })[0] || { p: i.p, l: i.l }); });
     if (saved) add(all.filter(function (a) { return a.p === saved; })[0] || { p: saved, l: saved });
     CAR_PKGS.forEach(function (p) { add(all.filter(function (a) { return a.p === p; })[0]); });
     all.filter(isTpms).forEach(add);
@@ -177,7 +186,7 @@
       var first = res[0].r, usb = first.usb || [], set = first.set || [];
       last = { probe: res.map(function (x) { return { l: x.a && x.a.l, p: x.a && x.a.p, r: x.r }; }), scan: null };
       function list(t, arr) { return arr && arr.length ? '<div class="pb-k">' + t + ' (' + arr.length + ')</div><div class="pb-v">' + arr.map(App.esc).join('<br>') + '</div>' : ''; }
-      body.innerHTML = '<div class="big-status on">' + App.icon('tire') + '<div class="txt"><b>افتح تطبيق TPMS دقيقة، وارجع اضغط «إرسال الفحص بالنت»</b><small>' +
+      body.innerHTML = '<div class="big-status on">' + App.icon('tire') + '<div class="txt"><b>افتح صفحة ضغط الإطارات في الشاشة دقيقة، وارجع اضغط «إرسال الفحص بالنت»</b><small>' +
         'الفحص يبيّن من وين يجيب تطبيق الحساسات أرقامه عشان رحلة تقرأها مباشرة. ما فيه نت؟ صوّر الصفحة بدال الإرسال.</small></div></div>' +
         '<div class="pb-apps"><span>التطبيقات المفحوصة: <b>' + (cands.length ? cands.map(function (a) { return App.esc(a.l); }).join(' · ') : '—') + '</b></span>' +
         '<button class="chip" id="pbPick">' + App.icon('apps') + 'اختر تطبيق ثاني</button></div>' +
@@ -231,6 +240,7 @@
     btn.disabled = true; out.textContent = 'جاري الإرسال…';
     var rep = { app: 'Rihla ' + App.VERSION, at: new Date().toISOString(), sys: App.Native.json('sys'),
       apps: App.system.apps(true).map(function (a) { return a.p + ' | ' + a.l; }),
+      launchers: (App.system.launchers || []).map(function (a) { return a.p + '/' + (a.c || '?') + ' | ' + a.l; }),
       check: last && last.probe, caught: caught, system: last && last.sysx,
       scan: last && last.scan && { apps: last.scan.apps, files: last.scan.files, listen: last.scan.listen, strings: ranked(last.scan.strings || []).slice(0, 5000) } };
     var text = JSON.stringify(rep, null, 1);
@@ -272,7 +282,7 @@
       return arr.length ? '<div class="pb-k">' + t + ' (' + arr.length + ')</div><div class="pb-grid">' + arr.slice(0, max).map(function (q) { return '<span>' + App.esc(q) + '</span>'; }).join('') + '</div>' : '';
     }
     box.innerHTML = '<div class="sec-title">البث الملتقط — أستمع لـ ' + App.esc(n) + ' نوع</div>' +
-      '<div class="pb" dir="ltr" id="pbCaught"><div class="pb-row pb-dim">' + (caught.length ? '' : 'ما وصل شي للحين — افتح تطبيق TPMS دقيقة وارجع هنا') + '</div></div>' +
+      '<div class="pb" dir="ltr" id="pbCaught"><div class="pb-row pb-dim">' + (caught.length ? '' : 'ما وصل شي للحين — افتح صفحة ضغط الإطارات دقيقة وارجع هنا') + '</div></div>' +
       '<div class="sec-title">داخل ' + srcs.map(function (x) { return App.esc(x.l); }).join(' و ') + ' (' + App.d(strs.length) + ')</div><div class="pb" dir="ltr">' +
       (strs.length ? grid('tyres', tire, 90) + grid('actions', acts, 70) + grid('devices', devs, 20) : '<div class="pb-row pb-dim">unreadable</div>') + '</div>' +
       '<div class="sec-title">النظام — خدمات ' + App.d(sx.services.length) + ' · خصائص ' + App.d(sx.props.length) + ' · منافذ ' + App.d(sx.devs.length) + '</div>' +

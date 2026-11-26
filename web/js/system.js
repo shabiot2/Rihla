@@ -61,6 +61,7 @@
   S.apps = function (refresh) {
     if (S.list && !refresh) return S.list;
     var arr = N.json('apps') || [], seen = {};
+    S.launchers = arr.filter(function (a) { return a.p && a.p !== 'com.carnav.camry'; });   // every launcher icon, several per app too
     S.list = arr.filter(function (a) {
       if (!a.p || a.p === 'com.carnav.camry' || seen[a.p]) return false;
       seen[a.p] = 1;
